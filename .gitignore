@@ -1,0 +1,19 @@
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+context/shared/credentials.md
+context/shared/prospects.csv
+
+# Tools & dependencies
+tools/
+node_modules/
+__pycache__/
+*.pyc
+
+# Backups
+backups/
+
+# OS
+.DS_Store
+Thumbs.db
