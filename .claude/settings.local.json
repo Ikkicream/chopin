@@ -52,7 +52,16 @@
       "Bash(HOME=/home/autoblog pm2 restart genesis-dashboard)",
       "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; grep -nE \"server_name|listen|location|proxy_pass\" {} 2>/dev/null')",
       "Bash(ps -fp 709547)",
-      "Bash(HOME=/home/autoblog pm2 show genesis-ui)"
+      "Bash(HOME=/home/autoblog pm2 show genesis-ui)",
+      "Bash(pnpm build *)",
+      "Bash(HOME=/home/autoblog pm2 restart genesis-ui)",
+      "Bash(git fetch *)",
+      "Bash(sed -n '1,10p')",
+      "Bash(sed -n '1,10p' .env.template)",
+      "Bash(git reset *)",
+      "Bash(git -c user.email=bot@genesis.local -c 'user.name=Genesis Bot' commit -m 'feat: Genesis — état complet \\(SEO FR, Serper scraping, MFA, prospects\\) *)",
+      "Bash(git add *)",
+      "Bash(git -c user.email=\"bot@genesis.local\" -c user.name=\"Genesis Bot\" commit --amend --no-edit)"
     ]
   }
 }

@@ -259,6 +259,15 @@ def generate_article(topic: dict, site: str, env: dict) -> dict:
             cta=site_cfg["cta"],
         )
 
+    # Enrichit le prompt avec les instructions IA du module articles pour ce site
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from modules_backend import enrich_prompt as _enrich
+        prompt = _enrich(prompt, site, "articles")
+    except Exception:
+        pass
+
     print(f"  Génération via DeepSeek ({len(prompt)} chars prompt)...")
     resp = requests.post(
         "https://api.deepseek.com/chat/completions",
@@ -525,5 +534,15 @@ if __name__ == "__main__":
     dry = not args.live
 
     sites = ["lcr", "mkd"] if args.site == "both" else [args.site]
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from modules_backend import is_enabled
+    except Exception:
+        is_enabled = lambda *_: True
+
     for s in sites:
+        if not is_enabled(s, "articles"):
+            print(f"[content_agent] {s}: module 'articles' désactivé → skip")
+            continue
         run(s, dry_run=dry, force_keyword=args.keyword)

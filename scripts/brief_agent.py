@@ -103,6 +103,11 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de commentaires) :
 }}"""
 
     from llm_call import call_llm_json
+    try:
+        from modules_backend import enrich_prompt
+        prompt = enrich_prompt(prompt, site, "articles")
+    except Exception:
+        pass
     return call_llm_json(prompt, max_tokens=500, temperature=0.7, module="briefing", action="article-proposal", site=site)
 
 
@@ -191,8 +196,19 @@ def main():
 
     print(f"[brief_agent] {datetime.now(timezone.utc).isoformat()}")
 
+    # Respect modules toggle : skip si articles désactivé pour ce site
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from modules_backend import is_enabled
+    except Exception:
+        is_enabled = lambda *_: True  # fallback
+
     sites = ["lcr", "mkd"] if args.site == "both" else [args.site]
     for site in sites:
+        if not is_enabled(site, "articles"):
+            print(f"[brief_agent] {site}: module 'articles' désactivé → skip")
+            continue
         process_site(site)
 
     print("[brief_agent] Done!")

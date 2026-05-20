@@ -165,6 +165,11 @@ GÉNÈRE EXACTEMENT 5 RECOMMANDATIONS, JSON pur (pas de markdown wrapper) :
 ]"""
 
     from llm_call import call_llm_json
+    try:
+        from modules_backend import enrich_prompt
+        prompt = enrich_prompt(prompt, site, "seo_strategy")
+    except Exception:
+        pass
     return call_llm_json(prompt, max_tokens=4000, module="seo-strategy", action="recommendations", site=site)
 
 
@@ -236,8 +241,18 @@ def main():
     args = parser.parse_args()
 
     print(f"[seo_strategy_agent] {datetime.now(timezone.utc).isoformat()}")
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from modules_backend import is_enabled
+    except Exception:
+        is_enabled = lambda *_: True
+
     sites = ["lcr", "mkd"] if args.site == "both" else [args.site]
     for site in sites:
+        if not is_enabled(site, "seo_strategy"):
+            print(f"[seo_strategy] {site}: module désactivé → skip")
+            continue
         process_site(site)
     print("[seo_strategy_agent] Done!")
 

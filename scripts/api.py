@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 api.py — Backend FastAPI pour le dashboard Genesis.
-Agrège les données de Emdash, Emelia, Twenty CRM, pm2, orchestrateur.
+Agrège les données de Emdash, Emelia, CRM interne (DuckDB), pm2, orchestrateur.
 
 Lancer: uvicorn scripts.api:app --host 0.0.0.0 --port 8080 --reload
 Ou:     python3 scripts/api.py
@@ -20,13 +20,8 @@ from emelia_campaign_manager import (
     get_default_steps as emelia_default_steps, list_campaigns as emelia_list,
     get_campaign_stats as emelia_stats
 )
-from crm_backend import (
-    create_contact as crm_create, list_contacts as crm_list,
-    get_contact as crm_get, update_contact as crm_update,
-    delete_contact as crm_delete, add_interaction as crm_interaction,
-    export_csv as crm_export, get_stats as crm_stats,
-    prm_list, prm_add_contact, prm_transfer_to_crm, prm_delete, prm_stats
-)
+# NB: anciens imports crm_backend (CRM/PRM legacy) supprimés le 2026-05-20.
+# Toute la logique passe désormais par scripts/acquisition_backend.py.
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -283,27 +278,28 @@ def get_articles():
 
 @app.get("/api/crm")
 def get_crm():
+    """Vue agrégée du CRM interne (DuckDB) — somme des contacts LCR + MKD.
+    L'ancien endpoint pointait sur Twenty CRM (supprimé le 2026-05-20)."""
     try:
-        env = load_env()
-        q = """{ people { edges { node { id name { firstName lastName } jobTitle } } } }"""
-        r = requests.post(
-            "http://localhost:3000/graphql",
-            headers={"Authorization": f"Bearer {env['TWENTY_API_KEY']}", "Content-Type": "application/json"},
-            json={"query": q},
-            timeout=5,
-        )
-        people = r.json().get("data", {}).get("people", {}).get("edges", [])
+        import sys as _sys
+        _sys.path.insert(0, str(BASE_DIR))
+        from scripts.crm_backend import list_contacts as _list_contacts
 
+        lcr = _list_contacts("lcr", limit=10)
+        mkd = _list_contacts("mkd", limit=10)
         sync_log = {}
-        if COSTS_FILE.parent.parent.joinpath("memory/shared/crm-sync-log.json").exists():
-            sync_log = json.loads(
-                BASE_DIR.joinpath("memory/shared/crm-sync-log.json").read_text()
-            )
+        sync_path = BASE_DIR / "memory" / "shared" / "crm-sync-log.json"
+        if sync_path.exists():
+            try:
+                sync_log = json.loads(sync_path.read_text())
+            except Exception:
+                sync_log = {}
+        synced_count = len(sync_log) if isinstance(sync_log, list) else len(sync_log.get("synced", {}))
 
         return {
-            "total":    len(people),
-            "contacts": [n["node"] for n in people[:10]],
-            "synced":   len(sync_log.get("synced", {})),
+            "total":    len(lcr) + len(mkd),
+            "contacts": (lcr + mkd)[:10],
+            "synced":   synced_count,
         }
     except Exception as e:
         return {"total": 0, "error": str(e)}
@@ -478,7 +474,6 @@ SERVICES_DEF = [
     {"id": "genesis-campaign-status", "label": "Statut campagnes",   "type": "cron",    "cron": "0 9 * * 1",     "module": "campaigns"},
     {"id": "paperclip",               "label": "Paperclip (legacy)", "type": "service", "cron": None,            "module": None},
     {"id": "emdashcms",               "label": "Emdash CMS (LCR)",   "type": "service", "cron": None,            "module": None},
-    {"id": "twenty",                  "label": "Twenty CRM",         "type": "service", "cron": None,            "module": None},
 ]
 
 def send_telegram_alert(message: str, env: dict):
@@ -544,7 +539,7 @@ def get_services():
                 overdue = hours_since > 24
 
         # Service permanent → alerte si pm2 offline
-        if svc["type"] == "service" and not pm2_live and svc["id"] not in ("paperclip", "emdashcms", "twenty", "lcr-webhook"):
+        if svc["type"] == "service" and not pm2_live and svc["id"] not in ("paperclip", "emdashcms", "lcr-webhook"):
             overdue = True
 
         if overdue:
@@ -641,18 +636,18 @@ def get_connectors():
     emelia_key = env.get("EMELIA_API_KEY", "")
     results["emelia"] = {"ok": bool(emelia_key), "label": "Emelia (cold email)", "key_set": bool(emelia_key), "env_var": "EMELIA_API_KEY"}
 
-    # Twenty CRM
-    twenty_key = env.get("TWENTY_API_KEY", "")
-    twenty_ok  = False
-    if twenty_key:
-        try:
-            r = requests.post("http://localhost:3000/graphql",
-                              headers={"Authorization": f"Bearer {twenty_key}", "Content-Type": "application/json"},
-                              json={"query": "{ __typename }"}, timeout=2)
-            twenty_ok = r.status_code < 400
-        except Exception:
-            pass
-    results["twenty"] = {"ok": twenty_ok, "label": "Twenty CRM", "key_set": bool(twenty_key), "env_var": "TWENTY_API_KEY"}
+    # CRM interne (DuckDB) — toujours OK, pas de clé externe
+    try:
+        crm_lcr_db = (BASE_DIR / "data" / "crm" / "lcr.duckdb").exists()
+        crm_mkd_db = (BASE_DIR / "data" / "crm" / "mkd.duckdb").exists()
+        results["crm_interne"] = {
+            "ok": crm_lcr_db or crm_mkd_db,
+            "label": "CRM interne (DuckDB)",
+            "key_set": True,
+            "env_var": "",
+        }
+    except Exception:
+        results["crm_interne"] = {"ok": False, "label": "CRM interne (DuckDB)", "key_set": False, "env_var": ""}
 
     # DeepSeek
     ds_key = env.get("DEEPSEEK_API_KEY", "")
@@ -766,7 +761,7 @@ AGENT_DEFS = {
     "mkd": [
         {"module": "briefing",    "label": "Briefing Telegram",  "pm2": "genesis-briefing",         "cron": "0 7 * * *",    "max_hours": 25},
         {"module": "content",     "label": "Content Agent",      "pm2": None,                       "cron": "mer 10h",      "max_hours": 168},
-        {"module": "crm_sync",    "label": "Sync CRM Twenty",    "pm2": "genesis-crm-sync",         "cron": "lun-ven 8h",   "max_hours": 25},
+        {"module": "crm_sync",    "label": "Sync CRM (Emelia→DuckDB)", "pm2": "genesis-crm-sync",   "cron": "lun-ven 8h",   "max_hours": 25},
         {"module": "campaigns",   "label": "Statut campagnes",   "pm2": "genesis-campaign-status",  "cron": "lun 9h UTC",   "max_hours": 170},
         {"module": "seo",         "label": "Analyse SEO Ahrefs", "pm2": "genesis-seo",              "cron": "lun 6h UTC",   "max_hours": 170},
     ],
@@ -2049,64 +2044,12 @@ async def api_onboard_full(request: Request):
     }
 
 
-# ── Mini CRM per site ─────────────────────────────────────────────────────────
-
-@app.get("/api/crm/{site}/contacts")
-async def api_crm_contacts(site: str, statut: str = None, date_from: str = None, date_to: str = None):
-    """List contacts with optional filters."""
-    return {"contacts": crm_list(site, statut=statut, date_from=date_from, date_to=date_to)}
-
-@app.post("/api/crm/{site}/contacts")
-async def api_crm_create_contact(site: str, request: Request):
-    """Create a new contact."""
-    data = await request.json()
-    contact_id = crm_create(site, data)
-    return {"ok": True, "id": contact_id}
-
-@app.get("/api/crm/{site}/contacts/{contact_id}")
-async def api_crm_contact_detail(site: str, contact_id: str):
-    """Get contact detail with interactions."""
-    contact = crm_get(site, contact_id)
-    if not contact:
-        return {"error": "not found"}
-    return contact
-
-@app.patch("/api/crm/{site}/contacts/{contact_id}")
-async def api_crm_update_contact(site: str, contact_id: str, request: Request):
-    """Update a contact."""
-    data = await request.json()
-    ok = crm_update(site, contact_id, data)
-    return {"ok": ok}
-
-@app.delete("/api/crm/{site}/contacts/{contact_id}")
-async def api_crm_delete_contact(site: str, contact_id: str):
-    """Delete a contact."""
-    ok = crm_delete(site, contact_id)
-    return {"ok": ok}
-
-@app.post("/api/crm/{site}/contacts/{contact_id}/interaction")
-async def api_crm_add_interaction(site: str, contact_id: str, request: Request):
-    """Add an interaction to a contact."""
-    data = await request.json()
-    iid = crm_interaction(site, contact_id, data.get("type", "note"), data.get("contenu", ""))
-    return {"ok": True, "id": iid}
-
-@app.get("/api/crm/{site}/export")
-async def api_crm_export(site: str):
-    """Export contacts as CSV."""
-    from fastapi.responses import Response
-    csv = crm_export(site)
-    return Response(content=csv, media_type="text/csv",
-                   headers={"Content-Disposition": f"attachment; filename=crm-{site}.csv"})
-
-@app.get("/api/crm/{site}/stats")
-async def api_crm_site_stats(site: str):
-    """CRM stats for a site."""
-    return crm_stats(site)
+# ── CRM legacy endpoints supprimés le 2026-05-20 (remplacés par /api/sites/{site}/acquisition) ──
+# Le webhook reste car Tally Forms pointe encore dessus (redirige vers acquisition_contacts).
 
 @app.post("/api/crm/{site}/webhook")
 async def api_crm_webhook(site: str, request: Request):
-    """Webhook for forms (contact + TidyCal). Auto-creates contact."""
+    """Webhook for forms (Tally + TidyCal). Insert dans acquisition_contacts avec state=lead."""
     data = await request.json()
     # Determine source
     source = "formulaire"
@@ -2115,7 +2058,6 @@ async def api_crm_webhook(site: str, request: Request):
     elif data.get("emelia"):
         source = "emelia"
 
-    # Split "name" into prenom/nom if provided as single field
     full_name = data.get("name", "")
     if full_name and not data.get("nom") and not data.get("prenom"):
         parts = full_name.strip().split(" ", 1)
@@ -2125,16 +2067,19 @@ async def api_crm_webhook(site: str, request: Request):
         _prenom = data.get("prenom", data.get("firstName", ""))
         _nom = data.get("nom", data.get("lastName", ""))
 
-    contact_id = crm_create(site, {
-        "nom": _nom,
-        "prenom": _prenom,
-        "email": data.get("email", ""),
-        "tel": data.get("tel", data.get("phone", "")),
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import create as acq_create
+    res = acq_create(site, {
+        "nom":     _nom,
+        "prenom":  _prenom,
+        "email":   data.get("email", ""),
+        "tel":     data.get("tel", data.get("phone", "")),
         "societe": data.get("societe", data.get("company", "")),
-        "source": source,
-        "statut": "nouveau",
-        "notes": data.get("message", data.get("notes", "")),
-    })
+        "source":  source,
+        "state":   "lead",  # remplir un formulaire = signal d'intérêt fort
+        "notes":   data.get("message", data.get("notes", "")),
+    }, by="webhook_form")
+    contact_id = res.get("id", "")
 
     # Telegram notification
     try:
@@ -2162,26 +2107,27 @@ async def api_crm_webhook(site: str, request: Request):
     )
     return {"ok": True, "id": contact_id, "source": source}
 
-@app.post("/api/crm/{site}/contacts/{contact_id}/email")
-async def api_crm_send_email(site: str, contact_id: str, request: Request):
-    """Send an email to a contact (via Resend or fallback)."""
+@app.post("/api/sites/{site}/acquisition/{contact_id}/email")
+async def api_acq_send_email(site: str, contact_id: str, request: Request):
+    """Envoie un email \u00e0 un contact d'acquisition (via Resend)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import _conn
     data = await request.json()
-    contact = crm_get(site, contact_id)
-    if not contact:
+    conn = _conn(site)
+    try:
+        row = conn.execute("SELECT email FROM acquisition_contacts WHERE id = ?", [contact_id]).fetchone()
+    finally:
+        conn.close()
+    if not row:
         return {"error": "contact not found"}
 
-    # Log the interaction
-    crm_interaction(site, contact_id, "email_sent",
-                   f"Objet: {data.get('subject','')}\n{data.get('body','')[:200]}")
-
-    # Try to send via Resend API
     import os
     resend_key = os.environ.get("RESEND_API_KEY", "")
     if resend_key:
         try:
             r = requests.post("https://api.resend.com/emails", json={
                 "from": data.get("from", f"contact@{site}.com"),
-                "to": [contact["email"]],
+                "to": [row[0]],
                 "subject": data.get("subject", ""),
                 "text": data.get("body", ""),
             }, headers={"Authorization": f"Bearer {resend_key}"}, timeout=10)
@@ -2799,29 +2745,7 @@ async def api_campaign_stats_single(campaign_id: str):
         return {"error": str(e)}
 
 
-# ── PRM (Pre-CRM) ────────────────────────────────────────────────────────────
-
-@app.get("/api/crm/{site}/prm")
-async def api_prm_list(site: str):
-    """List PRM contacts (Emelia clicks/opens not yet in CRM)."""
-    contacts = prm_list(site)
-    stats = prm_stats(site)
-    return {"contacts": contacts, "stats": stats}
-
-@app.post("/api/crm/{site}/prm/{prm_id}/transfer")
-async def api_prm_transfer(site: str, prm_id: str):
-    """Transfer a PRM contact to CRM."""
-    crm_id = prm_transfer_to_crm(site, prm_id)
-    if crm_id:
-        return {"ok": True, "crm_id": crm_id}
-    return {"error": "Contact not found"}
-
-@app.delete("/api/crm/{site}/prm/{prm_id}")
-async def api_prm_delete(site: str, prm_id: str):
-    """Delete a PRM contact."""
-    prm_delete(site, prm_id)
-    return {"ok": True}
-
+# ── PRM endpoints supprimés le 2026-05-20 (remplacés par /api/sites/{site}/acquisition) ──
 
 @app.get("/api/campaigns/list-with-stats")
 async def api_campaigns_with_stats():
@@ -2907,16 +2831,28 @@ async def api_emelia_webhook(request: Request):
                   "email_opened": "opened", "email_clicked": "clicked", "email_replied": "replied", "email_bounced": "bounced"}
     action = action_map.get(event_type, event_type or "unknown")
 
-    # Add to PRM (default site: lcr)
+    # Insère/promote dans acquisition_contacts (default site: lcr)
     site = "lcr"
-    prm_add_contact(site, {
-        "email": email,
-        "firstName": contact.get("firstName", ""),
-        "lastName": contact.get("lastName", ""),
-        "company": contact.get("company", contact.get("custom", {}).get("companyName", "")),
-        "campaign": campaign.get("name", ""),
-        "action": action,
-    })
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import create as acq_create, find_by_email as acq_find, change_state as acq_change_state, STATE_RANK
+    # action → state cible : click→prm, reply→lead, bounce/unsub→blacklisted, open=ignore
+    state_map = {"opened": None, "clicked": "prm", "replied": "lead", "bounced": "blacklisted", "unsubscribed": "blacklisted"}
+    target_state = state_map.get(action)
+    if target_state:
+        existing = acq_find(site, email)
+        if existing:
+            if STATE_RANK.get(target_state, 0) > STATE_RANK.get(existing["state"], 0) and existing["state"] != "blacklisted":
+                acq_change_state(site, existing["id"], target_state, by="emelia_webhook", note=f"campaign={campaign.get('name','')} action={action}")
+        else:
+            acq_create(site, {
+                "email":   email,
+                "prenom":  contact.get("firstName", ""),
+                "nom":     contact.get("lastName", ""),
+                "societe": contact.get("company", contact.get("custom", {}).get("companyName", "")),
+                "notes":   f"emelia webhook campaign={campaign.get('name','')} action={action}",
+                "state":   target_state,
+                "source":  f"emelia:{campaign.get('name','')}"[:60],
+            }, by="emelia_webhook")
 
     # Telegram notification for replies
     if action == "replied":
@@ -2969,36 +2905,26 @@ async def api_campaign_delete(campaign_id: str):
 
 @app.post("/api/crm/{site}/prm/webhook")
 async def api_prm_webhook(site: str, request: Request):
-    """Receive external contacts into PRM. Dedup by email. Only email is required.
-    Body: {email, firstName?, lastName?, company?, phone?, source?, action?}
-    Or array of contacts: [{email, ...}, ...]
+    """Webhook PRM legacy → insère dans acquisition_contacts avec state=lead (formulaire = signal fort).
+    Body: {email, firstName?, lastName?, company?, phone?, source?, action?} ou liste.
     """
     data = await request.json()
-
-    # Handle single contact or array
     contacts = data if isinstance(data, list) else [data]
 
-    added = 0
-    skipped = 0
-    errors = []
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import create as acq_create, find_by_email as acq_find
 
+    added, skipped, errors = 0, 0, []
     for contact in contacts:
-        email = contact.get("email", "").strip().lower()
+        email = (contact.get("email") or "").strip().lower()
         if not email or "@" not in email:
             errors.append(f"email manquant ou invalide: {email}")
             continue
 
-        # Check dedup: email already in PRM?
-        from scripts.crm_backend import get_prm_db
-        conn = get_prm_db(site)
-        existing = conn.execute("SELECT COUNT(*) FROM prm_contacts WHERE email = ?", [email]).fetchone()[0]
-        conn.close()
-
-        if existing > 0:
+        if acq_find(site, email):
             skipped += 1
             continue
 
-        # Split "name" into firstName/lastName if provided as single field
         full_name = contact.get("name", contact.get("nom_complet", ""))
         if full_name and not contact.get("firstName"):
             parts = full_name.strip().split(" ", 1)
@@ -3008,24 +2934,20 @@ async def api_prm_webhook(site: str, request: Request):
             first_name = contact.get("firstName", contact.get("first_name", contact.get("prenom", "")))
             last_name = contact.get("lastName", contact.get("last_name", contact.get("nom", "")))
 
-        prm_add_contact(site, {
-            "email": email,
-            "firstName": first_name,
-            "lastName": last_name,
-            "company": contact.get("company", contact.get("entreprise", contact.get("societe", ""))),
-            "campaign": contact.get("source", contact.get("campaign", "formulaire")),
-            "action": contact.get("action", contact.get("type", "lead")),
-        })
-
-        # Save message to notes if present
+        source = contact.get("source", contact.get("campaign", "formulaire"))
         message = contact.get("message", "")
         phone = contact.get("phone", contact.get("telephone", contact.get("tel", "")))
-        if message or phone:
-            from scripts.crm_backend import get_prm_db
-            conn2 = get_prm_db(site)
-            # Get the last inserted contact id
-            last = conn2.execute("SELECT id FROM prm_contacts WHERE email = ? ORDER BY created_at DESC LIMIT 1", [email]).fetchone()
-            conn2.close()
+
+        acq_create(site, {
+            "email":   email,
+            "prenom":  first_name,
+            "nom":     last_name,
+            "societe": contact.get("company", contact.get("entreprise", contact.get("societe", ""))),
+            "tel":     phone,
+            "notes":   message,
+            "source":  source,
+            "state":   "lead",
+        }, by="webhook_prm")
         added += 1
 
     # Telegram alert for new leads
@@ -3232,41 +3154,8 @@ async def api_prospects_scrape(site: str, request: Request):
 
 @app.get("/api/sites/{site}/prospects/runs")
 def api_prospects_list_runs(site: str):
-    """Liste les runs de scraping précédents pour un site."""
-    if site not in ("lcr", "mkd"):
-        return {"error": "invalid site"}
-    site_dir = BASE_DIR / "data" / "prospects" / site
-    if not site_dir.exists():
-        return {"runs": []}
-    runs = []
-    for f in sorted(site_dir.glob("run_*.json"), reverse=True)[:30]:
-        try:
-            d = json.loads(f.read_text())
-            n_email = sum(1 for p in d.get("prospects", []) if p.get("emails"))
-            runs.append({
-                "file":       f.name,
-                "run_at":     d.get("run_at"),
-                "sector":     d.get("sector"),
-                "location":   d.get("location"),
-                "count":      d.get("count"),
-                "with_email": n_email,
-            })
-        except Exception:
-            pass
-    return {"runs": runs}
-
-
-@app.get("/api/sites/{site}/prospects/run/{filename}")
-def api_prospects_run_detail(site: str, filename: str):
-    """Détail d'un run de scraping."""
-    if site not in ("lcr", "mkd"):
-        return {"error": "invalid site"}
-    if not filename.startswith("run_") or ".." in filename or "/" in filename:
-        return {"error": "invalid filename"}
-    f = BASE_DIR / "data" / "prospects" / site / filename
-    if not f.exists():
-        return {"error": "not found"}
-    return json.loads(f.read_text())
+    """OBSOLÈTE — remplacé par /api/sites/{site}/acquisition (state=cold_email)."""
+    return {"runs": [], "deprecated": True}
 
 
 @app.post("/api/sites/{site}/prospects/push-emelia")
@@ -3310,3 +3199,131 @@ async def api_prospects_push_emelia(site: str, request: Request):
         return {"ok": True, "added": added, "skipped": skipped, "errors": errors[:5]}
     except Exception as e:
         return {"error": str(e)}
+
+
+# ── Acquisition unifiée (cold_email → prm → lead → crm → blacklisted) ─────────
+
+@app.get("/api/sites/{site}/acquisition")
+def api_acq_list(
+    site: str, state: str = "", source: str = "", search: str = "",
+    limit: int = 100, offset: int = 0,
+):
+    """Liste paginée avec filtres multi-valeurs séparées par virgule.
+    state=cold_email,prm  →  contacts dans ces 2 états."""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import list_contacts
+    states  = [s for s in (state or "").split(",") if s]
+    sources = [s for s in (source or "").split(",") if s]
+    return list_contacts(site, state=states or None, source=sources or None, search=search.strip(),
+                         limit=min(500, max(1, limit)), offset=max(0, offset))
+
+
+@app.get("/api/sites/{site}/acquisition/stats")
+def api_acq_stats(site: str):
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import stats
+    return stats(site)
+
+
+@app.post("/api/sites/{site}/acquisition")
+async def api_acq_create(site: str, request: Request):
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    data = await request.json()
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import create
+    sess = getattr(request.state, "session", None)
+    by = (sess or {}).get("username", "ui")
+    return create(site, data, by=by)
+
+
+@app.patch("/api/sites/{site}/acquisition/{contact_id}")
+async def api_acq_update(site: str, contact_id: str, request: Request):
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    data = await request.json()
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import update
+    return update(site, contact_id, data)
+
+
+@app.patch("/api/sites/{site}/acquisition/{contact_id}/state")
+async def api_acq_state(site: str, contact_id: str, request: Request):
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    data = await request.json()
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import change_state
+    sess = getattr(request.state, "session", None)
+    by = (sess or {}).get("username", "ui")
+    return change_state(site, contact_id, data.get("state", ""), by=by, note=data.get("note", ""))
+
+
+@app.delete("/api/sites/{site}/acquisition/{contact_id}")
+def api_acq_delete(site: str, contact_id: str, hard: bool = False):
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import delete
+    return delete(site, contact_id, hard=hard)
+
+
+@app.post("/api/sites/{site}/acquisition/{contact_id}/blacklist")
+async def api_acq_blacklist(site: str, contact_id: str, request: Request):
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    data = await request.json() if request.headers.get("content-length") else {}
+    push_emelia = bool(data.get("push_emelia", False))
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import blacklist
+    env = load_env()
+    return blacklist(site, contact_id, push_emelia=push_emelia, emelia_api_key=env.get("EMELIA_API_KEY", ""))
+
+
+@app.post("/api/sites/{site}/acquisition/import-csv")
+async def api_acq_import_csv(site: str, request: Request):
+    """Body: {rows: [{email, nom, prenom, societe, tel, notes}, ...], default_state: 'cold_email'}"""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    data = await request.json()
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.acquisition_backend import bulk_import
+    return bulk_import(
+        site, data.get("rows", []),
+        source="import_csv", default_state=data.get("default_state", "cold_email"),
+    )
+
+
+# ── Modules toggle + mini-RAG par site ────────────────────────────────────────
+
+@app.get("/api/sites/{site}/modules")
+def api_modules_list(site: str):
+    """Retourne la liste des modules + état (enabled/instructions) + statut connecteurs."""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.modules_backend import get_modules
+    return get_modules(site)
+
+
+@app.patch("/api/sites/{site}/modules/{module_id}")
+async def api_modules_patch(site: str, module_id: str, request: Request):
+    """Active/désactive un module ou met à jour ses instructions IA.
+    Body : {enabled?: bool, instructions?: str}"""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    data = await request.json()
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from scripts.modules_backend import toggle, set_instructions
+    out = {}
+    if "enabled" in data:
+        out.update(toggle(site, module_id, bool(data["enabled"])))
+    if "instructions" in data:
+        out.update(set_instructions(site, module_id, data["instructions"]))
+    if not out:
+        return {"error": "no_changes"}
+    return out

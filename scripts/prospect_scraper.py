@@ -230,6 +230,22 @@ def save_run(site: str, sector: str, location: str, prospects: list[dict]) -> Pa
                     w.writerow([sector, location, p["company"], p["domain"], em, p["contact_page"], p["confidence"], now])
             else:
                 w.writerow([sector, location, p["company"], p["domain"], "", "", p["confidence"], now])
+
+    # Insertion directe dans acquisition_contacts (state=cold_email)
+    try:
+        from acquisition_backend import create as acq_create
+        for p in prospects:
+            for em in p.get("emails", []):
+                acq_create(site, {
+                    "email":   em,
+                    "societe": p.get("company", ""),
+                    "notes":   f"scraping {sector} {location} — {p.get('contact_page','')}",
+                    "state":   "cold_email",
+                    "source":  "scraping_serper",
+                }, by="prospect_scraper")
+    except Exception as e:
+        print(f"  [acq] erreur insertion : {e}")
+
     return run_file
 
 

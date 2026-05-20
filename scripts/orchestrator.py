@@ -5,7 +5,7 @@ Tourne en cron via pm2. Orchestre tous les modules Genesis.
 
 Schedule par défaut:
   - 07:00 UTC chaque jour : briefing.py (Telegram + stats)
-  - 08:00 UTC lun-ven     : crm_sync.py (sync réponses → CRM)
+  - 08:00 UTC lun-ven     : emelia_to_crm.py (sync réponses → CRM DuckDB)
   - 09:00 UTC lundi       : campaign_manager.py status
   - 10:00 UTC lundi       : article content (hebdomadaire)
 
@@ -108,13 +108,13 @@ def task_briefing(dry_run: bool = False) -> bool:
 
 
 def task_crm_sync(dry_run: bool = False) -> bool:
-    """Synchronisation Emelia → Twenty CRM."""
+    """Synchronisation Emelia → CRM interne DuckDB."""
     print("\n[orchestrator] TÂCHE: crm-sync")
     import time
     start = time.time()
 
-    args = [] if not dry_run else []  # crm_sync est dry-run par défaut sans --live
-    code, output = run_script("crm_sync.py", args)
+    args = ["--dry-run"] if dry_run else []
+    code, output = run_script("emelia_to_crm.py", args)
 
     duration = time.time() - start
     status = "success" if code == 0 else "error"

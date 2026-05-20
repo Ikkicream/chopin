@@ -71,6 +71,11 @@ CONTRAINTES :
 
 Écris UNIQUEMENT le post LinkedIn, rien d'autre."""
 
+    try:
+        from modules_backend import enrich_prompt
+        prompt = enrich_prompt(prompt, site, "linkedin")
+    except Exception:
+        pass
     return call_haiku(prompt)
 
 
@@ -96,11 +101,23 @@ def main():
     now = datetime.now(timezone.utc)
     three_days_ago = now - timedelta(days=3)
 
+    # Module toggle check
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from modules_backend import is_enabled
+    except Exception:
+        is_enabled = lambda *_: True
+
     for art in queue:
         if art["status"] != "published":
             continue
         if art.get("linkedin_post"):
             continue  # Already generated
+
+        # Skip si module linkedin désactivé pour ce site
+        if not is_enabled(art["site"], "linkedin"):
+            continue
 
         published_at = art.get("published_at", "")
         if not published_at:
