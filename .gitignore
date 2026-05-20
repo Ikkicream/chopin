@@ -1,19 +1,22 @@
-# Secrets — NEVER commit
+# Secrets
 .env
 .env.*
-!.env.example
+!.env.template
 context/shared/credentials.md
 context/shared/prospects.csv
 
-# Tools & dependencies
+# Data (too large / personal)
+data/
+memory/
+backups/
+
+# Tools & deps
 tools/
 node_modules/
 __pycache__/
 *.pyc
 
-# Backups
-backups/
-
 # OS
 .DS_Store
-Thumbs.db
+google-indexing-key.json
+.htpasswd
