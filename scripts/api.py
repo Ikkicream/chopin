@@ -35,7 +35,7 @@ from scripts.health_check import check_all_sites
 from typing import Any
 
 import requests
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -1592,43 +1592,77 @@ async def api_health_check():
 # ── Versions & Backups ────────────────────────────────────────────────────────
 
 @app.get("/api/versions")
-async def api_versions():
-    """Git log + ZIP backup listing."""
-    import glob
+async def api_versions(limit: int = 50):
+    """Version actuelle + changelog (git log) + ZIP backups + diff vs origin."""
+    # Version courante
+    count = subprocess.run(["git", "rev-list", "--count", "HEAD"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=5).stdout.strip()
+    sha   = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=5).stdout.strip()
+    head_date = subprocess.run(["git", "log", "-1", "--format=%cI"], cwd=str(BASE_DIR), capture_output=True, text=True, timeout=5).stdout.strip()
 
-    # Git log (last 20 commits)
-    git_log = []
+    # Diff vs origin (best-effort, sans bloquer si pas de réseau)
+    ahead, behind = 0, 0
     try:
-        result = subprocess.run(
-            ["git", "log", "--oneline", "--format=%H|%ai|%s", "-20"],
-            capture_output=True, text=True, cwd=str(BASE_DIR)
-        )
-        for line in result.stdout.strip().split("\n"):
-            if "|" in line:
-                parts = line.split("|", 2)
-                git_log.append({
-                    "hash": parts[0][:7],
-                    "date": parts[1][:16],
-                    "message": parts[2] if len(parts) > 2 else ""
-                })
+        subprocess.run(["git", "fetch", "--no-tags", "--depth=1", "origin", "main"], cwd=str(BASE_DIR), timeout=8, capture_output=True)
+        ab = subprocess.run(
+            ["git", "rev-list", "--left-right", "--count", "origin/main...HEAD"],
+            cwd=str(BASE_DIR), capture_output=True, text=True, timeout=5,
+        ).stdout.strip().split()
+        if len(ab) >= 2:
+            behind, ahead = int(ab[0]), int(ab[1])
     except Exception:
         pass
 
-    # ZIP backups
+    # Commits récents
+    commits = []
+    try:
+        result = subprocess.run(
+            ["git", "log", f"-{max(1, min(limit, 200))}", "--pretty=format:%h\t%an\t%cI\t%s"],
+            cwd=str(BASE_DIR), capture_output=True, text=True, timeout=10,
+        )
+        for line in result.stdout.split("\n"):
+            line = line.strip()
+            if not line: continue
+            parts = line.split("\t", 3)
+            if len(parts) < 4: continue
+            sha_c, author, date_c, msg = parts
+            low = msg.lower()
+            if low.startswith("feat"):       tag = "feat"
+            elif low.startswith("fix") or low.startswith("bug"): tag = "fix"
+            elif low.startswith("refactor"): tag = "refactor"
+            elif low.startswith("doc"):       tag = "doc"
+            elif low.startswith("chore"):    tag = "chore"
+            elif low.startswith("auto:") or "backup" in low: tag = "backup"
+            elif low.startswith("init"):      tag = "init"
+            else: tag = "other"
+            commits.append({"sha": sha_c, "author": author, "date": date_c, "message": msg, "tag": tag})
+    except Exception:
+        pass
+
+    # Backups ZIP
     backups = []
     backup_dir = BASE_DIR / "backups"
     if backup_dir.exists():
-        zips = sorted(backup_dir.glob("genesis-*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
-        for z in zips[:30]:
+        for z in sorted(backup_dir.glob("genesis-*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)[:30]:
             stat = z.stat()
-            size_mb = stat.st_size / (1024 * 1024)
             backups.append({
                 "name": z.name,
-                "size": f"{size_mb:.1f} MB",
+                "size_mb": round(stat.st_size / (1024 * 1024), 1),
                 "date": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
             })
 
-    return {"git_log": git_log, "backups": backups}
+    return {
+        "version":       f"v{count}.{sha}" if count and sha else (sha or "dev"),
+        "commit_count":  int(count) if count.isdigit() else None,
+        "head_sha":      sha,
+        "head_date":     head_date,
+        "ahead":         ahead,
+        "behind":        behind,
+        "remote":        "origin/main",
+        "commits":       commits,
+        "backups":       backups,
+        # Compat avec l'ancien format (au cas où d'autres consommateurs l'utilisent)
+        "git_log":       [{"hash": c["sha"], "date": c["date"][:16], "message": c["message"]} for c in commits[:20]],
+    }
 
 
 # ── SEO Ahrefs Data ───────────────────────────────────────────────────────────
@@ -3172,10 +3206,9 @@ async def api_prospects_push_emelia(site: str, request: Request):
     if not campaign_id or not contacts:
         return {"error": "campaign_id et emails requis"}
     try:
-        env = load_env()
-        emelia_key = env.get("EMELIA_API_KEY", "")
+        emelia_key = get_emelia_key_for_site(site)
         if not emelia_key:
-            return {"error": "EMELIA_API_KEY introuvable"}
+            return {"error": f"Aucune clé Emelia pour {site} (ni EMELIA_API_KEY_{site.upper()} ni globale)"}
         added, skipped, errors = 0, 0, []
         for c in contacts:
             payload = {
@@ -3280,8 +3313,7 @@ async def api_acq_blacklist(site: str, contact_id: str, request: Request):
     push_emelia = bool(data.get("push_emelia", False))
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from scripts.acquisition_backend import blacklist
-    env = load_env()
-    return blacklist(site, contact_id, push_emelia=push_emelia, emelia_api_key=env.get("EMELIA_API_KEY", ""))
+    return blacklist(site, contact_id, push_emelia=push_emelia, emelia_api_key=get_emelia_key_for_site(site))
 
 
 @app.post("/api/sites/{site}/acquisition/import-csv")
@@ -3296,6 +3328,300 @@ async def api_acq_import_csv(site: str, request: Request):
         site, data.get("rows", []),
         source="import_csv", default_state=data.get("default_state", "cold_email"),
     )
+
+
+# ── Images d'articles (upload + featured + insertion markdown) ────────────────
+
+ARTICLES_IMG_DIR = BASE_DIR / "dashboard" / "assets" / "articles"
+ARTICLES_IMG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _slugify_alt(text: str, maxlen: int = 60) -> str:
+    """Convertit un alt en slug filename-safe."""
+    import re, unicodedata
+    s = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode("ascii")
+    s = re.sub(r"[^a-zA-Z0-9_-]+", "-", s).strip("-").lower()
+    return (s or "image")[:maxlen]
+
+
+@app.post("/api/editorial/{article_id}/image")
+async def api_article_image_upload(article_id: str, file: UploadFile = File(...),
+                                   alt: str = "", position: str = "featured"):
+    """Upload une image pour un article.
+    position : 'featured' | 'p1' | 'p2' | 'p3'... (insère après le N-ème paragraphe)
+    alt : texte alternatif SEO (obligatoire)
+    """
+    if not alt or not alt.strip():
+        return {"error": "alt_required"}
+
+    # Lookup l'article
+    queue_file = BASE_DIR / "memory" / "editorial" / "articles-queue.json"
+    if not queue_file.exists():
+        return {"error": "no_queue"}
+    queue = json.loads(queue_file.read_text())
+    idx = next((i for i, a in enumerate(queue) if a.get("id") == article_id), -1)
+    if idx == -1:
+        return {"error": "article_not_found"}
+    art = queue[idx]
+    site = art.get("site", "lcr")
+
+    # Détermine l'extension à partir du content-type
+    ct = (file.content_type or "").lower()
+    ext = {"image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg", "image/webp": "webp", "image/gif": "gif"}.get(ct, "png")
+
+    # Stockage : dashboard/assets/articles/{site}/{article_id}/{slug}-{timestamp}.{ext}
+    art_dir = ARTICLES_IMG_DIR / site / article_id
+    art_dir.mkdir(parents=True, exist_ok=True)
+    slug = _slugify_alt(alt)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    filename = f"{slug}-{ts}.{ext}"
+    out = art_dir / filename
+
+    try:
+        from PIL import Image
+        import io as _io
+        raw = await file.read()
+        img = Image.open(_io.BytesIO(raw)).convert("RGBA" if ext == "png" else "RGB")
+        # Cap la largeur à 1200px pour le web (préserve ratio)
+        if img.width > 1200:
+            ratio = 1200 / img.width
+            img = img.resize((1200, int(img.height * ratio)), Image.LANCZOS)
+        save_kwargs = {"optimize": True}
+        if ext == "jpg": save_kwargs["quality"] = 85
+        img.save(out, **save_kwargs)
+    except Exception as e:
+        return {"error": f"image_processing_failed: {e}"}
+
+    image_url = f"/assets/articles/{site}/{article_id}/{filename}"
+    image_id = f"img_{ts}_{slug[:20]}"
+
+    # Mise à jour article : ajoute dans `article.images` + insère dans markdown
+    article = art.setdefault("article", {})
+    images = article.setdefault("images", [])
+    new_img = {"id": image_id, "url": image_url, "alt": alt, "position": position, "added_at": datetime.now(timezone.utc).isoformat()}
+    images.append(new_img)
+
+    if position == "featured":
+        article["featured_image"] = {"url": image_url, "alt": alt}
+    else:
+        # Insère ![alt](url) après le N-ème paragraphe
+        try:
+            n = int(position.lstrip("p")) if position.startswith("p") else 1
+        except ValueError:
+            n = 1
+        md = article.get("markdown", "") or ""
+        paragraphs = md.split("\n\n")
+        # Le titre H1 est traditionnellement le 1er paragraphe ; on insère APRÈS la position demandée
+        # Position p1 = après le 1er paragraphe non-H1, etc.
+        insert_idx = min(n, len(paragraphs))
+        image_md = f"![{alt}]({image_url})"
+        paragraphs.insert(insert_idx, image_md)
+        article["markdown"] = "\n\n".join(paragraphs)
+        article["word_count"] = len(article["markdown"].split())
+
+    art["updated_at"] = datetime.now(timezone.utc).isoformat()
+    queue[idx] = art
+    queue_file.write_text(json.dumps(queue, ensure_ascii=False, indent=2))
+
+    return {"ok": True, "image": new_img, "url": image_url}
+
+
+@app.get("/api/editorial/{article_id}/images")
+def api_article_images_list(article_id: str):
+    queue_file = BASE_DIR / "memory" / "editorial" / "articles-queue.json"
+    if not queue_file.exists():
+        return {"images": []}
+    queue = json.loads(queue_file.read_text())
+    art = next((a for a in queue if a.get("id") == article_id), None)
+    if not art:
+        return {"error": "not_found"}
+    article = art.get("article", {})
+    return {
+        "images": article.get("images", []),
+        "featured_image": article.get("featured_image"),
+    }
+
+
+@app.delete("/api/editorial/{article_id}/image/{image_id}")
+def api_article_image_delete(article_id: str, image_id: str):
+    queue_file = BASE_DIR / "memory" / "editorial" / "articles-queue.json"
+    if not queue_file.exists():
+        return {"error": "no_queue"}
+    queue = json.loads(queue_file.read_text())
+    idx = next((i for i, a in enumerate(queue) if a.get("id") == article_id), -1)
+    if idx == -1:
+        return {"error": "not_found"}
+    art = queue[idx]
+    article = art.setdefault("article", {})
+    images = article.get("images", []) or []
+    target = next((i for i in images if i.get("id") == image_id), None)
+    if not target:
+        return {"error": "image_not_found"}
+
+    # Retire du markdown s'il y est
+    md = article.get("markdown", "") or ""
+    pattern = f"![{target.get('alt','')}]({target.get('url','')})"
+    if pattern in md:
+        article["markdown"] = md.replace("\n\n" + pattern, "").replace(pattern + "\n\n", "").replace(pattern, "")
+        article["word_count"] = len(article["markdown"].split())
+
+    # Featured ?
+    if article.get("featured_image", {}).get("url") == target.get("url"):
+        article.pop("featured_image", None)
+
+    # Supprime du disque
+    try:
+        url = target.get("url", "")
+        if url.startswith("/assets/articles/"):
+            p = BASE_DIR / "dashboard" / url[len("/assets/"):].lstrip("/")
+            if p.exists():
+                p.unlink()
+    except Exception:
+        pass
+
+    article["images"] = [i for i in images if i.get("id") != image_id]
+    art["updated_at"] = datetime.now(timezone.utc).isoformat()
+    queue[idx] = art
+    queue_file.write_text(json.dumps(queue, ensure_ascii=False, indent=2))
+    return {"ok": True}
+
+
+# ── Logo de site (upload + serve depuis dashboard/assets/logos/) ──────────────
+
+LOGOS_DIR = BASE_DIR / "dashboard" / "assets" / "logos"
+LOGOS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@app.get("/api/sites/{site}/logo")
+def api_logo_status(site: str):
+    """Retourne {has_logo: bool, url: str?}."""
+    p = LOGOS_DIR / f"{site}.png"
+    if p.exists():
+        return {"has_logo": True, "url": f"/assets/logos/{site}.png", "size_bytes": p.stat().st_size}
+    return {"has_logo": False, "url": None}
+
+
+from fastapi import UploadFile, File
+
+@app.post("/api/sites/{site}/logo")
+async def api_logo_upload(site: str, file: UploadFile = File(...)):
+    """Upload + resize 400x400 carré (crop centré si non carré) + sauvegarde PNG."""
+    if site not in ("lcr", "mkd") and not site.replace("-", "").isalnum():
+        return {"error": "invalid site"}
+    try:
+        from PIL import Image
+        import io as _io
+        raw = await file.read()
+        img = Image.open(_io.BytesIO(raw)).convert("RGBA")
+
+        # Crop centré pour obtenir un carré
+        w, h = img.size
+        side = min(w, h)
+        left = (w - side) // 2
+        top = (h - side) // 2
+        img = img.crop((left, top, left + side, top + side))
+
+        # Resize 400x400 (LANCZOS = haute qualité)
+        img = img.resize((400, 400), Image.LANCZOS)
+
+        out = LOGOS_DIR / f"{site}.png"
+        img.save(out, format="PNG", optimize=True)
+        return {"ok": True, "url": f"/assets/logos/{site}.png", "size_bytes": out.stat().st_size}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.delete("/api/sites/{site}/logo")
+def api_logo_delete(site: str):
+    p = LOGOS_DIR / f"{site}.png"
+    if p.exists():
+        p.unlink()
+    return {"ok": True}
+
+
+# ── Env vars par site (clé Tally, etc. — écrit atomiquement dans .env) ────────
+
+def _write_env_var(key: str, value: str | None) -> bool:
+    """Écrit/met à jour/supprime une variable dans .env. Idempotent."""
+    if not key or not key.replace("_", "").isalnum():
+        return False
+    env_path = BASE_DIR / ".env"
+    if not env_path.exists():
+        env_path.touch()
+    lines = env_path.read_text().splitlines()
+    new_lines = []
+    found = False
+    for line in lines:
+        s = line.strip()
+        if s.startswith(f"{key}=") or s.startswith(f"#{key}="):
+            if value is not None:
+                new_lines.append(f"{key}={value}")
+            found = True
+        else:
+            new_lines.append(line)
+    if not found and value is not None:
+        new_lines.append(f"{key}={value}")
+    env_path.write_text("\n".join(new_lines) + ("\n" if new_lines else ""))
+    return True
+
+
+# Connecteurs "par site" (variable env porte le suffixe _<SITE>)
+SITE_ENV_CONNECTORS = {
+    "tally":          "TALLY_API_KEY_{SITE}",
+    "emelia":         "EMELIA_API_KEY_{SITE}",
+    "unsplash_key":   "UNSPLASH_{SITE}_ACCESS_KEY",
+}
+
+
+def get_emelia_key_for_site(site: str) -> str:
+    """Retourne la clé Emelia du site, avec fallback sur la clé globale legacy.
+
+    Ordre de lookup :
+      1. EMELIA_API_KEY_{SITE.UPPER()} (recommandé)
+      2. EMELIA_API_KEY (clé globale legacy, compat)
+    """
+    env = load_env()
+    if site:
+        site_key = env.get(f"EMELIA_API_KEY_{site.upper()}", "").strip()
+        if site_key:
+            return site_key
+    return env.get("EMELIA_API_KEY", "").strip()
+
+@app.get("/api/sites/{site}/env-keys")
+def api_env_keys_status(site: str):
+    """Retourne le statut (configuré ou pas) des clés env par site, SANS exposer les valeurs."""
+    env_path = BASE_DIR / ".env"
+    env_text = env_path.read_text() if env_path.exists() else ""
+    out = {}
+    for k, tpl in SITE_ENV_CONNECTORS.items():
+        var = tpl.format(SITE=site.upper())
+        # Cherche `VAR=valeur_non_vide`
+        configured = False
+        for line in env_text.splitlines():
+            line = line.strip()
+            if line.startswith(f"{var}="):
+                v = line.split("=", 1)[1].strip().strip("'\"")
+                if v:
+                    configured = True
+                    break
+        out[k] = {"env_var": var, "configured": configured}
+    return out
+
+
+@app.patch("/api/sites/{site}/env-keys")
+async def api_env_keys_update(site: str, request: Request):
+    """Met à jour les clés env du site. Body : {tally?: "tly-xxx", unsplash_key?: "..."}
+    Valeur vide ou null = suppression de la ligne."""
+    data = await request.json()
+    updated = []
+    for k, val in data.items():
+        if k not in SITE_ENV_CONNECTORS:
+            continue
+        var = SITE_ENV_CONNECTORS[k].format(SITE=site.upper())
+        value = (val or "").strip() or None
+        if _write_env_var(var, value):
+            updated.append({"key": k, "env_var": var, "set": value is not None})
+    return {"ok": True, "updated": updated}
 
 
 # ── Modules toggle + mini-RAG par site ────────────────────────────────────────

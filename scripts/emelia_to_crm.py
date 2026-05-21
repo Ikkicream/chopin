@@ -44,7 +44,6 @@ def load_env():
 
 load_env()
 
-EMELIA_API_KEY = os.environ.get("EMELIA_API_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT = os.environ.get("TELEGRAM_CHAT_ID", "")
 
@@ -52,8 +51,17 @@ EMELIA_URL = "https://api.emelia.io/graphql"
 SYNC_LOG = BASE_DIR / "memory" / "shared" / "crm-sync-log.json"
 
 
-def emelia_query(query, variables=None):
-    headers = {"Authorization": f"Bearer {EMELIA_API_KEY}", "Content-Type": "application/json"}
+def get_emelia_key(site: str) -> str:
+    """Clé Emelia pour un site, avec fallback sur la clé globale legacy."""
+    if site:
+        k = os.environ.get(f"EMELIA_API_KEY_{site.upper()}", "").strip()
+        if k:
+            return k
+    return os.environ.get("EMELIA_API_KEY", "").strip()
+
+
+def emelia_query(query, api_key, variables=None):
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     payload = {"query": query}
     if variables:
         payload["variables"] = variables
@@ -77,9 +85,9 @@ def detect_site(campaign_name: str, email: str = "") -> str:
     return "lcr"  # default
 
 
-def get_campaign_activities():
-    """Récupère toutes les campagnes + contacts ayant une activité."""
-    data = emelia_query("query { campaigns { _id name status } }")
+def get_campaign_activities(api_key: str):
+    """Récupère toutes les campagnes + contacts ayant une activité pour la clé donnée."""
+    data = emelia_query("query { campaigns { _id name status } }", api_key)
     campaigns = data.get("campaigns", [])
 
     all_activities = []
@@ -91,6 +99,7 @@ def get_campaign_activities():
                     contacts { email firstName lastName company hasReplied hasClicked hasOpened lastActivityDate }
                   }
                 }""",
+                api_key,
                 {"campaignId": camp["_id"]},
             )
             contacts = contacts_data.get("contactsList", {}).get("contacts", []) or []
@@ -161,54 +170,56 @@ def main():
 
     print(f"[emelia→crm] {datetime.now(timezone.utc).isoformat()}")
 
-    if not EMELIA_API_KEY:
-        print("  ERROR: EMELIA_API_KEY not set")
-        sys.exit(1)
-
-    activities = get_campaign_activities()
-    print(f"  {len(activities)} contacts avec activité")
-    if not activities:
-        return
-
     synced = []
-    for contact in activities:
-        # Mapping events Emelia → états acquisition_contacts
-        if contact.get("hasReplied"):
-            target_state, itype = "lead", "email_reply"
-        elif contact.get("hasClicked"):
-            target_state, itype = "prm", "email_click"
-        elif contact.get("hasOpened"):
-            # Open seul = signal trop faible, on ne promote pas
+    # Boucle sur chaque site avec sa propre clé Emelia
+    for site in ("lcr", "mkd"):
+        api_key = get_emelia_key(site)
+        if not api_key:
+            print(f"  Skip {site}: aucune clé Emelia (ni EMELIA_API_KEY_{site.upper()} ni globale)")
             continue
-        else:
-            continue
-
-        site = detect_site(contact.get("campaign", ""), contact.get("email", ""))
-        if args.dry_run:
-            print(f"  DRY-RUN: [{site}] {contact.get('email')} → {target_state}")
-            continue
-
+        print(f"  --- {site.upper()} (clé dédiée: {bool(os.environ.get(f'EMELIA_API_KEY_{site.upper()}'))}) ---")
         try:
-            r = upsert_contact_with_interaction(site, contact, target_state, itype, contact.get("campaign", ""))
-            r["email"]   = contact.get("email", "")
-            r["target_state"] = target_state
-            r["campaign"] = contact.get("campaign", "")
-            r["date"]    = datetime.now(timezone.utc).isoformat()
-            synced.append(r)
-            print(f"  {r['action']}: [{site}] {contact.get('email')} → {target_state}")
+            activities = get_campaign_activities(api_key)
         except Exception as e:
-            print(f"  ERROR {contact.get('email')}: {e}")
+            print(f"  Erreur fetch {site}: {e}")
+            continue
+        print(f"  {len(activities)} contacts avec activité")
 
-        if target_state == "lead":
-            name = f"{contact.get('firstName','')} {contact.get('lastName','')}".strip()
-            company = contact.get("company", "")
-            notify_telegram(
-                f"🔥 *Lead HOT* — {site.upper()}\n"
-                f"• {name} ({company})\n"
-                f"• {contact.get('email','')}\n"
-                f"• Campagne: {contact.get('campaign','?')}\n"
-                f"• A répondu — voir le CRM"
-            )
+        for contact in activities:
+            if contact.get("hasReplied"):
+                target_state, itype = "lead", "email_reply"
+            elif contact.get("hasClicked"):
+                target_state, itype = "prm", "email_click"
+            elif contact.get("hasOpened"):
+                continue  # Signal trop faible
+            else:
+                continue
+
+            if args.dry_run:
+                print(f"  DRY-RUN: [{site}] {contact.get('email')} → {target_state}")
+                continue
+
+            try:
+                r = upsert_contact_with_interaction(site, contact, target_state, itype, contact.get("campaign", ""))
+                r["email"]   = contact.get("email", "")
+                r["target_state"] = target_state
+                r["campaign"] = contact.get("campaign", "")
+                r["date"]    = datetime.now(timezone.utc).isoformat()
+                synced.append(r)
+                print(f"  {r['action']}: [{site}] {contact.get('email')} → {target_state}")
+            except Exception as e:
+                print(f"  ERROR {contact.get('email')}: {e}")
+
+            if target_state == "lead":
+                name = f"{contact.get('firstName','')} {contact.get('lastName','')}".strip()
+                company = contact.get("company", "")
+                notify_telegram(
+                    f"🔥 *Lead HOT* — {site.upper()}\n"
+                    f"• {name} ({company})\n"
+                    f"• {contact.get('email','')}\n"
+                    f"• Campagne: {contact.get('campaign','?')}\n"
+                    f"• A répondu — voir le CRM"
+                )
 
     # Save sync log (dernier 500 entries)
     if synced and not args.dry_run:

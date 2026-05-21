@@ -75,11 +75,11 @@ MODULES_CATALOG: dict[str, dict] = {
         "default_enabled": True,
     },
     "cold_email": {
-        "label":          "Cold Email (Emelia)",
-        "description":    "Campagnes Emelia + sync replies/clicks",
+        "label":          "Prospection",
+        "description":    "Campagnes cold email Emelia + sync replies/clicks",
         "icon":           "Send",
         "connectors":     ["emelia"],
-        "sidebar_titles": ["Emelia"],
+        "sidebar_titles": ["Prospection"],
         "default_enabled": True,
     },
     "god_mode": {
