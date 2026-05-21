@@ -62,7 +62,7 @@ def verify_admin(token: str | None):
         c.close()
     if not row:
         return None
-    if row[2] != "admin":
+    if row[2] not in ("admin", "superadmin"):
         return None
     return {"user_id": row[0], "username": row[1], "role": row[2], "nom": row[3], "prenom": row[4]}
 

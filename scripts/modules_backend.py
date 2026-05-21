@@ -83,11 +83,11 @@ MODULES_CATALOG: dict[str, dict] = {
         "default_enabled": True,
     },
     "god_mode": {
-        "label":          "God Mode",
+        "label":          "Workflow",
         "description":    "Templates, prospects, périmètre, logs cold email",
         "icon":           "Wand2",
         "connectors":     ["emelia"],
-        "sidebar_titles": ["God mode", "Vue d'ensemble", "Templates", "Prospects", "Campagnes", "Logs", "Périmètre"],
+        "sidebar_titles": ["Workflow", "Vue d'ensemble", "Templates", "Prospects", "Campagnes", "Logs", "Périmètre"],
         "default_enabled": True,
     },
     "linkedin": {
@@ -125,7 +125,6 @@ CONNECTOR_ENV: dict[str, str] = {
     "unsplash_lcr":  "UNSPLASH_LCR_ACCESS_KEY",
     "unsplash_mkd":  "UNSPLASH_MKD_ACCESS_KEY",
     "higgsfield":    "HIGGSFIELD_API_KEY",
-    "resend":        "RESEND_API_KEY",
 }
 
 

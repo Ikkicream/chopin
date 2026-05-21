@@ -66,10 +66,13 @@ def load_ahrefs(site):
 
 SEED_COMPETITORS_FR = {
     "lcr": [
-        # Concurrents directs marché FR du SMS pro / RCS / communication locale
+        # Routage SMS pro
         "smsmode.com", "octopush.com", "esendex.fr", "primotexto.com",
         "allmysms.com", "smsfactor.com", "dexem.com", "smspartner.fr",
-        "lemobilemarketing.com", "spotpink.com",
+        "lemobilemarketing.com", "spothit.fr", "wellpack.fr",
+        # Location données B2B/B2C
+        "manageo.com", "sosdata.fr", "ecodata-france.com",
+        "dekuple.com", "agence.dekuple.com",
     ],
     "mkd": [
         # Concurrents directs marché FR de la data B2B / prospection

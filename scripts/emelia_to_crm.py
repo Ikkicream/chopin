@@ -30,7 +30,7 @@ import requests
 BASE_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(BASE_DIR / "scripts"))
 
-from acquisition_backend import create as acq_create, find_by_email as acq_find, change_state as acq_change_state, STATE_RANK
+from acquisition_backend import create as acq_create, find_by_email as acq_find, change_state as acq_change_state, STATE_RANK, _conn as acq_conn
 
 
 def load_env():
@@ -86,29 +86,75 @@ def detect_site(campaign_name: str, email: str = "") -> str:
 
 
 def get_campaign_activities(api_key: str):
-    """Récupère toutes les campagnes + contacts ayant une activité pour la clé donnée."""
+    """Récupère toutes les campagnes + contacts ayant une activité (open/click/reply/bounce/unsub)."""
     data = emelia_query("query { campaigns { _id name status } }", api_key)
     campaigns = data.get("campaigns", [])
 
     all_activities = []
     for camp in campaigns:
-        try:
-            contacts_data = emelia_query(
-                """query($campaignId: ID!) {
-                  contactsList(campaignId: $campaignId, filter: {hasReplied: true}) {
-                    contacts { email firstName lastName company hasReplied hasClicked hasOpened lastActivityDate }
-                  }
-                }""",
-                api_key,
-                {"campaignId": camp["_id"]},
-            )
-            contacts = contacts_data.get("contactsList", {}).get("contacts", []) or []
-            for c in contacts:
-                c["campaign"] = camp["name"]
-                all_activities.append(c)
-        except Exception as e:
-            print(f"  Warning campagne {camp.get('name')}: {e}")
-    return all_activities
+        # On va chercher 5 filtres en parallèle (hasOpened, hasClicked, hasReplied, hasBounced, hasUnsubscribed)
+        for flt in ("hasReplied", "hasClicked", "hasOpened", "hasBounced", "hasUnsubscribed"):
+            try:
+                contacts_data = emelia_query(
+                    """query($campaignId: ID!, $f: ContactFilter) {
+                      contactsList(campaignId: $campaignId, filter: $f) {
+                        contacts { email firstName lastName company hasReplied hasClicked hasOpened hasBounced hasUnsubscribed lastActivityDate }
+                      }
+                    }""",
+                    api_key,
+                    {"campaignId": camp["_id"], "f": {flt: True}},
+                )
+                contacts = contacts_data.get("contactsList", {}).get("contacts", []) or []
+                for c in contacts:
+                    c["campaign"] = camp["name"]
+                    c["campaign_id"] = camp["_id"]
+                    all_activities.append(c)
+            except Exception as e:
+                # Filtre non supporté (vieille API) → on tente sans filtre via fallback hasReplied
+                if flt == "hasReplied":
+                    print(f"  Warning campagne {camp.get('name')}: {e}")
+                continue
+    # Dédoublonne par email + campagne (le plus haut signal gagne via le pipeline d'écriture)
+    seen: dict[tuple, dict] = {}
+    for c in all_activities:
+        k = (c.get("campaign_id"), (c.get("email") or "").lower())
+        if k not in seen:
+            seen[k] = c
+        else:
+            # Merge flags
+            for f in ("hasReplied", "hasClicked", "hasOpened", "hasBounced", "hasUnsubscribed"):
+                seen[k][f] = seen[k].get(f) or c.get(f)
+    return list(seen.values())
+
+
+def update_emelia_timestamps(site: str, email: str, opened: bool, clicked: bool,
+                             replied: bool, bounced: bool, unsubscribed: bool,
+                             campaign_id: str = "", contact_id: str = ""):
+    """Pose les horodatages emelia_*_at + campaign_id en idempotent (uniquement si NULL)."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = acq_conn(site)
+    try:
+        conn.execute("""
+            UPDATE acquisition_contacts
+            SET emelia_opened_at       = CASE WHEN ? AND emelia_opened_at       IS NULL THEN ? ELSE emelia_opened_at       END,
+                emelia_clicked_at      = CASE WHEN ? AND emelia_clicked_at      IS NULL THEN ? ELSE emelia_clicked_at      END,
+                emelia_replied_at      = CASE WHEN ? AND emelia_replied_at      IS NULL THEN ? ELSE emelia_replied_at      END,
+                emelia_bounced_at      = CASE WHEN ? AND emelia_bounced_at      IS NULL THEN ? ELSE emelia_bounced_at      END,
+                emelia_unsubscribed_at = CASE WHEN ? AND emelia_unsubscribed_at IS NULL THEN ? ELSE emelia_unsubscribed_at END,
+                emelia_campaign_id     = COALESCE(emelia_campaign_id, ?),
+                emelia_contact_id      = COALESCE(emelia_contact_id, ?),
+                updated_at = ?
+            WHERE email = ?
+        """, [bool(opened),       now,
+              bool(clicked),      now,
+              bool(replied),      now,
+              bool(bounced),      now,
+              bool(unsubscribed), now,
+              campaign_id or None,
+              contact_id or None,
+              now, email])
+    finally:
+        conn.close()
 
 
 def upsert_contact_with_interaction(site: str, contact: dict, target_state: str, interaction_type: str, campaign: str) -> dict:
@@ -186,27 +232,50 @@ def main():
         print(f"  {len(activities)} contacts avec activité")
 
         for contact in activities:
-            if contact.get("hasReplied"):
+            # Bounce ou unsubscribe → blacklist (signal absolu, prioritaire)
+            if contact.get("hasBounced") or contact.get("hasUnsubscribed"):
+                target_state = "blacklisted"
+                itype = "email_bounce" if contact.get("hasBounced") else "email_unsubscribe"
+            elif contact.get("hasReplied"):
                 target_state, itype = "lead", "email_reply"
             elif contact.get("hasClicked"):
                 target_state, itype = "prm", "email_click"
             elif contact.get("hasOpened"):
-                continue  # Signal trop faible
+                target_state, itype = None, "email_open"  # state inchangé, juste horodatage
             else:
                 continue
 
+            email_lc = (contact.get("email") or "").strip().lower()
+
             if args.dry_run:
-                print(f"  DRY-RUN: [{site}] {contact.get('email')} → {target_state}")
+                print(f"  DRY-RUN: [{site}] {email_lc} → {target_state or 'open_only'}")
                 continue
 
             try:
-                r = upsert_contact_with_interaction(site, contact, target_state, itype, contact.get("campaign", ""))
-                r["email"]   = contact.get("email", "")
-                r["target_state"] = target_state
+                if target_state:
+                    r = upsert_contact_with_interaction(site, contact, target_state, itype, contact.get("campaign", ""))
+                else:
+                    # email_open : on n'upsert pas, mais on horodate si le contact existe
+                    r = {"action": "open_logged", "email": email_lc, "state": "cold_email"}
+
+                # Horodate emelia_*_at sur le contact dans acquisition_contacts
+                if email_lc:
+                    update_emelia_timestamps(
+                        site, email_lc,
+                        opened=bool(contact.get("hasOpened")),
+                        clicked=bool(contact.get("hasClicked")),
+                        replied=bool(contact.get("hasReplied")),
+                        bounced=bool(contact.get("hasBounced")),
+                        unsubscribed=bool(contact.get("hasUnsubscribed")),
+                        campaign_id=contact.get("campaign_id", ""),
+                    )
+
+                r["email"]   = email_lc
+                r["target_state"] = target_state or "cold_email"
                 r["campaign"] = contact.get("campaign", "")
                 r["date"]    = datetime.now(timezone.utc).isoformat()
                 synced.append(r)
-                print(f"  {r['action']}: [{site}] {contact.get('email')} → {target_state}")
+                print(f"  {r['action']}: [{site}] {email_lc} → {target_state or 'open'}")
             except Exception as e:
                 print(f"  ERROR {contact.get('email')}: {e}")
 

@@ -653,15 +653,144 @@ def get_connectors():
     ds_key = env.get("DEEPSEEK_API_KEY", "")
     results["deepseek"] = {"ok": bool(ds_key), "label": "DeepSeek API", "key_set": bool(ds_key), "env_var": "DEEPSEEK_API_KEY"}
 
-    # Resend (newsletter)
-    resend_key = env.get("RESEND_API_KEY", "")
-    results["resend"] = {"ok": bool(resend_key), "label": "Resend (newsletter)", "key_set": bool(resend_key), "env_var": "RESEND_API_KEY"}
-
     # Anthropic Claude
     claude_key = env.get("ANTHROPIC_API_KEY", "")
     results["claude"] = {"ok": bool(claude_key), "label": "Claude / Anthropic", "key_set": bool(claude_key), "env_var": "ANTHROPIC_API_KEY"}
 
     return {"connectors": results, "checkedAt": datetime.now(timezone.utc).isoformat()}
+
+
+# ── /api/connectors/health — vrai ping live des APIs (cache 5 min) ────────────
+
+CONNECTORS_HEALTH_CACHE = BASE_DIR / "memory" / "shared" / "connectors-health.json"
+CONNECTORS_HEALTH_TTL_S = 5 * 60  # 5 minutes
+
+
+def _ping_connector(name: str, env: dict) -> dict:
+    """Ping un connecteur et retourne {status, latency_ms?, error?, kind}.
+    Status : 'ok' | 'missing_key' | 'error' | 'key_only' | 'internal'
+    """
+    import time as _t
+    now = _t.time()
+
+    def _http(url, method="GET", headers=None, json_body=None, timeout=3.0):
+        t0 = _t.time()
+        try:
+            if method == "POST":
+                r = requests.post(url, headers=headers or {}, json=json_body, timeout=timeout)
+            else:
+                r = requests.get(url, headers=headers or {}, timeout=timeout)
+            ms = int((_t.time() - t0) * 1000)
+            return r.status_code, ms, None
+        except Exception as e:
+            return 0, int((_t.time() - t0) * 1000), str(e)[:200]
+
+    if name == "deepseek":
+        key = env.get("DEEPSEEK_API_KEY", "")
+        if not key: return {"status": "missing_key", "kind": "external"}
+        code, ms, err = _http("https://api.deepseek.com/user/balance", headers={"Authorization": f"Bearer {key}"})
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
+
+    if name == "ahrefs":
+        key = env.get("AHREFS_API_KEY", "")
+        if not key: return {"status": "missing_key", "kind": "external"}
+        code, ms, err = _http("https://api.ahrefs.com/v3/subscription-info/limits-and-usage", headers={"Authorization": f"Bearer {key}"})
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
+
+    if name == "emelia":
+        # On utilise la clé globale pour le check générique (sinon serait par site)
+        key = env.get("EMELIA_API_KEY", "")
+        # Fallback : si pas de globale, prend la 1re clé site dispo
+        if not key:
+            for s in ("LCR", "MKD"):
+                key = env.get(f"EMELIA_API_KEY_{s}", "")
+                if key: break
+        if not key: return {"status": "missing_key", "kind": "external"}
+        code, ms, err = _http("https://api.emelia.io/graphql", method="POST",
+                              headers={"Authorization": key, "Content-Type": "application/json"},
+                              json_body={"query": "{ campaigns { _id } }"})
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
+
+    if name == "telegram":
+        token = env.get("TELEGRAM_BOT_TOKEN", "")
+        if not token: return {"status": "missing_key", "kind": "external"}
+        code, ms, err = _http(f"https://api.telegram.org/bot{token}/getMe", timeout=4.0)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
+
+    if name == "emdash":
+        token = env.get("EMDASH_API_TOKEN", "")
+        if not token: return {"status": "missing_key", "kind": "external"}
+        url = env.get("EMDASH_API_URL", "http://localhost:4321/_emdash/api").rstrip("/")
+        code, ms, err = _http(f"{url}/content/posts?limit=1", headers={"Authorization": f"Bearer {token}"}, timeout=2.0)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
+
+    if name == "wordpress":
+        wp_url = env.get("WP_SITE_URL", "")
+        wp_user = env.get("WP_USERNAME", "")
+        wp_pass = env.get("WP_APP_PASSWORD", "")
+        if not (wp_url and wp_user and wp_pass): return {"status": "missing_key", "kind": "external"}
+        import base64
+        creds = base64.b64encode(f"{wp_user}:{wp_pass}".encode()).decode()
+        code, ms, err = _http(f"{wp_url}/wp-json/wp/v2/posts?per_page=1", headers={"Authorization": f"Basic {creds}"}, timeout=4.0)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
+
+    if name == "serper":
+        # Pas de ping live (chaque appel = 1 crédit payant)
+        key = env.get("SERPER_API_KEY", "")
+        return {"status": "key_only" if key else "missing_key", "kind": "external", "note": "ping désactivé (coût crédit)"}
+
+    if name == "unsplash":
+        # Idem, quota limité, pas de ping live
+        key = env.get("UNSPLASH_LCR_ACCESS_KEY", "") or env.get("UNSPLASH_MKD_ACCESS_KEY", "")
+        return {"status": "key_only" if key else "missing_key", "kind": "external", "note": "ping désactivé (quota)"}
+
+    if name == "crm_interne":
+        ok = (BASE_DIR / "data" / "crm" / "lcr.duckdb").exists() or (BASE_DIR / "data" / "crm" / "mkd.duckdb").exists()
+        return {"status": "ok" if ok else "error", "kind": "internal"}
+
+    if name == "acquisition_db":
+        return {"status": "ok", "kind": "internal"}
+
+    return {"status": "missing_key", "kind": "external"}
+
+
+@app.get("/api/connectors/health")
+def api_connectors_health(force: bool = False):
+    """Retourne le statut santé live de tous les connecteurs (cache 5 min)."""
+    import time as _t
+    # Cache hit ?
+    if not force and CONNECTORS_HEALTH_CACHE.exists():
+        try:
+            cached = json.loads(CONNECTORS_HEALTH_CACHE.read_text())
+            age = _t.time() - cached.get("_ts", 0)
+            if age < CONNECTORS_HEALTH_TTL_S:
+                cached["_cache_age_s"] = int(age)
+                return cached
+        except Exception:
+            pass
+
+    # Ping tout
+    env = load_env()
+    connectors = ["deepseek", "ahrefs", "emelia", "telegram", "emdash", "wordpress", "serper", "unsplash", "crm_interne", "acquisition_db"]
+    results = {}
+    for name in connectors:
+        try:
+            results[name] = _ping_connector(name, env)
+        except Exception as e:
+            results[name] = {"status": "error", "kind": "external", "error": str(e)[:200]}
+
+    payload = {
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "_ts":        _t.time(),
+        "_cache_age_s": 0,
+        "connectors": results,
+    }
+    try:
+        CONNECTORS_HEALTH_CACHE.parent.mkdir(parents=True, exist_ok=True)
+        CONNECTORS_HEALTH_CACHE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
+    except Exception:
+        pass
+    return payload
 
 
 # ── /api/site/{site} ──────────────────────────────────────────────────────────
@@ -1589,6 +1718,22 @@ async def api_health_check():
     return {"sites": results, "checked_at": datetime.now(timezone.utc).isoformat()}
 
 
+# ── Competitor SEO Analysis (sortie de competitor_seo_analyzer.py) ───────────
+
+@app.get("/api/sites/{site}/competitor-analysis")
+def api_competitor_analysis(site: str):
+    """Retourne l'analyse concurrentielle (seed + top opportunités + gaps + plan)."""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    f = BASE_DIR / "memory" / "seo" / f"{site}-competitor-analysis.json"
+    if not f.exists():
+        return {"error": "no analysis yet (run competitor_seo_analyzer.py first)", "site": site}
+    try:
+        return json.loads(f.read_text())
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ── Versions & Backups ────────────────────────────────────────────────────────
 
 @app.get("/api/versions")
@@ -2141,36 +2286,8 @@ async def api_crm_webhook(site: str, request: Request):
     )
     return {"ok": True, "id": contact_id, "source": source}
 
-@app.post("/api/sites/{site}/acquisition/{contact_id}/email")
-async def api_acq_send_email(site: str, contact_id: str, request: Request):
-    """Envoie un email \u00e0 un contact d'acquisition (via Resend)."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from scripts.acquisition_backend import _conn
-    data = await request.json()
-    conn = _conn(site)
-    try:
-        row = conn.execute("SELECT email FROM acquisition_contacts WHERE id = ?", [contact_id]).fetchone()
-    finally:
-        conn.close()
-    if not row:
-        return {"error": "contact not found"}
-
-    import os
-    resend_key = os.environ.get("RESEND_API_KEY", "")
-    if resend_key:
-        try:
-            r = requests.post("https://api.resend.com/emails", json={
-                "from": data.get("from", f"contact@{site}.com"),
-                "to": [row[0]],
-                "subject": data.get("subject", ""),
-                "text": data.get("body", ""),
-            }, headers={"Authorization": f"Bearer {resend_key}"}, timeout=10)
-            if r.status_code in (200, 201):
-                return {"ok": True, "method": "resend", "status": r.status_code}
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
-
-    return {"ok": True, "method": "logged_only", "message": "Email log\u00e9 (Resend non configur\u00e9)"}
+# Endpoint /api/sites/{site}/acquisition/{contact_id}/email supprim\u00e9 le 2026-05-21
+# (Resend retir\u00e9 du projet \u2014 utiliser Emelia pour les envois en masse)
 
 
 # ── Auth System ───────────────────────────────────────────────────────────────

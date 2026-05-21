@@ -192,13 +192,17 @@ def create(site: str, data: dict, by: str = "manual") -> dict:
         conn.execute(
             """INSERT INTO acquisition_contacts
                (id, state, source, email, nom, prenom, societe, tel, notes, state_history,
-                created_at, updated_at, last_action_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                created_at, updated_at, last_action_at,
+                sector, dept_code, region_code,
+                email_sent_at, emelia_campaign_id, emelia_contact_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [
                 new_id, state, source, email,
                 data.get("nom", ""), data.get("prenom", ""), data.get("societe", ""),
                 data.get("tel", ""), data.get("notes", ""), history,
                 _now(), _now(), _now() if state != "cold_email" else None,
+                data.get("sector"), data.get("dept_code"), data.get("region_code"),
+                data.get("email_sent_at"), data.get("emelia_campaign_id"), data.get("emelia_contact_id"),
             ],
         )
     finally:

@@ -98,6 +98,26 @@ def call_llm(
         site=site,
         note=note or f"{(time.time()-t0):.1f}s",
     )
+
+    # RAG : archive le contenu généré pour réutilisation future (chunks markdown)
+    try:
+        from rag_writer import save_chunk
+        save_chunk(
+            site=site or "shared",
+            source="deepseek",
+            agent=module or "llm_call",
+            content=text,
+            metadata={
+                "prompt_summary": (action or "deepseek")[:80],
+                "tokens_in":      usage.get("prompt_tokens", 0),
+                "tokens_out":     usage.get("completion_tokens", 0),
+                "model":          model,
+                "tags":           [t for t in [module, action, site] if t],
+            },
+        )
+    except Exception:
+        pass  # ne jamais casser un appel LLM à cause du RAG
+
     return text
 
 

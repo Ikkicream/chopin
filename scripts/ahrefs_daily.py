@@ -76,7 +76,7 @@ def fetch_site(site):
     # 2. Metrics
     try:
         m = api_get("site-explorer/metrics", {
-            "target": domain, "date": TODAY, "country": "FR", "mode": "subdomains"
+            "target": domain, "date": TODAY, "country": "fr", "mode": "domain"
         })
         metrics = m["metrics"]
         data["org_traffic"] = metrics.get("org_traffic", 0)
@@ -90,7 +90,7 @@ def fetch_site(site):
     # 3. Top 5 keywords
     try:
         kw = api_get("site-explorer/organic-keywords", {
-            "target": domain, "date": TODAY, "country": "FR", "mode": "subdomains",
+            "target": domain, "date": TODAY, "country": "fr", "mode": "domain",
             "select": "keyword,best_position,volume,sum_traffic",
             "order_by": "sum_traffic:desc", "limit": 5
         })
@@ -125,7 +125,8 @@ def fetch_site(site):
             "order_by": "keywords_common:desc", "limit": 50
         })
         raw = comp.get("competitors", [])
-        filtered = []
+        # 1ère passe : filtre strict (exclut géants + nécessite ≥ 2 kw communs)
+        strict = []
         for c in raw:
             d = (c.get("competitor_domain", "") or "").lower().strip()
             if not d or d in BLACKLIST_GEANTS:
@@ -133,23 +134,34 @@ def fetch_site(site):
             dr_v = c.get("domain_rating", 0) or 0
             tr_v = c.get("traffic", 0) or 0
             kw_v = c.get("keywords_common", 0) or 0
-            # Exclure géants généralistes (DR > 88 + trafic > 3M = forcément Wikipedia-like)
             if dr_v > 88 and tr_v > 3_000_000:
                 continue
-            # Garder uniquement avec un signal minimum
             if kw_v < 2:
                 continue
-            filtered.append({
-                "domain": d, "keywords_common": kw_v, "dr": dr_v, "traffic": tr_v,
-            })
-        # Trier par "score de concurrence" : kw_common * sqrt(traffic + 1) / (DR + 10)
-        # Privilégie ceux qui ont vraiment des kw communs sur un volume comparable
+            strict.append({"domain": d, "keywords_common": kw_v, "dr": dr_v, "traffic": tr_v})
+
+        # 2ème passe : si 0 résultats stricts, fallback plus permissif (≥ 1 kw, juste blacklist géants)
+        if not strict:
+            for c in raw:
+                d = (c.get("competitor_domain", "") or "").lower().strip()
+                if not d or d in BLACKLIST_GEANTS:
+                    continue
+                dr_v = c.get("domain_rating", 0) or 0
+                tr_v = c.get("traffic", 0) or 0
+                kw_v = c.get("keywords_common", 0) or 0
+                if dr_v > 88 and tr_v > 3_000_000:
+                    continue
+                if kw_v < 1:
+                    continue
+                strict.append({"domain": d, "keywords_common": kw_v, "dr": dr_v, "traffic": tr_v})
+
+        # Score de concurrence + tri
         import math
-        for c in filtered:
+        for c in strict:
             c["_score"] = (c["keywords_common"] ** 2) * math.sqrt(c["traffic"] + 1) / max(c["dr"] + 10, 1)
-        filtered.sort(key=lambda x: x["_score"], reverse=True)
-        data["competitors"] = [{k: v for k, v in c.items() if not k.startswith("_")} for c in filtered[:8]]
-        print(f"  Competitors: {len(data['competitors'])} (filtré {len(raw)} → {len(filtered)})")
+        strict.sort(key=lambda x: x["_score"], reverse=True)
+        data["competitors"] = [{k: v for k, v in c.items() if not k.startswith("_")} for c in strict[:8]]
+        print(f"  Competitors: {len(data['competitors'])} (filtré {len(raw)} → {len(strict)})")
     except Exception as e:
         print(f"  Competitors error: {e}")
         data["competitors"] = []
