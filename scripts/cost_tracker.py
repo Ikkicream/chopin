@@ -162,6 +162,143 @@ def get_summary(days: int = 7) -> dict:
     }
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# AHREFS BUDGET GATE
+# ──────────────────────────────────────────────────────────────────────────────
+# Ajouté 2026-05-22 — protection contre les dépassements de quota Ahrefs.
+# Tout script qui appelle l'API Ahrefs DOIT vérifier check_ahrefs_budget() avant.
+#
+# Config .env (optionnel) :
+#   AHREFS_BUDGET_WARN_PCT  (défaut 70)  — seuil d'alerte
+#   AHREFS_BUDGET_BLOCK_PCT (défaut 90)  — seuil de blocage des appels non-critiques
+#   AHREFS_BUDGET_RESERVE   (défaut 500) — unités minimum à garder dispo
+#
+# Usage :
+#   from cost_tracker import check_ahrefs_budget
+#   ok, info = check_ahrefs_budget(cost_estimate=500, critical=False)
+#   if not ok:
+#       print(f"Budget bloqué : {info}"); sys.exit(0)
+#
+AHREFS_USAGE_CACHE = BASE_DIR / "memory" / "seo" / "ahrefs-usage.json"
+
+
+def _load_env_var(key: str, default: str = "") -> str:
+    import os
+    v = os.environ.get(key)
+    if v:
+        return v
+    env_f = BASE_DIR / ".env"
+    if env_f.exists():
+        for ln in env_f.read_text().splitlines():
+            ln = ln.strip()
+            if ln.startswith(f"{key}="):
+                return ln.split("=", 1)[1].strip().strip('"').strip("'")
+    return default
+
+
+def _ahrefs_usage_fresh(max_age_min: int = 60) -> dict:
+    """Lit le cache ahrefs-usage.json s'il est frais, sinon re-fetch via API."""
+    from datetime import datetime, timezone, timedelta
+    import requests
+    cache_ok = False
+    cache = {}
+    if AHREFS_USAGE_CACHE.exists():
+        try:
+            cache = json.loads(AHREFS_USAGE_CACHE.read_text())
+            fetched = datetime.fromisoformat(cache.get("fetched_at", "1970-01-01T00:00:00+00:00"))
+            if (datetime.now(timezone.utc) - fetched) < timedelta(minutes=max_age_min):
+                cache_ok = True
+        except Exception:
+            pass
+
+    if cache_ok:
+        return cache
+
+    # Re-fetch (gratuit côté Ahrefs : subscription-info ne consomme pas d'unités)
+    api_key = _load_env_var("AHREFS_API_KEY")
+    if not api_key:
+        return cache or {"used": 0, "total": 10000, "error": "no_api_key"}
+    try:
+        r = requests.get(
+            "https://api.ahrefs.com/v3/subscription-info/limits-and-usage",
+            headers={"Authorization": f"Bearer {api_key}"}, timeout=10,
+        )
+        if r.status_code == 200:
+            info = r.json().get("limits_and_usage", {})
+            cache = {
+                "used":       info.get("units_usage_api_key", 0),
+                "total":      info.get("units_limit_api_key") or 10000,
+                "reset_at":   info.get("usage_reset_date", ""),
+                "fetched_at": datetime.now(timezone.utc).isoformat(),
+            }
+            AHREFS_USAGE_CACHE.parent.mkdir(parents=True, exist_ok=True)
+            AHREFS_USAGE_CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=2))
+    except Exception as e:
+        cache = cache or {"used": 0, "total": 10000, "error": str(e)}
+    return cache
+
+
+def check_ahrefs_budget(cost_estimate: int = 0, critical: bool = False) -> tuple:
+    """
+    Vérifie le budget Ahrefs AVANT un appel.
+
+    Args:
+        cost_estimate : nombre d'unités que l'appel va coûter (ex: 50, 200, 1100)
+        critical      : True = appel essentiel (Tier 1/2), passe même en warning
+                        False = appel facultatif (Tier 3/4), bloqué dès warning
+
+    Returns:
+        (ok: bool, info: dict)
+        info contient : used, total, pct, reset_at, decision, reason
+    """
+    warn_pct  = float(_load_env_var("AHREFS_BUDGET_WARN_PCT",  "70"))
+    block_pct = float(_load_env_var("AHREFS_BUDGET_BLOCK_PCT", "90"))
+    reserve   = int(  _load_env_var("AHREFS_BUDGET_RESERVE",   "500"))
+
+    usage = _ahrefs_usage_fresh()
+    used  = usage.get("used", 0)
+    total = usage.get("total", 10000) or 10000
+    projected = used + cost_estimate
+    pct       = round((used  / total) * 100, 1) if total else 0
+    proj_pct  = round((projected / total) * 100, 1) if total else 0
+
+    info = {
+        "used": used, "total": total, "pct": pct,
+        "projected_used": projected, "projected_pct": proj_pct,
+        "cost_estimate": cost_estimate, "critical": critical,
+        "reset_at": usage.get("reset_at", ""),
+    }
+
+    # Réserve absolue : on ne descend jamais sous reserve unités dispo
+    if total - projected < reserve and not critical:
+        info["decision"] = "BLOCK"
+        info["reason"]  = f"Reserve {reserve}u tampon : il resterait {total - projected}u après cet appel"
+        return False, info
+
+    # Bloc dur > block_pct
+    if proj_pct >= block_pct and not critical:
+        info["decision"] = "BLOCK"
+        info["reason"]  = f"Projection {proj_pct}% >= seuil bloc {block_pct}% (non-critique)"
+        return False, info
+
+    # Bloc dur > 100% même pour critique
+    if projected > total:
+        info["decision"] = "BLOCK"
+        info["reason"]  = f"Projection {projected}u > limite {total}u — quota dépassé"
+        return False, info
+
+    # Warning
+    if proj_pct >= warn_pct:
+        info["decision"] = "WARN"
+        info["reason"]  = f"Projection {proj_pct}% >= seuil warn {warn_pct}% — surveiller"
+        return True, info
+
+    info["decision"] = "OK"
+    info["reason"]   = f"Projection {proj_pct}% sous seuil {warn_pct}%"
+    return True, info
+
+
+
 if __name__ == "__main__":
     # Test : simuler les runs du jour
     print("Test cost_tracker...")

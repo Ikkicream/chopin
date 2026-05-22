@@ -1,5 +1,10 @@
 # Genesis — Swarm Agents pour mkdgroupe.com & leclientroi.com
 
+> **⚠️ AVANT TOUTE CHOSE : lire `STATE.md` à la racine du projet.**
+> C'est la source de vérité 'où on en est'. À mettre à jour AVANT chaque fin de session.
+> Ne jamais répondre à un 'on reprend', 'salut', 'hello' sans l'avoir lu d'abord.
+
+
 ## Ce projet
 Système multi-agents Claude Code remplaçant Paperclip (qui coûtait $735+ pour 28 agents crashant 74% du temps).
 Architecture : 1 orchestrateur Sonnet + agents spécialisés routés via DeepSeek/Haiku selon la tâche.

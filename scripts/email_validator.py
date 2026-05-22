@@ -1,0 +1,430 @@
+#!/usr/bin/env python3
+"""
+email_validator.py — Validation + scoring email pour cold email B2B France.
+
+Implémente la spec EMAIL_VALIDATION_SCORING.md à la lettre.
+6 étages : normalisation, regex syntax, hard rejects (TLD/role/disposable),
+domain tier, MX check sur exotiques, scoring 0-100 + RGPD.
+
+Point d'entrée unique : validate_and_score(email_raw, prospect) -> dict.
+
+Dépendances : dnspython (`pip install dnspython`).
+"""
+
+from __future__ import annotations
+
+import csv
+import re
+import unicodedata
+from pathlib import Path
+
+import dns.resolver
+
+BASE_DIR = Path(__file__).parent.parent
+DISPOSABLE_CSV = BASE_DIR / "data" / "email_jetable.csv"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Étage 1 — Normalisation
+# ──────────────────────────────────────────────────────────────────────────────
+def normalize_email(raw: str) -> str:
+    if not raw:
+        return ""
+    s = raw.strip().lower()
+    s = unicodedata.normalize("NFC", s)
+    return s
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Étage 2 — Regex syntaxique + anti-patterns
+# ──────────────────────────────────────────────────────────────────────────────
+EMAIL_REGEX = re.compile(
+    r"^[a-z0-9._%-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,24}$"
+)
+
+
+def is_syntax_valid(email: str) -> bool:
+    if not email or len(email) > 254:
+        return False
+    if ".." in email or email.startswith(".") or "@." in email:
+        return False
+    local, _, domain = email.partition("@")
+    if not domain or len(local) > 64:
+        return False
+    return bool(EMAIL_REGEX.match(email))
+
+
+def has_forbidden_patterns(email: str) -> tuple[bool, str]:
+    if "+" in email:
+        return True, "tag_alias_interdit"
+    if email.count("@") != 1:
+        return True, "multiple_at"
+    local, _, domain = email.partition("@")
+    if len(local) < 2:
+        return True, "local_trop_court"
+    if local.isdigit():
+        return True, "local_numerique_pur"
+    if re.search(r"(.)\1{4,}", local):
+        return True, "repetition_anormale"
+    if domain.count(".") > 4:
+        return True, "trop_de_sous_domaines"
+    if len(domain) < 4:
+        return True, "domaine_trop_court"
+    return False, ""
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Étage 3.1 — TLDs / patterns INTERDITS (RGPD + secteur public)
+# ──────────────────────────────────────────────────────────────────────────────
+FORBIDDEN_TLD_PATTERNS = [
+    # Gouvernement
+    r"\.gouv\.fr$",
+    r"\.gov$", r"\.gov\.[a-z]+$",
+    r"\.mil$", r"\.mil\.[a-z]+$",
+    # Education / recherche
+    r"\.edu$", r"\.edu\.[a-z]+$",
+    r"\.ac\.[a-z]+$",
+    r"\.univ-[a-z0-9-]+\.fr$",
+    r"\.scolarite\.[a-z]+$",
+    r"@etudiant\.",
+    r"@student\.",
+    # Administrations FR
+    r"@.*\.prefecture\.",
+    r"@.*\.mairie-",
+    r"@cnaf\.fr$", r"@caf\.fr$",
+    r"@urssaf\.fr$", r"@impots\.gouv\.fr$",
+    r"@pole-emploi\.fr$", r"@francetravail\.fr$",
+    r"@cpam\b", r"@ameli\.fr$",
+    # Santé publique
+    r"\.aphp\.fr$", r"\.chu-[a-z]+\.fr$", r"@hopital-",
+    # Internet infra
+    r"@iana\.org$", r"@icann\.org$",
+]
+
+
+def is_forbidden_tld(email: str) -> tuple[bool, str]:
+    for pat in FORBIDDEN_TLD_PATTERNS:
+        if re.search(pat, email):
+            return True, f"forbidden_tld:{pat}"
+    return False, ""
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Étage 3.2 — Adresses role-based
+# ──────────────────────────────────────────────────────────────────────────────
+FORBIDDEN_LOCAL_PARTS = {
+    # Sécurité / abuse
+    "abuse", "postmaster", "hostmaster", "webmaster", "admin", "administrator",
+    "root", "security", "noc", "soc",
+    # Automatique / no-reply
+    "noreply", "no-reply", "donotreply", "do-not-reply", "notification",
+    "notifications", "alerts", "alert", "system", "daemon", "mailer-daemon",
+    "bounce", "bounces", "mailer", "auto", "autoreply",
+    # Support / SAV
+    "support", "help", "helpdesk", "service", "services", "customercare",
+    "customer-care", "customer-service", "sav", "client", "clients",
+    "assistance",
+    # Sales / marketing / presse
+    "sales", "marketing", "newsletter", "communications", "comms", "media",
+    "press", "presse", "rp", "publicrelations",
+    # RH / juridique
+    "rh", "hr", "recruitment", "recrutement", "jobs", "career", "carriere",
+    "legal", "juridique", "compliance", "dpo", "rgpd", "gdpr", "privacy",
+}
+
+FORBIDDEN_LOCAL_PREFIXES = ("noreply", "no-reply", "donotreply", "abuse")
+
+
+def is_role_based(email: str) -> tuple[bool, str]:
+    local = email.split("@", 1)[0]
+    canonical = local.replace(".", "").replace("-", "").replace("_", "")
+    canonical_set = {p.replace("-", "").replace("_", "") for p in FORBIDDEN_LOCAL_PARTS}
+    if canonical in canonical_set:
+        return True, f"role_based:{canonical}"
+    for prefix in FORBIDDEN_LOCAL_PREFIXES:
+        if local.startswith(prefix):
+            return True, f"role_based_prefix:{prefix}"
+    return False, ""
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Étage 3.3 — Domaines jetables
+# ──────────────────────────────────────────────────────────────────────────────
+def load_disposable_domains(csv_path: Path = DISPOSABLE_CSV) -> set[str]:
+    domains: set[str] = set()
+    if not csv_path.exists():
+        return domains
+    with open(csv_path, encoding="utf-8") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if len(row) >= 2:
+                d = row[1].strip().lower()
+                if d and "." in d:
+                    domains.add(d)
+    return domains
+
+
+DISPOSABLE_DOMAINS: set[str] = load_disposable_domains()
+
+DISPOSABLE_PATTERNS = (
+    "tempmail", "10minute", "throwaway", "trashmail", "guerrilla",
+    "yopmail", "mailinator", "fakeinbox", "dispostable", "spambog",
+)
+
+
+def is_disposable(email: str) -> tuple[bool, str]:
+    domain = email.split("@", 1)[1]
+    if domain in DISPOSABLE_DOMAINS:
+        return True, f"disposable:{domain}"
+    for s in DISPOSABLE_PATTERNS:
+        if s in domain:
+            return True, f"disposable_pattern:{s}"
+    return False, ""
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Étage 4 — Tiers de domaines (whitelist FR + B2B + trash)
+# ──────────────────────────────────────────────────────────────────────────────
+TOP_FR_PERSONAL = {
+    "gmail.com", "yahoo.fr", "yahoo.com", "hotmail.fr", "hotmail.com",
+    "outlook.fr", "outlook.com", "orange.fr", "wanadoo.fr", "free.fr",
+    "sfr.fr", "laposte.net", "live.fr", "live.com", "msn.com",
+    "gmx.fr", "gmx.com", "icloud.com", "me.com", "mac.com",
+    "bbox.fr", "neuf.fr", "club-internet.fr", "numericable.fr",
+    "aliceadsl.fr", "voila.fr", "noos.fr",
+    "proton.me", "protonmail.com", "tutanota.com",
+    "fastmail.com", "zoho.com",
+}
+
+ACCEPTED_TLDS_B2B = {
+    ".fr", ".com", ".eu", ".net", ".org",
+    ".io", ".co", ".tech", ".biz",
+    ".be", ".ch", ".lu", ".mc",
+}
+
+TRASH_TLDS = {
+    ".xyz", ".top", ".club", ".online", ".site", ".shop", ".win", ".click",
+    ".work", ".party", ".review", ".science", ".gq", ".tk", ".ml", ".cf",
+    ".ga", ".loan", ".date", ".racing", ".accountant", ".cricket", ".faith",
+    ".download", ".stream", ".trade", ".webcam",
+}
+
+
+def domain_tier(email: str) -> str:
+    """Retourne 'personal', 'b2b_clean', 'b2b_exotic'."""
+    domain = email.split("@", 1)[1]
+    if domain in TOP_FR_PERSONAL:
+        return "personal"
+    for tld in ACCEPTED_TLDS_B2B:
+        if domain.endswith(tld):
+            return "b2b_clean"
+    return "b2b_exotic"
+
+
+def is_trash_tld(email: str) -> bool:
+    domain = email.split("@", 1)[1]
+    return any(domain.endswith(t) for t in TRASH_TLDS)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Étage 5 — MX check (DNS only)
+# ──────────────────────────────────────────────────────────────────────────────
+_mx_cache: dict[str, bool] = {}
+
+
+def has_mx_record(domain: str, timeout: float = 3.0) -> bool:
+    if domain in _mx_cache:
+        return _mx_cache[domain]
+    try:
+        resolver = dns.resolver.Resolver()
+        resolver.timeout = timeout
+        resolver.lifetime = timeout
+        answers = resolver.resolve(domain, "MX")
+        ok = len(answers) > 0
+    except Exception:
+        ok = False
+    _mx_cache[domain] = ok
+    return ok
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RGPD blocker (avant scoring)
+# ──────────────────────────────────────────────────────────────────────────────
+LICIT_SOURCES = {"serper_places", "annuaire_public", "site_web_pro"}
+
+
+def rgpd_check(email: str, prospect: dict) -> tuple[bool, str]:
+    tier = domain_tier(email)
+    if tier == "personal" and not prospect.get("website"):
+        return False, "rgpd_personal_no_pro_link"
+    forbidden, reason = is_forbidden_tld(email)
+    if forbidden:
+        return False, "rgpd_secteur_public"
+    source = prospect.get("source") or ""
+    if source and source not in LICIT_SOURCES:
+        return False, "rgpd_source_non_publique"
+    return True, "ok"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Étage 6 — Scoring final
+# ──────────────────────────────────────────────────────────────────────────────
+HONEYPOT_TERMS = ("spamtrap", "honeypot", "trap@", "abuse@", "spam@")
+GENERIC_LOCALS = {"contact", "info", "hello", "bonjour", "accueil"}
+
+
+def score_email(email: str, prospect: dict) -> tuple[int, list[str]]:
+    score = 50
+    reasons: list[str] = []
+    local, _, domain = email.partition("@")
+
+    # Local part
+    if "." in local and len(local.split(".")) == 2:
+        score += 25
+        reasons.append("+25 pattern prenom.nom")
+    elif local in GENERIC_LOCALS:
+        # generic local part : on saute le bonus 'simple' et on applique le malus
+        score -= 15
+        reasons.append(f"-15 generic_local:{local}")
+    elif re.match(r"^[a-z]+$", local) and 3 <= len(local) <= 12:
+        score += 10
+        reasons.append("+10 local simple")
+    elif re.search(r"\d{3,}", local):
+        score -= 10
+        reasons.append("-10 chiffres dans local")
+
+    # Domain tier
+    tier = domain_tier(email)
+    if tier == "personal":
+        score -= 10
+        reasons.append("-10 perso (gmail/orange/etc)")
+    elif tier == "b2b_clean":
+        score += 15
+        reasons.append("+15 domaine b2b standard")
+    elif tier == "b2b_exotic":
+        score -= 5
+        reasons.append("-5 TLD exotique")
+
+    # Cohérence email/website
+    website = (prospect.get("website") or "").lower()
+    if website:
+        website_domain = re.sub(r"^(https?://)?(www\.)?", "", website).split("/")[0]
+        if website_domain and website_domain == domain:
+            score += 20
+            reasons.append("+20 email domain match website")
+
+    # Honeypot patterns
+    if any(t in email for t in HONEYPOT_TERMS):
+        score = 0
+        reasons.append("ZERO honeypot pattern")
+
+    return max(0, min(100, score)), reasons
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pipeline complet
+# ──────────────────────────────────────────────────────────────────────────────
+def validate_and_score(email_raw: str, prospect: dict) -> dict:
+    """
+    Pipeline unique — appeler AVANT add_prospect() ou push_emelia().
+
+    Returns:
+        {
+          "email":    str (normalisé),
+          "valid":    bool,
+          "score":    int 0-100,
+          "decision": "push" | "queue" | "drop",
+          "reasons":  list[str],
+        }
+    """
+    email = normalize_email(email_raw)
+    reasons: list[str] = []
+
+    # Étage 2 — Syntax
+    if not is_syntax_valid(email):
+        return {"email": email, "valid": False, "score": 0,
+                "decision": "drop", "reasons": ["syntax_invalid"]}
+    rejected, reason = has_forbidden_patterns(email)
+    if rejected:
+        return {"email": email, "valid": False, "score": 0,
+                "decision": "drop", "reasons": [reason]}
+
+    # Étage 3 — Hard rejects
+    for check in (is_forbidden_tld, is_role_based, is_disposable):
+        rejected, reason = check(email)
+        if rejected:
+            return {"email": email, "valid": False, "score": 0,
+                    "decision": "drop", "reasons": [reason]}
+    if is_trash_tld(email):
+        return {"email": email, "valid": False, "score": 0,
+                "decision": "drop", "reasons": ["trash_tld"]}
+
+    # Étage 5 — MX check sur b2b_exotic uniquement
+    if domain_tier(email) == "b2b_exotic":
+        if not has_mx_record(email.split("@", 1)[1]):
+            return {"email": email, "valid": False, "score": 0,
+                    "decision": "drop", "reasons": ["no_mx"]}
+
+    # RGPD blocker
+    ok, reason = rgpd_check(email, prospect)
+    if not ok:
+        return {"email": email, "valid": False, "score": 0,
+                "decision": "drop", "reasons": [reason]}
+
+    # Étage 6 — Scoring
+    score, score_reasons = score_email(email, prospect)
+    reasons.extend(score_reasons)
+
+    if score < 40:
+        decision = "drop"
+    elif score < 60:
+        decision = "queue"
+    else:
+        decision = "push"
+
+    return {"email": email, "valid": True, "score": score,
+            "decision": decision, "reasons": reasons}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CLI / tests rapides
+# ──────────────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    import json
+    import sys
+
+    if len(sys.argv) > 1:
+        e = sys.argv[1]
+        prospect = {
+            "source":  "serper_places",
+            "website": sys.argv[2] if len(sys.argv) > 2 else "",
+        }
+        print(json.dumps(validate_and_score(e, prospect), indent=2, ensure_ascii=False))
+    else:
+        # Cas de test §12 du spec
+        TESTS = [
+            ("jean.dupont@restaurant-pickles.fr",   {"source": "serper_places", "website": "restaurant-pickles.fr"}, "push"),
+            ("m.bernard@cabinet-bernard.com",       {"source": "serper_places"}, "push"),
+            ("contact@boulangerie-martin.fr",       {"source": "serper_places"}, "queue"),
+            ("test@10minutemail.com",               {"source": "serper_places"}, "drop"),
+            ("admin@orange.fr",                     {"source": "serper_places", "website": "x.fr"}, "drop"),
+            ("jean.dupont+spam@gmail.com",          {"source": "serper_places", "website": "x.fr"}, "drop"),
+            ("contact@cnaf.fr",                     {"source": "serper_places"}, "drop"),
+            ("contact@univ-paris1.fr",              {"source": "serper_places"}, "drop"),
+            ("support@nant-artisans.com",           {"source": "serper_places"}, "drop"),
+            ("something@whatever.xyz",              {"source": "serper_places"}, "drop"),
+            ("fake@yaho-fake-domain-xyz1234.com",   {"source": "serper_places"}, "drop"),
+            ("abc@@gmail.com",                      {"source": "serper_places"}, "drop"),
+            ("jeandupont1985@gmail.com",            {"source": "serper_places", "website": "x.fr"}, "queue"),
+            ("info@some-domain.fr",                 {"source": "serper_places"}, "queue"),
+        ]
+        print(f"{'EMAIL':<40s} | {'EXP':<6s} | {'GOT':<6s} | {'SCORE':<5s} | REASONS")
+        print("-" * 120)
+        ok_count = 0
+        for email, prospect, expected in TESTS:
+            res = validate_and_score(email, prospect)
+            mark = "✓" if res["decision"] == expected else "✗"
+            if res["decision"] == expected:
+                ok_count += 1
+            print(f"{email:<40s} | {expected:<6s} | {res['decision']:<6s} | {res['score']:<5d} | {mark} {','.join(res['reasons'])[:60]}")
+        print(f"\n{ok_count}/{len(TESTS)} tests passed")

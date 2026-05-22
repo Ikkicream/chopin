@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
 """
-seo_strategy_agent.py — Analyse les données Ahrefs et génère des recommandations
-SEO actionnables avec explications pédagogiques.
+seo_strategy_agent.py — SEO STRATEGIST
 
-Cron: lundi 7h UTC
-Usage: python3 scripts/seo_strategy_agent.py [--site lcr|mkd|both]
+Analyse les caches Ahrefs (memory/seo/*-audit-latest.json) et génère des
+recommandations SEO actionnables avec explications pédagogiques.
+
+DOC DE RÉFÉRENCE : specs/seo-playbook.md
+
+Responsabilités (mises à jour 2026-05-22) :
+  1. Lire les audits mensuels (memory/seo/{site}-audit-latest.json)
+  2. Générer des recommandations actionnables via DeepSeek
+  3. SURVEILLER LE BUDGET AHREFS et émettre une reco quand dépassement
+  4. Notifier Telegram si recos critiques
+
+Cron : lundi 7h UTC
+Usage : python3 scripts/seo_strategy_agent.py [--site lcr|mkd|both]
 """
 
 import json
@@ -244,9 +254,39 @@ def main():
     args = parser.parse_args()
 
     print(f"[seo_strategy_agent] {datetime.now(timezone.utc).isoformat()}")
+
+    # === Surveillance budget Ahrefs (ajouté 2026-05-22) ===
     try:
         import sys
         sys.path.insert(0, str(Path(__file__).parent))
+        from cost_tracker import check_ahrefs_budget
+        ok, info = check_ahrefs_budget(cost_estimate=0, critical=False)
+        used, total, pct = info.get("used", 0), info.get("total", 10000), info.get("pct", 0)
+        if pct >= 70:
+            print(f"[BUDGET-ALERT] Ahrefs à {pct}% ({used}/{total}) — reset {info.get("reset_at", "")[:10]}")
+            # Émet une reco prioritaire pour les 2 sites
+            recos = load_recommendations()
+            alert = {
+                "id":         f"budget-alert-{datetime.now(timezone.utc).strftime('%Y%m%d')}",
+                "priority":   "critical",
+                "type":       "budget",
+                "title":      f"Budget Ahrefs à {pct}%",
+                "action":     f"Conso {used}/{total} unités. Reset {info.get('reset_at', '')[:10]}. Voir specs/seo-playbook.md.",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            for s in ["lcr", "mkd"]:
+                recos.setdefault(s, [])
+                if not any(r.get("id") == alert["id"] for r in recos[s]):
+                    recos[s].insert(0, alert)
+            save_recommendations(recos)
+            try:
+                notify_telegram("system", [alert])
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[BUDGET-MONITOR] skip: {e}")
+
+    try:
         from modules_backend import is_enabled
     except Exception:
         is_enabled = lambda *_: True

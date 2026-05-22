@@ -78,8 +78,25 @@ def load_env() -> dict:
     return env
 
 
-def ahrefs_get(endpoint: str, params: dict, api_key: str) -> dict:
-    """Appel GET Ahrefs API avec tracking des unités consommées."""
+def ahrefs_get(endpoint: str, params: dict, api_key: str, cost_estimate: int = 50, critical: bool = False) -> dict:
+    """Appel GET Ahrefs API avec tracking des unités + budget gate.
+
+    Args:
+        cost_estimate : estimation des unités (50 par défaut)
+        critical      : True = Tier 1/2 essentiel, False = Tier 3/4 (bloqué si warning budget)
+
+    Budget gate ajoutée 2026-05-22 — voir specs/seo-playbook.md.
+    """
+    try:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        from cost_tracker import check_ahrefs_budget
+        ok, info = check_ahrefs_budget(cost_estimate=cost_estimate, critical=critical)
+        if not ok:
+            print(f"  [BUDGET BLOCK] {endpoint} → {info[chr(39)+chr(114)+chr(101)+chr(97)+chr(115)+chr(111)+chr(110)+chr(39)]}")
+            return {"error": "budget_block", "units": 0, "_budget": info}
+    except Exception as e:
+        print(f"  [BUDGET GATE WARN] {e}")
+
     headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
     url = f"{AHREFS_BASE}/{endpoint}"
     r = requests.get(url, params=params, headers=headers, timeout=30)
@@ -408,6 +425,22 @@ def run_full_seo(site_key: str, api_key: str):
 
 
 def main():
+    # --- BLOCAGE 2026-05-22 : --report full désactivé ---
+    # Trop coûteux (~3 100u/site/run). Remplacé par ahrefs_monthly_audit.py.
+    # Pour relancer un audit complet : python3 scripts/ahrefs_monthly_audit.py
+    # Pour les recherches kw ponctuelles : --report keywords --kw "..." (1×/2 mois max)
+    if "--report" in sys.argv:
+        try:
+            idx = sys.argv.index("--report")
+            if idx + 1 < len(sys.argv) and sys.argv[idx + 1] == "full":
+                print("[SEO.PY] --report full DÉSACTIVÉ (décision 2026-05-22).")
+                print("Utilise : python3 scripts/ahrefs_monthly_audit.py")
+                print("Voir : specs/seo-playbook.md")
+                sys.exit(0)
+        except (ValueError, IndexError):
+            pass
+
+
     parser = argparse.ArgumentParser(description="Analyse SEO Ahrefs")
     parser.add_argument("--site", required=True, choices=None)
     parser.add_argument("--report", default="full",
