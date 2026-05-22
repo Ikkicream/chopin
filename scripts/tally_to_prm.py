@@ -31,6 +31,24 @@ sys.path.insert(0, str(BASE_DIR / "scripts"))
 from tally_client import list_forms, list_submissions, extract_lead_fields, get_api_key
 from acquisition_backend import create as acq_create, find_by_email as acq_find_by_email
 
+
+def _tally_dual_write_pool(site, email, fields, form_id):
+    """DUAL-WRITE pool 2026-05-22."""
+    try:
+        import contacts_pool_backend as _cpb
+        pool_cid = _cpb.create_in_pool({
+            "email":   email,
+            "prenom":  fields.get("prenom") or fields.get("firstName") or "",
+            "nom":     fields.get("nom") or fields.get("lastName") or "",
+            "societe": fields.get("societe") or fields.get("company") or "",
+            "tel":     fields.get("tel") or fields.get("phone") or "",
+        }, primary_source="tally")
+        if pool_cid:
+            _cpb.upsert_site_history(pool_cid, site, state="lead",
+                source=f"tally:{form_id}", by="tally_sync")
+    except Exception as _e:
+        print(f"  [tally][pool dual-write] {_e}")
+
 SYNC_STATE = BASE_DIR / "memory" / "shared" / "tally-sync-state.json"
 SYNC_STATE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -115,7 +133,7 @@ def sync_site(site: str, dry_run: bool = False) -> dict:
             if dry_run:
                 print(f"    DRY: {lead['email']} ({lead['firstName']} {lead['lastName']})")
             else:
-                acq_create(site, {
+                _tally_dual_write_pool(site, email, fields, form_id) if "email" in dir() and "fields" in dir() and "form_id" in dir() else None; acq_create(site, {
                     "email":   lead["email"],
                     "prenom":  lead["firstName"],
                     "nom":     lead["lastName"],

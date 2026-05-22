@@ -260,6 +260,27 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None, max_res
                 try:
                     gm.add_prospect_pending(site_code, prospect)
                     valid += 1
+
+                    # DUAL-WRITE pool 2026-05-22 : insert aussi dans contacts.duckdb
+                    try:
+                        import contacts_pool_backend as _cpb
+                        _pool_cid = _cpb.create_in_pool({
+                            "email":      vres["email"],
+                            "societe":    title,
+                            "tel":        phone,
+                            "website":    website,
+                            "city":       city,
+                            "sectors":    [sector] if sector else None,
+                            "email_score":              vres["score"],
+                            "email_validation_reasons": vres["reasons"],
+                        }, primary_source="serper")
+                        if _pool_cid:
+                            _cpb.upsert_site_history(_pool_cid, site_code,
+                                state="cold_email",
+                                source=f"workflow:{sector}" if sector else "workflow",
+                                by="scrape_sector")
+                    except Exception as _pool_err:
+                        print(f"  [scrape][pool dual-write] {_pool_err}")
                 except Exception as e:
                     errors += 1
                     print(f"[scrape] insert error: {e}")

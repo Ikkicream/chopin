@@ -2161,6 +2161,158 @@ async def api_onboard_full(request: Request):
 
     # Save site context
     (site_dir / "site-context.json").write_text(json.dumps(context, indent=2, ensure_ascii=False))
+    # === ONBOARD_V2_2026-05-22 : enrichissement context avec champs 16 steps ===
+    context_v2 = {
+        "persona":              data.get("persona", data.get("audience", "")),
+        "geo_target":           data.get("geo_target", "FR"),
+        "dept_priority":        data.get("dept_priority", []),
+        "city_min_pop":         data.get("city_min_pop", 10000),
+        "target_keywords":      data.get("target_keywords", data.get("keywords", [])),
+        "competitors_v2":       data.get("competitors", []),
+        "traffic_goal":         data.get("traffic_goal", ""),
+        "tone":                 data.get("tone", ""),
+        "cta_default":          data.get("cta_default", data.get("cta", "")),
+        "signature":            data.get("signature", ""),
+        "banned_words":         data.get("banned_words", ""),
+        "sectors_enabled":      data.get("sectors_enabled", []),
+        "daily_quota_per_sector": data.get("daily_quota_per_sector", 10),
+        "sender_email":         data.get("sender_email", ""),
+        "sender_name":          data.get("sender_name", ""),
+        "provider_type":        data.get("provider_type", "Gmail"),
+        "raison_sociale":       data.get("raison_sociale", ""),
+        "adresse_postale":      data.get("adresse_postale", ""),
+        "source_label":         data.get("source_label", "via votre présence professionnelle publique"),
+        "privacy_url":          data.get("privacy_url", ""),
+        "dpo_email":            data.get("dpo_email", ""),
+        "templates_option":     data.get("templates_option", "ia"),
+        "warmup_plan":          data.get("warmup_plan", "A"),
+        "warmup_start_today":   data.get("warmup_start_today", True),
+        "modules_enabled":      data.get("modules_enabled", ["emelia", "mailnjoy"]),
+        "ahrefs_project_id":    data.get("ahrefs_project_id", ""),
+        "emelia_daily_limit":   data.get("emelia_daily_limit", 50),
+        "cooldown_same_site":   data.get("cooldown_same_site", 7),
+        "cooldown_global":      data.get("cooldown_global", 30),
+        "account_id":           data.get("account_id", ""),
+        "account_role":         data.get("account_role", "owner"),
+        "test_email":           data.get("test_email", ""),
+    }
+    context.update(context_v2)
+
+    # ── Crée pied de mail B2B ─────────────────────────────────────────────────
+    footer_md = f"""# Pied de mail B2B — {context_v2['raison_sociale']}
+
+—
+{context_v2['raison_sociale']} — {context_v2['adresse_postale']}
+{context_v2['source_label']}
+{f'Vous pouvez vous désinscrire : ' + '{{UNSUBSCRIBE_LINK}}' if True else ''}
+{f"Contact DPO : {context_v2['dpo_email']}" if context_v2['dpo_email'] else ''}
+{f"Politique : {context_v2['privacy_url']}" if context_v2['privacy_url'] else ''}
+"""
+    ctx_dir = BASE_DIR / "context" / code
+    ctx_dir.mkdir(parents=True, exist_ok=True)
+    (ctx_dir / "footer.md").write_text(footer_md)
+
+    # ── Sauvegarde audience, prospection, editorial-style ─────────────────────
+    (ctx_dir / "audience.md").write_text(
+        f"# Persona — {context.get('label')}\n\n{context_v2['persona']}\n\n"
+        f"## Zone géographique : {context_v2['geo_target']}\n"
+        f"## Départements prioritaires : {', '.join(context_v2['dept_priority']) if context_v2['dept_priority'] else 'tous'}\n"
+        f"## Population min commune : {context_v2['city_min_pop']}\n"
+    )
+    (ctx_dir / "editorial-style.md").write_text(
+        f"# Style éditorial — {context.get('label')}\n\n"
+        f"## Ton : {context_v2['tone']}\n"
+        f"## CTA par défaut : {context_v2['cta_default']}\n"
+        f"## Signature : {context_v2['signature']}\n"
+        f"## Mots interdits : {context_v2['banned_words']}\n"
+    )
+
+    # ── Insère email_senders si fourni ────────────────────────────────────────
+    if context_v2['sender_email']:
+        try:
+            import duckdb as _dd
+            from datetime import date as _date
+            _c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"))
+            try:
+                _c.execute("""
+                    INSERT OR REPLACE INTO email_senders
+                    (sender_email, sender_name, site_code, warmup_start_date, warmup_finished, status, notes)
+                    VALUES (?, ?, ?, ?, FALSE, 'active', ?)
+                """, [context_v2['sender_email'], context_v2['sender_name'], code,
+                      _date.today() if context_v2['warmup_start_today'] else None,
+                      f"onboarded — plan={context_v2['warmup_plan']}"])
+            finally:
+                _c.close()
+        except Exception as e:
+            print(f"  [onboard][email_senders] {e}")
+
+    # ── god_mode_settings + state ─────────────────────────────────────────────
+    try:
+        import duckdb as _dd
+        import json as _json
+        _c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"))
+        try:
+            # Settings (upsert)
+            _c.execute("""
+                INSERT OR REPLACE INTO god_mode_settings
+                (site_code, sectors_enabled, daily_quota_per_sector, emelia_daily_limit,
+                 cooldown_same_site_days, cooldown_global_days, account_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, [code, _json.dumps(context_v2['sectors_enabled']),
+                  context_v2['daily_quota_per_sector'], context_v2['emelia_daily_limit'],
+                  context_v2['cooldown_same_site'], context_v2['cooldown_global'],
+                  context_v2['account_id']])
+            # State (default disabled until step 16 mail test OK)
+            _c.execute("""
+                INSERT OR REPLACE INTO god_mode_state
+                (site_code, enabled, enabled_by, updated_at)
+                VALUES (?, FALSE, ?, CURRENT_TIMESTAMP)
+            """, [code, "onboarding"])
+        finally:
+            _c.close()
+    except Exception as e:
+        print(f"  [onboard][settings] {e}")
+
+    # ── site_credentials (clés API) — chiffrement AES via Fernet ─────────────
+    try:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        from site_credentials_backend import set_credential as _set_cred
+        for kn, kv in (
+            ("EMELIA_API_KEY",  data.get("emelia_key", "")),
+            ("SERPER_API_KEY",  data.get("serper_key", "")),
+            ("TALLY_API_KEY",   data.get("tally_key", "")),
+            ("TELEGRAM_BOT",    data.get("telegram_bot", "")),
+            ("TELEGRAM_CHAT",   data.get("telegram_chat", "")),
+        ):
+            if kv:
+                _set_cred(code, kn, kv)
+    except Exception as e:
+        print(f"  [onboard][credentials AES] {e}")
+
+    # ── account (multi-tenant) ────────────────────────────────────────────────
+    if context_v2['account_id']:
+        try:
+            import duckdb as _dd
+            _c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"))
+            try:
+                _c.execute("""
+                    INSERT OR REPLACE INTO accounts (id, label, plan)
+                    VALUES (?, ?, 'free')
+                """, [context_v2['account_id'], context_v2['account_id']])
+            finally:
+                _c.close()
+        except Exception as e:
+            print(f"  [onboard][accounts] {e}")
+
+    # ── modules config (modules_backend JSON par site) ────────────────────────
+    try:
+        modules_file = BASE_DIR / "memory" / code / "modules.json"
+        modules_file.parent.mkdir(parents=True, exist_ok=True)
+        modules_state = {m: True for m in context_v2['modules_enabled']}
+        modules_file.write_text(json.dumps({"site": code, "modules": modules_state}, indent=2))
+    except Exception as e:
+        print(f"  [onboard][modules] {e}")
+
 
     # Generate contextualized skills
     skills_dir = BASE_DIR / "skills" / code
@@ -3972,4 +4124,423 @@ async def api_mailnjoy_save_credentials(request: Request):
     lines.append(f"MAILNJOY_SECRET={msec}")
     env_f.write_text("\n".join(lines).rstrip() + "\n")
     return {"ok": True, "credit": int(r.text.strip())}
+
+
+# ── Pool mutualisé contacts (2026-05-22) ──────────────────────────────────────
+
+@app.get("/api/sites/{site}/pool/contacts")
+def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
+                      source: str = "", search: str = "",
+                      limit: int = 500, offset: int = 0):
+    """Liste les contacts du pool utilisés par ce site (avec filtres + recherche)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import list_contacts_for_site
+    return {
+        "contacts": list_contacts_for_site(
+            site_code=site,
+            state=state.split(",") if state else None,
+            sectors_in=sectors_in.split(",") if sectors_in else None,
+            source=source.split(",") if source else None,
+            search_email=search or None,
+            limit=limit,
+            offset=offset,
+        )
+    }
+
+
+@app.get("/api/sites/{site}/pool/contacts/{contact_id}")
+def api_pool_contact_detail(site: str, contact_id: str):
+    """Detail d'un contact + historique cross-site."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import find_by_email_global, get_history_for_site, _conn
+    import duckdb as _dd
+    c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"), read_only=True)
+    try:
+        cols = [r[1] for r in c.execute("PRAGMA table_info(contacts)").fetchall()]
+        row = c.execute("SELECT * FROM contacts WHERE id = ?", [contact_id]).fetchone()
+        if not row:
+            return {"error": "not_found"}
+        contact = dict(zip(cols, row))
+        # parse JSON cols
+        import json as _json
+        for k in ("sectors", "email_validation_reasons", "mailnjoy_check"):
+            v = contact.get(k)
+            if isinstance(v, str):
+                try: contact[k] = _json.loads(v)
+                except: pass
+        # historique tous sites
+        hist_cols = [r[1] for r in c.execute("PRAGMA table_info(contact_site_history)").fetchall()]
+        h_rows = c.execute("SELECT * FROM contact_site_history WHERE contact_id = ? ORDER BY added_to_site_at DESC", [contact_id]).fetchall()
+        sites_history = []
+        for hr in h_rows:
+            d = dict(zip(hist_cols, hr))
+            sh = d.get("state_history")
+            if isinstance(sh, str):
+                try: d["state_history"] = _json.loads(sh)
+                except: pass
+            # cast timestamps en str
+            for ts_col in ("added_to_site_at", "last_action_at", "email_sent_at",
+                           "emelia_opened_at", "emelia_clicked_at", "emelia_replied_at",
+                           "emelia_bounced_at", "emelia_unsubscribed_at",
+                           "last_contacted_by_site_at"):
+                if d.get(ts_col): d[ts_col] = str(d[ts_col])
+            sites_history.append(d)
+        contact["sites_history"] = sites_history
+        # timestamps contacts
+        for ts_col in ("created_at", "updated_at", "blacklisted_at"):
+            if contact.get(ts_col): contact[ts_col] = str(contact[ts_col])
+        return contact
+    finally:
+        c.close()
+
+
+@app.get("/api/sites/{site}/pool/stats")
+def api_pool_stats(site: str):
+    """Stats du pool pour ce site."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import stats_for_site
+    return stats_for_site(site)
+
+
+@app.get("/api/sites/{site}/pool/depletion-alert")
+def api_pool_depletion(site: str, threshold: int = 10):
+    """Alerte secteur épuisé pour ce site."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import check_pool_depletion
+    SECTORS = ["immobilier", "restaurant", "garagiste", "coiffeur", "retail", "artisan"]
+    return {"depleted": check_pool_depletion(site, SECTORS, threshold=threshold)}
+
+
+@app.get("/api/sites/{site}/pool/pick")
+def api_pool_pick(site: str, sector: str, limit: int = 30):
+    """Aperçu de la pioche pour une campagne (Step 3 du wizard Campagnes)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import pick_for_campaign, count_available_for_sector
+    return {
+        "available_total": count_available_for_sector(site, sector),
+        "picked":          pick_for_campaign(site, sector, limit=limit),
+    }
+
+
+@app.post("/api/sites/{site}/pool/contacts/{contact_id}/change-state")
+async def api_pool_change_state(site: str, contact_id: str, request: Request):
+    """Change state d'un contact pour ce site (manuel via UI)."""
+    body = await request.json()
+    new_state = body.get("state")
+    note = body.get("note", "")
+    if not new_state:
+        return {"ok": False, "error": "state required"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import change_state_for_site
+    ok = change_state_for_site(contact_id, site, new_state, by="ui_manual", note=note)
+    return {"ok": ok}
+
+
+@app.post("/api/sites/{site}/pool/contacts/{contact_id}/blacklist")
+async def api_pool_blacklist(site: str, contact_id: str, request: Request):
+    """Blacklist GLOBAL d'un contact (depuis l'UI Acquisition)."""
+    body = await request.json()
+    reason = body.get("reason", "manual blacklist via UI")
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import set_global_blacklist, find_by_email_global
+    import duckdb as _dd
+    c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"), read_only=True)
+    try:
+        row = c.execute("SELECT email FROM contacts WHERE id = ?", [contact_id]).fetchone()
+    finally:
+        c.close()
+    if not row:
+        return {"ok": False, "error": "not_found"}
+    set_global_blacklist(row[0], reason=reason)
+    return {"ok": True}
+
+
+@app.post("/api/sites/{site}/pool/campaigns/create")
+async def api_pool_campaigns_create(site: str, request: Request):
+    """Crée une campagne Emelia depuis le pool : pick N contacts → create Emelia → push.
+
+    Body: {name, sector, volume_target, volume_per_day}
+    """
+    body = await request.json()
+    name = (body.get("name") or "").strip()
+    sector = (body.get("sector") or "").strip()
+    volume_target = int(body.get("volume_target") or 30)
+    volume_per_day = int(body.get("volume_per_day") or 10)
+
+    if not name or not sector:
+        return {"ok": False, "error": "name and sector required"}
+
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import pick_for_campaign, mark_pushed_to_emelia, count_available_for_sector
+    from emelia_campaign_manager import get_default_steps
+    from workflow_emelia_push import _get_key
+
+    # 1. Pick contacts
+    available = count_available_for_sector(site, sector)
+    if available == 0:
+        return {"ok": False, "error": f"Aucun contact dispo dans le secteur {sector}"}
+    actual_volume = min(volume_target, available)
+    contacts = pick_for_campaign(site, sector, limit=actual_volume)
+    if not contacts:
+        return {"ok": False, "error": "pick_for_campaign returned empty"}
+
+    # 2. Get Emelia key for this site
+    api_key = _get_key(site)
+    if not api_key:
+        return {"ok": False, "error": f"no emelia key for site={site}"}
+
+    EMELIA_URL = "https://api.emelia.io"
+    H = {"Authorization": api_key, "Content-Type": "application/json"}
+
+    # 3. Create campaign
+    r = requests.post(f"{EMELIA_URL}/emails/campaigns",
+                      json={"name": name}, headers=H, timeout=20)
+    if r.status_code not in (200, 201):
+        return {"ok": False, "error": f"emelia create failed: {r.status_code} {r.text[:200]}"}
+    camp = r.json().get("campaign", r.json())
+    cid = camp.get("_id")
+    if not cid:
+        return {"ok": False, "error": "no campaign _id returned"}
+
+    # 4. Configure steps (template du secteur)
+    try:
+        steps = get_default_steps(sector)
+        requests.patch(f"{EMELIA_URL}/emails/campaigns/{cid}/steps",
+                       json={"steps": steps}, headers=H, timeout=20)
+    except Exception as e:
+        print(f"  [campaigns/create] warn steps: {e}")
+
+    # 5. Add contacts (batch)
+    pushed = 0
+    for c in contacts:
+        contact_payload = {
+            "email": c["email"],
+            "firstName": c.get("prenom") or "",
+            "lastName":  c.get("nom") or "",
+            "field1":    c.get("societe") or "",
+            "field2":    c.get("city") or "",
+            "field3":    c.get("dept_code") or "",
+            "field4":    c.get("website") or "",
+        }
+        try:
+            r = requests.post(f"{EMELIA_URL}/emails/campaign/contacts",
+                              json={"id": cid, "contact": contact_payload},
+                              headers=H, timeout=15)
+            if r.status_code in (200, 201):
+                pushed += 1
+                # Update pool side : mark pushed
+                mark_pushed_to_emelia(c["id"], site, cid, "")
+        except Exception as e:
+            print(f"  [campaigns/create] add_contact failed: {e}")
+
+    # 6. Start campaign
+    try:
+        requests.post(f"{EMELIA_URL}/emails/campaigns/{cid}/start",
+                      headers=H, timeout=15)
+    except Exception as e:
+        print(f"  [campaigns/create] warn start: {e}")
+
+    # 7. Register webhook (idempotent — déjà ALL_CAMPAIGNS mais on s'assure)
+    try:
+        import os as _os
+        WEBHOOK_URL = "https://api.cheffer.email/api/emelia/webhook?token=" + _os.environ.get("WEBHOOK_TOKEN_1", "")
+        if _os.environ.get("WEBHOOK_TOKEN_1"):
+            requests.post(f"{EMELIA_URL}/webhook",
+                json={"hookUrl": WEBHOOK_URL, "campaignId": cid,
+                      "events": ["SENT","OPENED","CLICKED","REPLIED","BOUNCED","UNSUBSCRIBED"],
+                      "type": "email"}, headers=H, timeout=15)
+    except Exception as e:
+        print(f"  [campaigns/create] warn webhook: {e}")
+
+    return {
+        "ok": True,
+        "campaign_id": cid,
+        "campaign_name": name,
+        "pushed_count": pushed,
+        "available_at_pick": available,
+        "actual_volume": actual_volume,
+    }
+
+
+@app.post("/api/sites/{site}/pool/contacts/create")
+async def api_pool_contact_create(site: str, request: Request):
+    """Crée un nouveau contact dans le pool + l'attache à ce site."""
+    body = await request.json()
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import create_in_pool, upsert_site_history
+    cid = create_in_pool(body, primary_source=body.get("primary_source", "manual"))
+    if not cid:
+        return {"ok": False, "error": "invalid email"}
+    upsert_site_history(cid, site,
+                       state=body.get("state", "cold_email"),
+                       source=body.get("source", "manual"),
+                       by="ui_create")
+    return {"ok": True, "contact_id": cid}
+
+
+@app.patch("/api/sites/{site}/pool/contacts/{contact_id}")
+async def api_pool_contact_update(site: str, contact_id: str, request: Request):
+    """Update champs d'un contact dans le pool master (pas le history)."""
+    body = await request.json()
+    import duckdb as _dd
+    c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"))
+    try:
+        # Champs autorisés à update
+        ALLOWED = {"prenom", "nom", "societe", "tel", "website", "city",
+                   "dept_code", "region_code", "postal_code"}
+        updates, params = [], []
+        for k, v in body.items():
+            if k in ALLOWED:
+                updates.append(f"{k} = ?")
+                params.append(v)
+        if not updates:
+            return {"ok": False, "error": "no updatable fields"}
+        updates.append("updated_at = CURRENT_TIMESTAMP")
+        params.append(contact_id)
+        c.execute(f"UPDATE contacts SET {', '.join(updates)} WHERE id = ?", params)
+    finally:
+        c.close()
+    return {"ok": True}
+
+
+@app.delete("/api/sites/{site}/pool/contacts/{contact_id}")
+async def api_pool_contact_delete(site: str, contact_id: str, hard: bool = False):
+    """Supprime la row contact_site_history pour ce site (ou hard delete tout)."""
+    import duckdb as _dd
+    c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"))
+    try:
+        if hard:
+            c.execute("DELETE FROM contact_site_history WHERE contact_id = ?", [contact_id])
+            c.execute("DELETE FROM contacts WHERE id = ?", [contact_id])
+        else:
+            c.execute(
+                "DELETE FROM contact_site_history WHERE contact_id = ? AND site_code = ?",
+                [contact_id, site]
+            )
+    finally:
+        c.close()
+    return {"ok": True, "hard": hard}
+
+
+@app.post("/api/sites/{site}/pool/contacts/import-csv")
+async def api_pool_csv_import(site: str, request: Request):
+    """Import CSV : crée les contacts dans le pool + attache au site."""
+    body = await request.json()
+    rows = body.get("rows", [])
+    default_state = body.get("default_state", "cold_email")
+    sectors_for_all = body.get("sectors", [])
+
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from contacts_pool_backend import create_in_pool, upsert_site_history
+
+    added, skipped, errors = 0, 0, 0
+    for r in rows:
+        email = (r.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            skipped += 1
+            continue
+        try:
+            data = {
+                "email": email,
+                "prenom":  r.get("prenom") or r.get("firstName") or "",
+                "nom":     r.get("nom") or r.get("lastName") or "",
+                "societe": r.get("societe") or r.get("company") or "",
+                "tel":     r.get("tel") or r.get("phone") or "",
+                "website": r.get("website") or "",
+                "city":    r.get("city") or "",
+                "dept_code": r.get("dept_code") or "",
+                "sectors": sectors_for_all or ([r.get("sector")] if r.get("sector") else None),
+            }
+            cid = create_in_pool(data, primary_source="csv")
+            if cid:
+                upsert_site_history(cid, site, state=default_state, source="import_csv", by="csv_import")
+                added += 1
+            else:
+                skipped += 1
+        except Exception as e:
+            errors += 1
+            print(f"  [csv import] err: {e}")
+    return {"ok": True, "added": added, "skipped": skipped, "errors": errors}
+
+
+@app.post("/api/sites/{site}/onboarding/send-test-email")
+async def api_onboarding_send_test(site: str, request: Request):
+    """Step 16 du wizard — envoie 1 email test à l'email du propriétaire pour valider la chaîne.
+
+    Body : {test_email: str, sector: str (optionnel, défaut 'restaurant')}
+    """
+    body = await request.json()
+    test_email = (body.get("test_email") or "").strip().lower()
+    sector = body.get("sector", "restaurant")
+    if not test_email or "@" not in test_email:
+        return {"ok": False, "error": "test_email invalide"}
+
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from workflow_emelia_push import _get_key
+    from emelia_campaign_manager import get_default_steps
+    api_key = _get_key(site)
+    if not api_key:
+        return {"ok": False, "error": f"no emelia key for site={site} (configure step 9 first)"}
+
+    EMELIA_URL = "https://api.emelia.io"
+    H = {"Authorization": api_key, "Content-Type": "application/json"}
+
+    # 1. Cherche ou crée une campagne onboarding-test
+    camp_name = f"onboarding-test-{site}"
+    r = requests.get(f"{EMELIA_URL}/emails/campaigns", headers=H, timeout=15)
+    cid = None
+    if r.status_code == 200:
+        for c in (r.json().get("campaigns") or []):
+            if c.get("name") == camp_name:
+                cid = c.get("_id")
+                break
+
+    if not cid:
+        # Create
+        r = requests.post(f"{EMELIA_URL}/emails/campaigns",
+                          json={"name": camp_name}, headers=H, timeout=20)
+        if r.status_code not in (200, 201):
+            return {"ok": False, "error": f"create campaign failed: {r.status_code}"}
+        camp = r.json().get("campaign", r.json())
+        cid = camp.get("_id")
+        if not cid:
+            return {"ok": False, "error": "no campaign _id returned"}
+        # Configure steps avec template du secteur
+        try:
+            steps = get_default_steps(sector)
+            requests.patch(f"{EMELIA_URL}/emails/campaigns/{cid}/steps",
+                           json={"steps": steps}, headers=H, timeout=20)
+        except Exception as e:
+            print(f"  [onboarding test] warn steps: {e}")
+
+    # 2. POST /emails/test (envoi instantané sans respecter cadence)
+    try:
+        r = requests.post(f"{EMELIA_URL}/emails/test",
+                          json={"campaignId": cid, "email": test_email, "step": 0},
+                          headers=H, timeout=20)
+        if r.status_code in (200, 201):
+            return {"ok": True, "campaign_id": cid, "sent_to": test_email}
+        return {"ok": False, "error": f"emelia test failed: {r.status_code} {r.text[:200]}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/sites/{site}/onboarding/confirm-activation")
+async def api_onboarding_confirm(site: str, request: Request):
+    """User a reçu le mail test → on active le site (god_mode_state.enabled=TRUE)."""
+    body = await request.json()
+    received = bool(body.get("received", False))
+    if not received:
+        return {"ok": False, "error": "received must be true to activate"}
+    import duckdb as _dd
+    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"))
+    try:
+        c.execute("""
+            INSERT OR REPLACE INTO god_mode_state
+            (site_code, enabled, enabled_by, enabled_at, updated_at)
+            VALUES (?, TRUE, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """, [site, "onboarding_mail_test_confirmed"])
+    finally:
+        c.close()
+    return {"ok": True, "site": site, "enabled": True}
 

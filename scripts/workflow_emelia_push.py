@@ -44,7 +44,20 @@ if env_file.exists():
 
 
 def _get_key(site: str) -> str | None:
-    """Clé Emelia par site (LCR/MKD) avec fallback global."""
+    """Clé Emelia par site (LCR/MKD).
+
+    Ordre de priorité (2026-05-22) :
+      1. Table site_credentials (chiffrée AES) — source de vérité post-onboarding
+      2. Env var EMELIA_API_KEY_<SITE> — legacy
+      3. Env var EMELIA_API_KEY globale — fallback ultime
+    """
+    try:
+        from site_credentials_backend import get_credential
+        v = get_credential(site, "EMELIA_API_KEY")
+        if v:
+            return v.strip() or None
+    except Exception:
+        pass
     k = os.environ.get(f"EMELIA_API_KEY_{site.upper()}", "").strip()
     if k:
         return k
@@ -395,6 +408,29 @@ def push_prospect(site: str, prospect_id: str, daily_limit: int = 50) -> dict:
                     acq_c.close()
             else:
                 res = acq_create(site, acq_payload, by="workflow_runner")
+
+            # DUAL-WRITE pool 2026-05-22 : pousser dans contacts.duckdb
+            try:
+                import contacts_pool_backend as _cpb
+                _pool_cid = _cpb.create_in_pool({
+                    "email":      email,
+                    "prenom":     prenom,
+                    "nom":        nom,
+                    "societe":    company,
+                    "tel":        phone,
+                    "website":    website,
+                    "city":       city,
+                    "dept_code":  dept,
+                    "sectors":    [sector] if sector else None,
+                }, primary_source="serper")
+                if _pool_cid:
+                    _cpb.upsert_site_history(_pool_cid, site,
+                        state="cold_email",
+                        source=f"workflow:{sector}" if sector else "workflow",
+                        by="workflow_runner")
+                    _cpb.mark_pushed_to_emelia(_pool_cid, site, cid, contact_id or "pushed")
+            except Exception as _pool_err:
+                print(f"  [emelia push][pool dual-write] {_pool_err}")
                 acq_id = res.get("id", "")
         except Exception as e:
             print(f"  [acquisition_contacts] warn upsert: {e}")

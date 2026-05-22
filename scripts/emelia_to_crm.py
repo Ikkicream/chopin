@@ -33,6 +33,26 @@ sys.path.insert(0, str(BASE_DIR / "scripts"))
 from acquisition_backend import create as acq_create, find_by_email as acq_find, change_state as acq_change_state, STATE_RANK, _conn as acq_conn
 
 
+def _dual_write_pool(site, email, target_state, source, contact_data=None):
+    """DUAL-WRITE pool 2026-05-22 : sync emelia_to_crm vers contacts.duckdb."""
+    try:
+        import contacts_pool_backend as _cpb
+        contact_data = contact_data or {}
+        pool_cid = _cpb.create_in_pool({
+            "email":   email,
+            "prenom":  contact_data.get("firstName") or "",
+            "nom":     contact_data.get("lastName") or "",
+            "societe": contact_data.get("company") or "",
+        }, primary_source="serper")
+        if pool_cid and target_state:
+            _cpb.change_state_for_site(pool_cid, site, target_state,
+                by="emelia_sync_cron", note=f"source={source}")
+            if target_state == "blacklisted":
+                _cpb.set_global_blacklist(email, reason=f"emelia_sync ({source})")
+    except Exception as _e:
+        print(f"  [emelia_to_crm][pool dual-write] {_e}")
+
+
 def load_env():
     env_file = BASE_DIR / ".env"
     if env_file.exists():
@@ -178,13 +198,13 @@ def upsert_contact_with_interaction(site: str, contact: dict, target_state: str,
         if existing["state"] == "blacklisted":
             return {"action": "kept_blacklisted", "id": existing["id"]}
         if target_rank > current_rank:
-            acq_change_state(site, existing["id"], target_state, by="emelia_sync",
+            _dual_write_pool(site, email, target_state, source="emelia_existing", contact_data=contact); acq_change_state(site, existing["id"], target_state, by="emelia_sync",
                              note=f"campaign={campaign} interaction={interaction_type}")
             return {"action": "promoted", "id": existing["id"], "state": target_state, "site": site}
         return {"action": "kept", "id": existing["id"], "state": existing["state"], "site": site}
 
     # Création nouveau contact avec l'état déduit (souvent prm via click, lead via reply)
-    res = acq_create(site, {
+    _dual_write_pool(site, email, target_state or "cold_email", source="emelia_new", contact_data=contact); res = acq_create(site, {
         "email":   email,
         "prenom":  contact.get("firstName", ""),
         "nom":     contact.get("lastName", ""),

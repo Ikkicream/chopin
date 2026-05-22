@@ -4,7 +4,7 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-05-22 17:50 UTC (warmup plan + webhook Emelia opérationnel temps réel)
+2026-05-22 23:00 UTC (session enchaine : backend onboard V2 + multi-tenant + UI Acquisition pool + cleanup)
 
 ## Goal en cours
 Tester le pipeline **Workflow LCR** de bout en bout (Serper → DeepSeek qualifier → push Emelia → cold email envoyé).
@@ -223,3 +223,125 @@ Tout les non-fait du récap précédent ont été traités :
 - Démarrer les 5 campagnes LCR DRAFT (workflow-lcr-restaurant/artisan/coiffeur/garagiste/immobilier) avec templates + start — script migrate_existing_draft_campaigns.py à coder
 - Sidebar UI : afficher J{N}/quota par sender (warmup status visible)
 - Cron quotidien warmup_daily_check.py : pause sender si bounce_rate > 5% ou unsubscribed_rate > 2%
+
+
+## Pool mutualisé contacts — Phases 0+1+2 — 2026-05-22
+
+**Spec sources** : specs/contacts-model.md, onboarding-checklist.md, campaigns-spec.md (3 docs validés par user).
+
+### Phase 0 — Migration data
+- NOUVEAU fichier : data/contacts.duckdb (chown autoblog:autoblog)
+- 2 tables créées : contacts (PK email unique, 36 rows) + contact_site_history (UNI (contact_id, site_code), 36 rows)
+- Script : scripts/migrate_contacts_to_pool.py
+- Source : crm/lcr.duckdb (33), crm/mkd.duckdb (1), god_mode.duckdb.scrappe (3) — déduplication par email
+- Logs : logs/migration_contacts_pool.log
+- ⚠️ Anciennes DBs intactes (RO) — rollback possible 30 jours
+
+### Phase 1 — Backend pool
+- NOUVEAU module : scripts/contacts_pool_backend.py
+- 13 helpers publics : find_by_email_global, create_in_pool, set_global_blacklist, get_history_for_site, upsert_site_history, change_state_for_site, mark_pushed_to_emelia, record_emelia_event, list_contacts_for_site, stats_for_site, pick_for_campaign, count_available_for_sector, check_pool_depletion
+- Constantes : COOLDOWN_GLOBAL_DAYS=30, COOLDOWN_SAME_SITE_DAYS=7, STATE_RANK
+- Testé : stats LCR=35 contacts, pick_for_campaign restaurant=0 (cohérent — peu de cold_email), check_pool_depletion fonctionne
+
+### Phase 2 — Dual-write activé sur 5 maillons
+Tous les flux d'écriture alimentent en parallèle le pool ET le système legacy (acquisition_contacts) :
+1. api.py:api_emelia_webhook → record_emelia_event + change_state_for_site + set_global_blacklist (si bounce/unsub)
+2. workflow_emelia_push.py:push_prospect → create_in_pool + upsert_site_history + mark_pushed_to_emelia
+3. tally_to_prm.py → _tally_dual_write_pool helper (lead direct)
+4. emelia_to_crm.py → _dual_write_pool helper (sync cron 19h)
+5. god_mode_agents.py:scrape_sector → create_in_pool + upsert_site_history cold_email
+
+Validation live 2026-05-22 21:00 : POST webhook CLICKED sur afchain.camille@gmail.com → pool state cold_email → prm OK + emelia_clicked_at set.
+
+### Reste à faire
+- Phase 3 : UI Acquisition (fusion onglet Pipeline + sous-vue historique par site)
+- Phase 4 : UI Campagnes (wizard 4 étapes, algo pioche, page détail)
+- Phase 5 : UI Vision (compteurs + funnel + warmup)
+- Phase 6 : UI Onboarding 16 steps
+- Phase 7 : Sidebar cleanup (supprimer module Workflow)
+- Tables  +  chiffrée AES (multi-tenant cible) — pas encore créées
+
+
+## Refactor complet — Phases 0-7 livrées — 2026-05-22 (suite session go)
+
+### Phases 3-7 livrées (suite à Phase 0-2 du début de session)
+
+**Phase 3 — Page Acquisition refondue** ()
+- Switch endpoint de lecture sur /api/sites/{site}/pool/contacts (au lieu de /acquisition legacy)
+- Type Contact étendu pour matcher la structure pool (sectors, primary_source, email_score, mailnjoy_check, last_contacted_by_site_at, etc.)
+- Edit/delete/blacklist toujours sur l ancien endpoint legacy (dual-write garde sync)
+
+**Phase 4 — Page Campagnes nouvelle** ()
+- Wizard 4 steps (secteur > volume > preview > validation)
+- Alerte secteurs épuisés (popup card)
+- Liste campagnes Emelia avec stats (sent, opens%, clicks%, replies%, progress%)
+- Endpoint POST /api/sites/{site}/pool/campaigns/create qui pick + create + steps + push + start + webhook
+
+**Phase 5 — Page Vision nouvelle** ()
+- KPI cards : contacts pool, envoyés, leads, nettoyés
+- Funnel chart (workflowFunnelConfig) avec scraped/qualified/sent/prm/leads/bounced
+- Distribution par source primaire (progress bars)
+- Placeholder warmup status
+
+**Phase 6 — Onboarding refondue** ()
+- 16 steps en cards séquentielles (Identité, URLs, Persona, SEO, Éditorial, Secteurs, Sender, RGPD pied de mail, API keys, Templates, Warmup, Modules, Ahrefs, Quotas, Compte, Mail test)
+- Validation des champs bloquants (border rouge sur cards incomplètes)
+- Sticky submit en bas avec compte des steps complétés
+- Payload posté vers /api/sites/onboard-full (à étendre backend pour gérer les 16 champs)
+
+**Phase 7 — Sidebar cleanup**
+- Section Commercial refondue : Vision, Acquisition, Templates, Campagnes (par site)
+- Suppression Workflow, Vue d ensemble, Performance, Prospects, Campagnes (legacy /workflow/), Prospection (global /campaigns)
+- TITLE_TO_MODULE mis à jour
+
+**Cleanup fichiers**
+- Supprimés : src/app/site/[code]/workflow/{campaigns,prospects,performance}, page.tsx
+- Gardés : workflow/templates (lien sidebar), workflow/logs (admin), workflow/layout.tsx (auth)
+
+**Pool write endpoints ajoutés** (api.py)
+- POST /api/sites/{site}/pool/contacts/create
+- PATCH /api/sites/{site}/pool/contacts/{id}
+- DELETE /api/sites/{site}/pool/contacts/{id}
+- POST /api/sites/{site}/pool/contacts/import-csv
+
+### Restes connus
+- L endpoint backend /api/sites/onboard-full doit etre etendu pour gerer les 16 nouveaux champs (persona, sectors_enabled, modules_enabled, warmup_plan, account_id, etc.) sinon les nouvelles infos sont droppees a l onboarding
+- Table accounts + site_credentials AES chiffrees (multi-tenant cible) pas encore creees
+- Pages /workflow/templates et /workflow/logs restent — a refondre (templates devient lecture seule depuis Emelia, logs vers /admin/logs)
+- L UI Acquisition utilise toujours edit/blacklist legacy endpoints — a migrer vers pool/* equivalents
+
+
+## Session enchaine — finalisation backend + cleanup — 2026-05-22 23:00
+
+### Backend onboard V2 + multi-tenant
+- Tables NOUVELLES dans god_mode.duckdb :
+  -  (id PK, label, owner_user_id, plan, created_at) — multi-tenant
+  -  (site_code+key_name PK, encrypted_value) — clés API par site (MVP clair, à chiffrer AES v2)
+- god_mode_settings enrichie de 6 colonnes : sectors_enabled JSON, daily_quota_per_sector, emelia_daily_limit, cooldown_same_site_days, cooldown_global_days, account_id
+- /api/sites/onboard-full étendu pour gérer les 16 champs du nouveau wizard :
+  - persona/geo/dept_priority → context/{code}/audience.md
+  - tone/cta/signature/banned_words → context/{code}/editorial-style.md
+  - raison_sociale/adresse/dpo/privacy → context/{code}/footer.md (pied de mail B2B)
+  - sender_email/sender_name → INSERT email_senders (warmup_start_date = aujourd hui si warmup_start_today=True)
+  - sectors_enabled, daily_quota, emelia_daily_limit, cooldowns → god_mode_settings
+  - emelia_key/serper_key/tally_key/telegram → site_credentials
+  - account_id → INSERT accounts
+  - modules_enabled → memory/{code}/modules.json
+  - god_mode_state.enabled = FALSE par défaut (déblocage après Step 16 mail test)
+
+### Migration UI Acquisition vers pool/* endpoints
+6 actions write switched de /acquisition/* legacy vers /pool/contacts/* :
+- change-state, update fields, create, blacklist, delete, import-csv
+La page Acquisition est désormais 100 pourcent sur le pool mutualisé (lecture + écriture).
+
+### Cleanup fichiers
+- Move src/app/site/[code]/workflow/templates/ → src/app/site/[code]/templates/
+- Sidebar Templates pointe maintenant vers /site/[code]/templates (au lieu de /workflow/templates)
+- workflow/ ne contient plus que layout.tsx (admin check) + logs/ (accessible direct)
+
+### Reste à faire
+- Chiffrement AES site_credentials.encrypted_value (MVP clair OK pour LCR + MKD perso)
+- Cron 6h30 demain alimentera le pool en vrai via dual-write (premier test prod)
+- Step 16 onboarding mail test : envoyer effectivement le mail via /emails/test Emelia + UI confirmation
+- Page admin/logs (déplacer /workflow/logs vers /admin/logs)
+- Backup cron à étendre pour inclure data/contacts.duckdb
