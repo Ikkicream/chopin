@@ -231,3 +231,107 @@ Si tu valides cette spec, je commence dans cet ordre :
 7. UI sélecteur perimetre (1 h)
 
 **Total** : ~4 h de codage si pas d'imprévu, livré avec un dry-run d'1 département test (ex : 75 Paris) avant d'activer le cron.
+
+
+---
+
+## 12. Email Validator + Mailnjoy (ajouté 2026-05-22)
+
+### Pipeline complet actualisé
+
+```
+Serper /places
+    ↓ scrape (extract email + phone + website)
+[email_validator.validate_and_score()]         ← scripts/email_validator.py
+    ↓ 6 étages (normalisation, regex, hard rejects honeypot/forbidden_tld/role/disposable,
+                 MX check, RGPD, scoring 0-100)
+    ↓ decision == drop  → NEVER inserted in DB
+    ↓ decision == queue → INSERT scrappe_pending (passera quand même par Mailnjoy)
+    ↓ decision == push  → INSERT scrappe_pending
+
+[Idempotence guard]                            ← god_mode_backend.email_recently_validated()
+    ↓ skip si email validé Mailnjoy < 30j
+    ↓ skip si email déjà dans scrappe_pending
+
+[scrappe_pending] (table temporaire)           ← status = "mailnjoy_pending"
+
+[mailnjoy_check.check_pending_queue()]         ← scripts/mailnjoy_check.py
+    ↓ POST /v2/unitary?type=simple (séquentiel, 200ms entre 2 appels)
+    ↓ classify_response() → valid | risky | invalid | error
+    ├─ valid   → move_pending_to_scrappe()  → scrappe (status="mailnjoy_valid")
+    ├─ risky   → delete_pending()           → log + KILL
+    ├─ invalid → delete_pending()           → log + KILL
+    └─ error   → bump_pending_error()       → retry max 5x
+
+[workflow_qualifier.qualify_prospect()]        ← DeepSeek (sur scrappe.mailnjoy_valid)
+    ↓ qualifier_buyer = True/False
+    ↓ True → push Emelia, False → reste en scrappe (qualifier_reason loggé)
+
+[workflow_emelia_push.push_prospect()]
+    ↓ status = "pushed_emelia", emelia_contact_id rempli
+```
+
+### États du champ `status` (state machine v2)
+
+| Status | Table | Quand |
+|---|---|---|
+| `mailnjoy_pending` | scrappe_pending | Inséré par scrape_sector après passage validator |
+| `manual_review` | scrappe | Decision validator = queue (score 40-59), inséré directement pour review humaine |
+| `rejected` | scrappe | Decision validator = drop (légacy entries pré-Mailnjoy) |
+| `scored` | scrappe | LEGACY — entries pré-Mailnjoy déjà validées par syntaxe (avant 2026-05-22) |
+| `mailnjoy_valid` | scrappe | Mailnjoy a confirmé délivrabilité — prêt pour DeepSeek qualifier + Emelia |
+| `pushed_emelia` | scrappe | Effectivement poussé dans une campagne Emelia |
+
+États transitoires (jamais persistés) :
+- `mailnjoy_risky` / `mailnjoy_invalid` : ligne supprimée de pending, jamais dans scrappe (décision user 2026-05-22 : risky = kill au même titre qu'invalid)
+- `mailnjoy_error` : conservé en pending avec `mailnjoy_attempts > 0`, retry au prochain drain (max 5)
+
+### Modules livrés (2026-05-22)
+
+| Fichier | Rôle |
+|---|---|
+| `scripts/email_validator.py` | 6 étages de validation + scoring 0-100 |
+| `data/email_jetable.csv` | 304 domaines disposable (extensible) |
+| `scripts/mailnjoy_check.py` | Appel Mailnjoy, classification, drain queue, retry exp backoff |
+| `scripts/god_mode_backend.py` | Helpers `add_prospect_pending()`, `list_pending()`, `move_pending_to_scrappe()`, `delete_pending()`, `bump_pending_error()`, `email_recently_validated()`, `email_in_pending()` |
+| `data/god_mode.duckdb` | Table `scrappe_pending` créée, colonne `scrappe.mailnjoy_check` ajoutée, colonnes `scrappe.email_score` + `email_validation_reasons` ajoutées |
+| `logs/mailnjoy_deletions.log` | Audit des suppressions Mailnjoy (risky/invalid) |
+
+### Idempotence
+
+- **Au scrape** : `email_recently_validated(email, days=30)` empêche de re-scraper un email déjà confirmé Mailnjoy il y a moins de 30 jours
+- **Au scrape** : `email_in_pending(email)` empêche le doublon dans la queue
+- **Au drain** : `mailnjoy_attempts < 5` empêche le retry infini sur les erreurs réseau
+
+### Budget Mailnjoy
+
+- Forfait dispo : 1 199 105 unités (état 2026-05-22)
+- Coût : ~1 crédit par check email (`/v2/unitary?type=simple`)
+- Endpoint crédit `/v1/credit` est gratuit (utilisé pour le monitoring)
+- Garde-fou : drain s'arrête si crédit < 100u
+
+### Credentials
+
+Fichier `.env` :
+```
+MAILNJOY_ID=...
+MAILNJOY_SECRET=...
+```
+
+⚠️ La clé doit avoir **"lecture seule = non"** ET **"autorisation d'achat = oui"** (option dans le panel https://developer.mailnjoy.com). Sinon → `401 Read only API user cannot perform this action`.
+
+### Réponse Mailnjoy v2 — particularité
+
+La réponse `/v2/unitary` est wrappée :
+```json
+{
+  "unitaryCheck": {
+    "email": "...",
+    "status": "VALID",
+    "category": "SAFE",
+    "attributs": {...}
+  }
+}
+```
+
+Toujours unwrap via `raw.get("unitaryCheck", raw)` avant lecture de `status` / `category` / `attributs`.

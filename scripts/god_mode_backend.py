@@ -162,22 +162,163 @@ def add_prospect(site_code: str, data: dict) -> str:
     pid = str(uuid.uuid4())
     c = _conn()
     try:
-        c.execute("""INSERT INTO scrappe (id, site_code, company_name, contact_name, email, phone, sector, city, postal_code, website, source, search_query, score, status, raw_data)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        c.execute("""INSERT INTO scrappe (id, site_code, company_name, contact_name, email, phone, sector, city, postal_code, website, source, search_query, score, status, raw_data, email_score, email_validation_reasons)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                   [pid, site_code, data.get("company_name"), data.get("contact_name"), data.get("email"),
                    data.get("phone"), data.get("sector"), data.get("city"), data.get("postal_code"),
                    data.get("website"), data.get("source"), data.get("search_query"),
                    data.get("score", 0), data.get("status", "new"),
-                   json.dumps(data.get("raw_data", {}))])
+                   json.dumps(data.get("raw_data", {})),
+                   data.get("email_score"),
+                   json.dumps(data.get("email_validation_reasons")) if data.get("email_validation_reasons") is not None else None])
     finally:
         c.close()
     return pid
 
 
+
+
+# ── Pending (scrappe_pending) — Mailnjoy queue ────────────────────────────────
+def add_prospect_pending(site_code: str, data: dict) -> str:
+    """Insère un prospect dans la table temporaire scrappe_pending en attendant
+    la vérification Mailnjoy. Voir specs/mailnjoy-integration-prompt.md."""
+    pid = str(uuid.uuid4())
+    c = _conn()
+    try:
+        c.execute("""INSERT INTO scrappe_pending
+            (id, site_code, company_name, contact_name, email, phone, sector, city, postal_code,
+             website, source, search_query, score, status, raw_data, email_score,
+             email_validation_reasons, region_code, dept_code)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [pid, site_code, data.get("company_name"), data.get("contact_name"), data.get("email"),
+             data.get("phone"), data.get("sector"), data.get("city"), data.get("postal_code"),
+             data.get("website"), data.get("source"), data.get("search_query"),
+             data.get("score", 0), data.get("status", "pending_mailnjoy"),
+             json.dumps(data.get("raw_data", {})),
+             data.get("email_score"),
+             json.dumps(data.get("email_validation_reasons")) if data.get("email_validation_reasons") is not None else None,
+             data.get("region_code"), data.get("dept_code")])
+    finally:
+        c.close()
+    return pid
+
+
+def list_pending(site_code: str = None, limit: int = 500) -> list[dict]:
+    c = _conn()
+    try:
+        q = """SELECT id, site_code, company_name, contact_name, email, phone, sector, city,
+                      postal_code, website, source, search_query, score, status, raw_data,
+                      email_score, email_validation_reasons, region_code, dept_code,
+                      created_at, mailnjoy_attempts, mailnjoy_last_error
+               FROM scrappe_pending WHERE mailnjoy_attempts < 5"""
+        params = []
+        if site_code:
+            q += " AND site_code = ?"; params.append(site_code)
+        q += " ORDER BY created_at ASC LIMIT ?"; params.append(limit)
+        rows = c.execute(q, params).fetchall()
+    finally:
+        c.close()
+    cols = ["id", "site_code", "company_name", "contact_name", "email", "phone", "sector",
+            "city", "postal_code", "website", "source", "search_query", "score", "status",
+            "raw_data", "email_score", "email_validation_reasons", "region_code", "dept_code",
+            "created_at", "mailnjoy_attempts", "mailnjoy_last_error"]
+    return [dict(zip(cols, r)) for r in rows]
+
+
+def move_pending_to_scrappe(pending_id: str, mn_check: dict) -> str | None:
+    """Déplace une ligne de scrappe_pending → scrappe (status='validated').
+    La ligne pending est ENSUITE supprimée. Retourne l'id scrappe créé."""
+    c = _conn()
+    try:
+        row = c.execute("SELECT * FROM scrappe_pending WHERE id = ?", [pending_id]).fetchone()
+        if not row:
+            return None
+        cols = [d[0] for d in c.description]
+        d = dict(zip(cols, row))
+
+        new_id = str(uuid.uuid4())
+        c.execute("""INSERT INTO scrappe
+            (id, site_code, company_name, contact_name, email, phone, sector, city, postal_code,
+             website, source, search_query, score, status, raw_data, email_score,
+             email_validation_reasons, region_code, dept_code, mailnjoy_check)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [new_id, d["site_code"], d["company_name"], d["contact_name"], d["email"],
+             d["phone"], d["sector"], d["city"], d["postal_code"], d["website"],
+             d["source"], d["search_query"], d["score"], "mailnjoy_valid",
+             d["raw_data"] if isinstance(d["raw_data"], str) else json.dumps(d["raw_data"] or {}),
+             d["email_score"],
+             d["email_validation_reasons"] if isinstance(d["email_validation_reasons"], str)
+                else (json.dumps(d["email_validation_reasons"]) if d["email_validation_reasons"] else None),
+             d["region_code"], d["dept_code"], json.dumps(mn_check)])
+        c.execute("DELETE FROM scrappe_pending WHERE id = ?", [pending_id])
+    finally:
+        c.close()
+    return new_id
+
+
+def delete_pending(pending_id: str) -> None:
+    """Supprime définitivement une ligne pending (mailnjoy invalid ou risky)."""
+    c = _conn()
+    try:
+        c.execute("DELETE FROM scrappe_pending WHERE id = ?", [pending_id])
+    finally:
+        c.close()
+
+
+def bump_pending_error(pending_id: str, err: str) -> None:
+    """Incrémente mailnjoy_attempts + stocke la dernière erreur."""
+    c = _conn()
+    try:
+        c.execute("""UPDATE scrappe_pending
+                       SET mailnjoy_attempts = mailnjoy_attempts + 1,
+                           mailnjoy_last_error = ?
+                       WHERE id = ?""", [err[:500], pending_id])
+    finally:
+        c.close()
+
+
+
+
+def email_recently_validated(email: str, days: int = 30) -> bool:
+    """True si l'email a déjà été validé par Mailnjoy il y a moins de N jours.
+    Empêche de re-checker un email récemment confirmé."""
+    if not email:
+        return False
+    c = _conn()
+    try:
+        from datetime import timedelta
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        row = c.execute("""
+            SELECT 1 FROM scrappe
+            WHERE email = ? AND mailnjoy_check IS NOT NULL
+              AND CAST(json_extract_string(mailnjoy_check, '$.checked_at') AS VARCHAR) > ?
+            LIMIT 1
+        """, [email, cutoff]).fetchone()
+    finally:
+        c.close()
+    return row is not None
+
+
+def email_in_pending(email: str) -> bool:
+    """True si l'email est déjà dans scrappe_pending (évite doublons de queue)."""
+    if not email:
+        return False
+    c = _conn()
+    try:
+        row = c.execute('SELECT 1 FROM scrappe_pending WHERE email = ? LIMIT 1', [email]).fetchone()
+    finally:
+        c.close()
+    return row is not None
+
+
 def list_prospects(site_code: str, status: str = None, sector: str = None, limit: int = 500):
     c = _conn()
     try:
-        q = "SELECT id, site_code, company_name, contact_name, email, phone, sector, city, postal_code, website, source, score, status, created_at, contacted_at, rejection_reason FROM scrappe WHERE site_code=?"
+        q = """SELECT id, site_code, company_name, contact_name, email, phone, sector, city,
+                       postal_code, website, source, score, status, created_at, contacted_at,
+                       rejection_reason, email_score, email_validation_reasons, mailnjoy_check,
+                       qualifier_buyer, qualifier_reason, emelia_contact_id
+                FROM scrappe WHERE site_code=?"""
         params = [site_code]
         if status:
             q += " AND status=?"; params.append(status)
@@ -187,7 +328,26 @@ def list_prospects(site_code: str, status: str = None, sector: str = None, limit
         rows = c.execute(q, params).fetchall()
     finally:
         c.close()
-    return [{"id": r[0], "site_code": r[1], "company_name": r[2], "contact_name": r[3], "email": r[4], "phone": r[5], "sector": r[6], "city": r[7], "postal_code": r[8], "website": r[9], "source": r[10], "score": r[11], "status": r[12], "created_at": str(r[13]), "contacted_at": str(r[14]) if r[14] else None, "rejection_reason": r[15]} for r in rows]
+    import json as _json
+    def _maybe_parse(v):
+        if v is None: return None
+        if isinstance(v, (dict, list)): return v
+        try: return _json.loads(v) if isinstance(v, str) else v
+        except Exception: return v
+    return [{
+        "id": r[0], "site_code": r[1], "company_name": r[2], "contact_name": r[3],
+        "email": r[4], "phone": r[5], "sector": r[6], "city": r[7],
+        "postal_code": r[8], "website": r[9], "source": r[10], "score": r[11],
+        "status": r[12], "created_at": str(r[13]),
+        "contacted_at": str(r[14]) if r[14] else None,
+        "rejection_reason": r[15],
+        "email_score": r[16],
+        "email_validation_reasons": _maybe_parse(r[17]),
+        "mailnjoy_check":           _maybe_parse(r[18]),
+        "qualifier_buyer": r[19],
+        "qualifier_reason": r[20],
+        "emelia_contact_id": r[21],
+    } for r in rows]
 
 
 def update_prospect_status(prospect_id: str, status: str, reason: str = None):
@@ -195,7 +355,7 @@ def update_prospect_status(prospect_id: str, status: str, reason: str = None):
     try:
         if status == "contacted":
             c.execute("UPDATE scrappe SET status=?, contacted_at=? WHERE id=?", [status, datetime.now(timezone.utc), prospect_id])
-        elif status == "validated":
+        elif status in ("validated", "mailnjoy_valid"):
             c.execute("UPDATE scrappe SET status=?, validated_at=? WHERE id=?", [status, datetime.now(timezone.utc), prospect_id])
         else:
             c.execute("UPDATE scrappe SET status=?, rejection_reason=? WHERE id=?", [status, reason, prospect_id])
@@ -383,14 +543,46 @@ def stats(site_code: str) -> dict:
         scraped_month = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND CAST(created_at AS DATE)>=?", [site_code, first_of_month]).fetchone()[0]
         scraped_year = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND CAST(created_at AS DATE)>=?", [site_code, first_of_year]).fetchone()[0]
         scraped_total = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=?", [site_code]).fetchone()[0]
-        # Sent (status='sent' = email envoyé via Emelia)
-        sent_today = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='sent' AND CAST(contacted_at AS DATE)=?", [site_code, today]).fetchone()[0]
-        sent_month = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='sent' AND CAST(contacted_at AS DATE)>=?", [site_code, first_of_month]).fetchone()[0]
-        sent_year = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='sent' AND CAST(contacted_at AS DATE)>=?", [site_code, first_of_year]).fetchone()[0]
-        sent_total = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='sent'", [site_code]).fetchone()[0]
+        # Sent (status='pushed_emelia' = email envoyé via Emelia)
+        sent_today = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='pushed_emelia' AND CAST(contacted_at AS DATE)=?", [site_code, today]).fetchone()[0]
+        sent_month = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='pushed_emelia' AND CAST(contacted_at AS DATE)>=?", [site_code, first_of_month]).fetchone()[0]
+        sent_year = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='pushed_emelia' AND CAST(contacted_at AS DATE)>=?", [site_code, first_of_year]).fetchone()[0]
+        sent_total = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='pushed_emelia'", [site_code]).fetchone()[0]
         camp_today = c.execute("SELECT COUNT(*) FROM god_mode_campaigns WHERE site_code=? AND scheduled_date=?", [site_code, today]).fetchone()[0]
+
+        # Cleaned (nettoyés) = rejetés par le validator + supprimés par Mailnjoy.
+        # Validator drops -> insérés en scrappe avec status='rejected'
+        # Mailnjoy drops  -> jamais en scrappe, lus depuis logs/mailnjoy_deletions.log
+        cleaned_validator_today = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='rejected' AND CAST(created_at AS DATE)=?", [site_code, today]).fetchone()[0]
+        cleaned_validator_month = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='rejected' AND CAST(created_at AS DATE)>=?", [site_code, first_of_month]).fetchone()[0]
+        cleaned_validator_year  = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='rejected' AND CAST(created_at AS DATE)>=?", [site_code, first_of_year]).fetchone()[0]
+        cleaned_validator_total = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code=? AND status='rejected'", [site_code]).fetchone()[0]
     finally:
         c.close()
+
+    # Lecture log Mailnjoy (parsé par date — note: log non par-site, mais ~tous sites confondus)
+    import json as _json
+    from pathlib import Path as _Path
+    log_f = _Path(__file__).parent.parent / "logs" / "mailnjoy_deletions.log"
+    cleaned_mailnjoy_today = cleaned_mailnjoy_month = cleaned_mailnjoy_year = cleaned_mailnjoy_total = 0
+    if log_f.exists():
+        try:
+            for line in log_f.read_text().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    e = _json.loads(line)
+                    ts = e.get("ts", "")[:10]
+                    if not ts:
+                        continue
+                    cleaned_mailnjoy_total += 1
+                    if ts == today.isoformat():       cleaned_mailnjoy_today += 1
+                    if ts >= first_of_month.isoformat(): cleaned_mailnjoy_month += 1
+                    if ts >= first_of_year.isoformat():  cleaned_mailnjoy_year  += 1
+                except Exception:
+                    pass
+        except Exception:
+            pass
     def ratio(num, den):
         return round(num / den * 100, 1) if den else 0.0
     return {
@@ -401,6 +593,15 @@ def stats(site_code: str) -> dict:
         "ratio_year": ratio(sent_year, scraped_year),
         "ratio_total": ratio(sent_total, scraped_total),
         "campaigns_today": camp_today,
+        # Nettoyés = validator rejections + mailnjoy deletions
+        "cleaned_today": cleaned_validator_today + cleaned_mailnjoy_today,
+        "cleaned_month": cleaned_validator_month + cleaned_mailnjoy_month,
+        "cleaned_year":  cleaned_validator_year  + cleaned_mailnjoy_year,
+        "cleaned_total": cleaned_validator_total + cleaned_mailnjoy_total,
+        "cleaned_breakdown": {
+            "validator_total": cleaned_validator_total,
+            "mailnjoy_total":  cleaned_mailnjoy_total,
+        },
     }
 
 
@@ -412,7 +613,7 @@ def stats_timeseries(site_code: str, date_from: date, date_to: date) -> list[dic
             SELECT
                 CAST(created_at AS DATE) AS d,
                 COUNT(*) AS scraped,
-                SUM(CASE WHEN status='sent' THEN 1 ELSE 0 END) AS sent
+                SUM(CASE WHEN status='pushed_emelia' THEN 1 ELSE 0 END) AS sent
             FROM scrappe
             WHERE site_code=? AND CAST(created_at AS DATE) BETWEEN ? AND ?
             GROUP BY 1 ORDER BY 1

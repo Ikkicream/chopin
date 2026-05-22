@@ -2968,14 +2968,49 @@ async def api_emelia_webhook(request: Request):
     Injects contacts into PRM for lcr site."""
     data = await request.json()
 
-    # Emelia sends events like: {event: "opened", contact: {email, firstName, ...}, campaign: {name, ...}}
-    event_type = data.get("event", data.get("type", ""))
-    contact = data.get("contact", data.get("data", {}).get("contact", {}))
-    campaign = data.get("campaign", data.get("data", {}).get("campaign", {}))
+    # Emelia sends events like: {event: "OPENED"|"opened", contact: {email, firstName, ...}, campaign: "name-str" | {name, ...}}
+    event_type = (data.get("event") or data.get("type") or "").lower()  # normalise UPPERCASE/lowercase
+    contact = data.get("contact", data.get("data", {}).get("contact", {})) or {}
+    campaign_raw = data.get("campaign", data.get("data", {}).get("campaign", {}))
+    # Emelia peut envoyer campaign en string (le nom) ou en dict {name, _id}
+    campaign = {"name": campaign_raw} if isinstance(campaign_raw, str) else (campaign_raw or {})
 
     email = contact.get("email", "")
     if not email:
         return {"ok": False, "error": "no email"}
+
+    # === Log audit TOUS les events Emelia (incl. SENT/OPENED) ===
+    try:
+        import duckdb as _dd, uuid as _uuid, json as _json
+        from datetime import datetime as _dt
+        camp_name = campaign.get("name", "") if isinstance(campaign, dict) else str(campaign)
+        # site detect via campaign name
+        site_detect = "lcr"
+        cn = (camp_name or "").upper()
+        if cn.startswith("MKD") or "MKD-" in cn:
+            site_detect = "mkd"
+        elif cn.startswith("LCR") or "LCR-" in cn or "LECLIENTROI" in cn.replace(" ", ""):
+            site_detect = "lcr"
+        _c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"))
+        try:
+            emelia_date_str = data.get("date", "")
+            emelia_date = None
+            if emelia_date_str:
+                try:
+                    emelia_date = _dt.fromisoformat(emelia_date_str.replace("Z", "+00:00"))
+                except Exception:
+                    pass
+            _c.execute("""INSERT INTO emelia_events
+                (id, event_type, email, first_name, last_name, campaign_name, campaign_id, site_code, step, emelia_date, raw_payload)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [str(_uuid.uuid4()), event_type.upper(), email,
+                 contact.get("firstName", ""), contact.get("lastName", ""),
+                 camp_name, campaign.get("_id", "") if isinstance(campaign, dict) else "",
+                 site_detect, data.get("step", 0), emelia_date, _json.dumps(data, ensure_ascii=False)])
+        finally:
+            _c.close()
+    except Exception as _e:
+        print(f"[emelia_webhook] audit log failed: {_e}")
 
     # Determine action
     action_map = {"opened": "opened", "clicked": "clicked", "replied": "replied", "bounced": "bounced", "unsubscribed": "unsubscribed",
@@ -3004,6 +3039,32 @@ async def api_emelia_webhook(request: Request):
                 "state":   target_state,
                 "source":  f"emelia:{campaign.get('name','')}"[:60],
             }, by="emelia_webhook")
+
+    # === DUAL-WRITE 2026-05-22 : alimente AUSSI le pool mutualisé contacts.duckdb ===
+    # Webhook events depuis Emelia → update contact_site_history + global_blacklist si applicable
+    try:
+        import contacts_pool_backend as cpb_pool
+        # 1. Assurer la présence du contact dans le pool
+        pool_cid = cpb_pool.create_in_pool({
+            "email":   email,
+            "prenom":  contact.get("firstName", ""),
+            "nom":     contact.get("lastName", ""),
+            "societe": contact.get("company", contact.get("custom", {}).get("companyName", "")),
+        }, primary_source="serper")  # source par défaut webhook = scraped via Emelia
+        if pool_cid:
+            # 2. Record l'event raw
+            cpb_pool.record_emelia_event(pool_cid, site, event_type.upper())
+            # 3. Update state si applicable
+            if target_state:
+                cpb_pool.change_state_for_site(pool_cid, site, target_state,
+                    by="emelia_webhook",
+                    note=f"campaign={campaign.get('name','')} action={action}")
+            # 4. Blacklist globale (RGPD)
+            if action in ("bounced", "unsubscribed"):
+                cpb_pool.set_global_blacklist(email,
+                    reason=f"{action.upper()} via emelia webhook (site={site})")
+    except Exception as _pool_err:
+        print(f"[webhook][pool dual-write] failed: {_pool_err}")
 
     # Telegram notification for replies
     if action == "replied":
@@ -3770,3 +3831,145 @@ async def api_modules_patch(site: str, module_id: str, request: Request):
     if not out:
         return {"error": "no_changes"}
     return out
+
+
+# ── Mailnjoy Check API ────────────────────────────────────────────────────────
+
+@app.get("/api/mailnjoy/credit")
+def api_mailnjoy_credit():
+    """Retourne le solde de crédit Mailnjoy. None si pas configuré."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from mailnjoy_check import get_credit, is_configured
+    if not is_configured():
+        return {"configured": False, "credit": None}
+    credit = get_credit()
+    return {"configured": True, "credit": credit, "checked_at": datetime.now(timezone.utc).isoformat()}
+
+
+@app.get("/api/mailnjoy/status")
+def api_mailnjoy_status():
+    """Retourne l'état du module Mailnjoy : configuré ? crédit ? pending queue ?"""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from mailnjoy_check import get_credit, is_configured
+    import duckdb
+    out = {"configured": is_configured(), "credit": None, "pending_count": 0}
+    if out["configured"]:
+        out["credit"] = get_credit()
+    try:
+        c = duckdb.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+        out["pending_count"] = c.execute("SELECT COUNT(*) FROM scrappe_pending").fetchone()[0]
+        c.close()
+    except Exception:
+        pass
+    return out
+
+
+@app.post("/api/mailnjoy/test-credentials")
+async def api_mailnjoy_test(request: Request):
+    """Teste un couple ID/SECRET en appelant /v1/credit sans toucher au .env.
+    Body: {id, secret}
+    Returns: {ok, credit?, error?}"""
+    body = await request.json()
+    mid = (body.get("id") or "").strip()
+    msec = (body.get("secret") or "").strip()
+    if not mid or not msec:
+        return {"ok": False, "error": "id et secret requis"}
+    try:
+        r = requests.get("https://api.mailnjoy.com/v1/credit",
+                         headers={"mailnjoy-id": mid, "mailnjoy-secret": msec},
+                         timeout=10)
+        if r.status_code == 200:
+            return {"ok": True, "credit": int(r.text.strip())}
+        if r.status_code == 401:
+            return {"ok": False, "error": "Identifiants invalides (401)"}
+        return {"ok": False, "error": f"Erreur Mailnjoy {r.status_code}"}
+    except Exception as e:
+        return {"ok": False, "error": f"Erreur réseau : {e}"}
+
+
+@app.post("/api/mailnjoy/drain")
+def api_mailnjoy_drain(site: str = None):
+    """Déclenche un drain manuel de la queue Mailnjoy.
+    Optionnel pour tester l'intégration sans attendre le cron."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from mailnjoy_check import check_pending_queue
+    return check_pending_queue(site_code=site)
+
+
+@app.get("/api/sites/{site}/workflow/counters")
+def api_workflow_counters(site: str):
+    """Compteurs workflow refondus pour la nouvelle state machine.
+    Scrapés / Ajoutés / Nettoyés / Envoyés."""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    import duckdb
+    c = duckdb.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    try:
+        # Scrapés = tout ce qui est passé par le scraper (en pending OU en scrappe)
+        scraped_pending = c.execute("SELECT COUNT(*) FROM scrappe_pending WHERE site_code = ?", [site]).fetchone()[0]
+        scraped_in_scrappe = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code = ?", [site]).fetchone()[0]
+        scraped = scraped_pending + scraped_in_scrappe
+
+        # Ajoutés = mailnjoy_valid + pushed_emelia (réellement utilisables)
+        added = c.execute("""SELECT COUNT(*) FROM scrappe
+                             WHERE site_code = ? AND status IN ('mailnjoy_valid', 'pushed_emelia', 'manual_review')""",
+                          [site]).fetchone()[0]
+
+        # Envoyés = pushed_emelia
+        sent = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code = ? AND status = 'pushed_emelia'", [site]).fetchone()[0]
+
+        # Nettoyés = rejetés validator (en DB) + supprimés Mailnjoy (lus depuis logs)
+        rejected_validator = c.execute("SELECT COUNT(*) FROM scrappe WHERE site_code = ? AND status = 'rejected'", [site]).fetchone()[0]
+        # Compte les lignes du log deletions
+        mailnjoy_killed = 0
+        log_f = BASE_DIR / "logs" / "mailnjoy_deletions.log"
+        if log_f.exists():
+            try:
+                mailnjoy_killed = sum(1 for _ in log_f.read_text().splitlines() if _.strip())
+            except Exception:
+                pass
+
+        cleaned = rejected_validator + mailnjoy_killed
+    finally:
+        c.close()
+
+    return {
+        "site":     site,
+        "scraped":  scraped,
+        "added":    added,
+        "cleaned":  cleaned,
+        "sent":     sent,
+        "breakdown": {
+            "pending_mailnjoy":    scraped_pending,
+            "rejected_validator":  rejected_validator,
+            "mailnjoy_killed":     mailnjoy_killed,
+        }
+    }
+
+
+@app.post("/api/mailnjoy/save-credentials")
+async def api_mailnjoy_save_credentials(request: Request):
+    """Sauvegarde MAILNJOY_ID + MAILNJOY_SECRET dans le .env. Body: {id, secret}."""
+    body = await request.json()
+    mid = (body.get("id") or "").strip()
+    msec = (body.get("secret") or "").strip()
+    if not mid or not msec:
+        return {"ok": False, "error": "id et secret requis"}
+    # Test d'abord
+    try:
+        r = requests.get("https://api.mailnjoy.com/v1/credit",
+                         headers={"mailnjoy-id": mid, "mailnjoy-secret": msec}, timeout=10)
+        if r.status_code != 200:
+            return {"ok": False, "error": f"Identifiants refusés ({r.status_code})"}
+    except Exception as e:
+        return {"ok": False, "error": f"Erreur réseau : {e}"}
+
+    # Write to .env (replace existing lines)
+    env_f = BASE_DIR / ".env"
+    lines = env_f.read_text().splitlines() if env_f.exists() else []
+    lines = [l for l in lines if not l.strip().startswith("MAILNJOY_ID=") and not l.strip().startswith("MAILNJOY_SECRET=")]
+    lines.append(f"MAILNJOY_ID={mid}")
+    lines.append(f"MAILNJOY_SECRET={msec}")
+    env_f.write_text("\n".join(lines).rstrip() + "\n")
+    return {"ok": True, "credit": int(r.text.strip())}
+

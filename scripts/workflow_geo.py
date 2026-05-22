@@ -129,3 +129,51 @@ if __name__ == "__main__":
         print("Île-de-France (région 11):")
         for c in list_cities(region_code="11")[:10]:
             print(f"  - {city_label(c)}")
+
+# Liste de priorité user (2026-05-22) : départements à scraper en premier.
+# Après ceux-ci, on cycle sur tous les autres départements éligibles
+# (>= 10k hab en ville) classés par population totale décroissante.
+PRIORITY_DEPTS = ["92", "75", "59", "69"]
+
+
+def _ordered_depts() -> list[str]:
+    """Construit la liste ordonnée : PRIORITY_DEPTS d'abord, puis le reste par pop décroissante.
+    Filtre les depts qui ne sont pas définis dans departments.json (sécurité DOM-TOM)."""
+    valid_dept_codes = {d["code"] for d in _departments()}
+
+    pop_by_dept: dict[str, int] = {}
+    for c in _cities():
+        if (c.get("pop") or 0) < 10000:
+            continue
+        if c["dept"] not in valid_dept_codes:
+            continue
+        pop_by_dept[c["dept"]] = pop_by_dept.get(c["dept"], 0) + c["pop"]
+
+    others = [d for d in pop_by_dept if d not in PRIORITY_DEPTS]
+    others.sort(key=lambda d: -pop_by_dept[d])
+
+    priority_present = [d for d in PRIORITY_DEPTS if d in pop_by_dept]
+    return priority_present + others
+
+
+# Date de calibrage : ce jour-là, le scrape part du dept 92 (position 0 de l'ordre).
+# Choisi 2026-05-22 (jour où la priorité user a été décidée).
+ROTATION_EPOCH = "2026-05-22"
+
+
+def next_dept_by_priority(pivot_date=None) -> dict:
+    """Retourne le département à scraper selon la priorité user (2026-05-22) :
+    ordre = [92, 75, 59, 69, puis tous les autres par pop décroissante].
+    Calibrage : pivot_date = 2026-05-22 → dept 92. Avance jour par jour ensuite.
+    """
+    from datetime import date as _date
+    pivot = pivot_date or _date.today()
+    epoch = _date.fromisoformat(ROTATION_EPOCH)
+    ordered = _ordered_depts()
+    if not ordered:
+        raise RuntimeError("Aucun département éligible")
+    days_since_epoch = (pivot - epoch).days
+    idx = days_since_epoch % len(ordered)
+    chosen_code = ordered[idx]
+    return next(d for d in _departments() if d["code"] == chosen_code)
+

@@ -34,6 +34,7 @@ import god_mode_backend as gm
 import god_mode_agents as agents
 import workflow_geo as geo
 from workflow_qualifier import qualify_prospect
+from mailnjoy_check import check_pending_queue
 from workflow_emelia_push import push_prospect
 
 import duckdb
@@ -81,7 +82,7 @@ def run_site(site: str, forced_dept: str | None = None,
         if not dept:
             return {"site": site, "error": f"dept {dept_code} introuvable"}
     else:
-        dept = geo.pick_random_dept_weighted_pop()
+        dept = geo.next_dept_by_priority()  # 2026-05-22 — priorité 92/75/59/69 puis pop desc
         dept_code = dept["code"]
 
     cities = geo.resolve_dept_to_cities(dept_code, top_n=5)
@@ -108,6 +109,13 @@ def run_site(site: str, forced_dept: str | None = None,
         valid = res.get("valid", 0)
         print(f"    scrape: {scraped} bruts, {valid} validés (email OK)")
 
+        # === Mailnjoy drain — vérifie chaque pending row puis insert scrappe OU delete ===
+        mn = check_pending_queue(site_code=site)
+        if mn.get("error"):
+            print(f"    mailnjoy ERROR: {mn['error']}")
+        else:
+            print(f"    mailnjoy: valid={mn.get('valid',0)} risky={mn.get('risky',0)} invalid={mn.get('invalid',0)} errored={mn.get('errored',0)} credit_left={mn.get('credit_left')}")
+
         # Récupère les prospects fraîchement insérés (created_at > 5 min)
         c = duckdb.connect(str(GOD_DB))
         try:
@@ -115,7 +123,7 @@ def run_site(site: str, forced_dept: str | None = None,
                 SELECT id, company_name, sector, city, email, phone, website, raw_data
                 FROM scrappe
                 WHERE site_code=? AND sector=? AND created_at > now() - INTERVAL 10 MINUTE
-                  AND status='validated'
+                  AND status='mailnjoy_valid'
                   AND qualifier_buyer IS NULL
                   AND emelia_contact_id IS NULL
                 ORDER BY created_at DESC

@@ -84,7 +84,7 @@ FORBIDDEN_TLD_PATTERNS = [
     # Education / recherche
     r"\.edu$", r"\.edu\.[a-z]+$",
     r"\.ac\.[a-z]+$",
-    r"\.univ-[a-z0-9-]+\.fr$",
+    r"(?:\.|@)univ-[a-z0-9-]+\.fr$",
     r"\.scolarite\.[a-z]+$",
     r"@etudiant\.",
     r"@student\.",
@@ -129,7 +129,8 @@ FORBIDDEN_LOCAL_PARTS = {
     "press", "presse", "rp", "publicrelations",
     # RH / juridique
     "rh", "hr", "recruitment", "recrutement", "jobs", "career", "carriere",
-    "legal", "juridique", "compliance", "dpo", "rgpd", "gdpr", "privacy",
+    "legal", "juridique", "compliance", "privacy",
+    # rgpd, gdpr, dpo retirés ici -> traités comme honeypots (étage 3.4)
 }
 
 FORBIDDEN_LOCAL_PREFIXES = ("noreply", "no-reply", "donotreply", "abuse")
@@ -210,6 +211,17 @@ TRASH_TLDS = {
 }
 
 
+
+def is_honeypot(email: str) -> tuple[bool, str]:
+    """Étage 3.4 — détection honeypot/spam-trap/DPO/RGPD (drop immédiat).
+    Substrings interdits dans l'email entier : voir HONEYPOT_TERMS.
+    """
+    for t in HONEYPOT_TERMS:
+        if t in email:
+            return True, f"honeypot:{t}"
+    return False, ""
+
+
 def domain_tier(email: str) -> str:
     """Retourne 'personal', 'b2b_clean', 'b2b_exotic'."""
     domain = email.split("@", 1)[1]
@@ -269,7 +281,13 @@ def rgpd_check(email: str, prospect: dict) -> tuple[bool, str]:
 # ──────────────────────────────────────────────────────────────────────────────
 # Étage 6 — Scoring final
 # ──────────────────────────────────────────────────────────────────────────────
-HONEYPOT_TERMS = ("spamtrap", "honeypot", "trap@", "abuse@", "spam@")
+# Substrings qui doivent IMMÉDIATEMENT drop l'email (honeypots + DPO/RGPD = ne JAMAIS contacter).
+# Détection par substring dans l'email entier (pas juste le local).
+HONEYPOT_TERMS = (
+    "spamtrap", "honeypot", "trap@", "abuse@", "spam@",
+    # RGPD / DPO : contacter ces adresses en cold email = plainte CNIL garantie.
+    "rgpd@", "dpo@", "gdpr@", "@rgpd.", "@dpo.",
+)
 GENERIC_LOCALS = {"contact", "info", "hello", "bonjour", "accueil"}
 
 
@@ -313,11 +331,7 @@ def score_email(email: str, prospect: dict) -> tuple[int, list[str]]:
             score += 20
             reasons.append("+20 email domain match website")
 
-    # Honeypot patterns
-    if any(t in email for t in HONEYPOT_TERMS):
-        score = 0
-        reasons.append("ZERO honeypot pattern")
-
+    # Honeypot detection est désormais à l'étage 3.4 (hard reject), pas ici.
     return max(0, min(100, score)), reasons
 
 
@@ -349,8 +363,8 @@ def validate_and_score(email_raw: str, prospect: dict) -> dict:
         return {"email": email, "valid": False, "score": 0,
                 "decision": "drop", "reasons": [reason]}
 
-    # Étage 3 — Hard rejects
-    for check in (is_forbidden_tld, is_role_based, is_disposable):
+    # Étage 3 — Hard rejects (dans l'ordre du moins cher au plus cher)
+    for check in (is_honeypot, is_forbidden_tld, is_role_based, is_disposable):
         rejected, reason = check(email)
         if rejected:
             return {"email": email, "valid": False, "score": 0,
@@ -359,8 +373,9 @@ def validate_and_score(email_raw: str, prospect: dict) -> dict:
         return {"email": email, "valid": False, "score": 0,
                 "decision": "drop", "reasons": ["trash_tld"]}
 
-    # Étage 5 — MX check sur b2b_exotic uniquement
-    if domain_tier(email) == "b2b_exotic":
+    # Étage 5 — MX check sur tout sauf personal (FAIs grand public toujours valides).
+    # Spec §12 demande MX check sur .com (b2b_clean) aussi, donc on ne saute aucun étage.
+    if domain_tier(email) != "personal":
         if not has_mx_record(email.split("@", 1)[1]):
             return {"email": email, "valid": False, "score": 0,
                     "decision": "drop", "reasons": ["no_mx"]}

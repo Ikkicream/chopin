@@ -85,6 +85,79 @@ def find_campaign_by_name(api_key: str, name: str) -> dict | None:
     return None
 
 
+
+
+# ── Warmup ramp-up (cf. specs/warmup-plan.md) ─────────────────────────────────
+def daily_warmup_quota(sender_email: str, today=None) -> int:
+    """Retourne le quota journalier autorisé pour un sender, selon son plan de chauffe.
+    Lit la table email_senders. Si daily_max_override est set, le retourne.
+    Sinon applique le Plan A (conservateur Emelia) :
+      J1-J3=10, J4-J7=20, J8-J14=35, J15-J21=50, J22-J28=75, J29+=100.
+    """
+    from datetime import date as _date
+    today = today or _date.today()
+    c = duckdb.connect(str(GOD_DB), read_only=True)
+    try:
+        row = c.execute(
+            "SELECT warmup_start_date, daily_max_override, status FROM email_senders WHERE sender_email = ?",
+            [sender_email],
+        ).fetchone()
+    finally:
+        c.close()
+    if not row:
+        return 0  # sender inconnu = pas d'envoi
+    start, override, status = row
+    if status != "active":
+        return 0
+    if override is not None:
+        return int(override)
+    if not start:
+        return 0
+    days = (today - start).days + 1  # J1 = jour de début
+    if days <= 3:   return 10
+    if days <= 7:   return 20
+    if days <= 14:  return 35
+    if days <= 21:  return 50
+    if days <= 28:  return 75
+    return 100
+
+
+def sender_email_for_site(site: str) -> str:
+    """Renvoie l'email du sender actif pour le site (lecture DB)."""
+    c = duckdb.connect(str(GOD_DB), read_only=True)
+    try:
+        row = c.execute(
+            "SELECT sender_email FROM email_senders WHERE site_code = ? AND status = 'active' LIMIT 1",
+            [site],
+        ).fetchone()
+    finally:
+        c.close()
+    return row[0] if row else ""
+
+
+def emelia_sent_today_by_sender(sender_email: str) -> int:
+    """Compte les events SENT du jour pour un sender (lit emelia_events).
+    Note: site_code dans emelia_events est dérivé via name → on filtre via campaign_name préfixe.
+    Pour faire plus simple : on filtre par site_code de la row email_senders."""
+    c = duckdb.connect(str(GOD_DB), read_only=True)
+    try:
+        sender_row = c.execute("SELECT site_code FROM email_senders WHERE sender_email = ?", [sender_email]).fetchone()
+        if not sender_row:
+            return 0
+        site_code = sender_row[0]
+        from datetime import date as _date
+        today = _date.today().isoformat()
+        cnt = c.execute("""
+            SELECT COUNT(*) FROM emelia_events
+            WHERE event_type = 'SENT'
+              AND site_code = ?
+              AND CAST(received_at AS DATE) = ?
+        """, [site_code, today]).fetchone()[0]
+    finally:
+        c.close()
+    return int(cnt or 0)
+
+
 def get_or_create_campaign(api_key: str, site: str, sector: str) -> dict:
     """Renvoie la campagne existante ou la crée. Renvoie {id, name, …}."""
     name = _campaign_name(site, sector)
@@ -121,6 +194,42 @@ def get_or_create_campaign(api_key: str, site: str, sector: str) -> dict:
             )
         except Exception as e:
             print(f"  [emelia] warn settings: {e}")
+
+        # === Configurer steps (template du secteur) + START + register webhook ===
+        try:
+            from emelia_campaign_manager import get_default_steps
+            steps = get_default_steps(sector)
+            requests.patch(
+                f"{EMELIA_URL}/emails/campaigns/{cid}/steps",
+                json={"steps": steps},
+                headers=_headers(api_key), timeout=20,
+            )
+        except Exception as e:
+            print(f"  [emelia] warn steps: {e}")
+
+        try:
+            requests.post(
+                f"{EMELIA_URL}/emails/campaigns/{cid}/start",
+                headers=_headers(api_key), timeout=15,
+            )
+        except Exception as e:
+            print(f"  [emelia] warn start: {e}")
+
+        # Register webhook pour cette campagne précise (idempotent — Emelia gère le dedup)
+        try:
+            import os as _os
+            WEBHOOK_URL = "https://api.cheffer.email/api/emelia/webhook?token=" + _os.environ.get("WEBHOOK_TOKEN_1", "")
+            if _os.environ.get("WEBHOOK_TOKEN_1"):
+                requests.post(f"{EMELIA_URL}/webhook",
+                    json={
+                        "hookUrl":    WEBHOOK_URL,
+                        "campaignId": cid,
+                        "events":     ["SENT", "OPENED", "CLICKED", "REPLIED", "BOUNCED", "UNSUBSCRIBED"],
+                        "type":       "email",
+                    },
+                    headers=_headers(api_key), timeout=15)
+        except Exception as e:
+            print(f"  [emelia] warn webhook register: {e}")
 
     return created
 
@@ -182,6 +291,16 @@ def push_prospect(site: str, prospect_id: str, daily_limit: int = 50) -> dict:
         if already_pushed_today(site, conn=c) >= daily_limit:
             return {"pushed": False, "reason": f"daily_limit_{daily_limit}_reached"}
 
+        # === Warmup ramp-up check (cf. specs/warmup-plan.md) ===
+        # Bloque le push si on dépasse le quota journalier de chauffe du sender.
+        sender = sender_email_for_site(site)
+        if sender:
+            warmup_quota = daily_warmup_quota(sender)
+            sent_today = emelia_sent_today_by_sender(sender)
+            if warmup_quota > 0 and sent_today >= warmup_quota:
+                return {"pushed": False,
+                        "reason": f"warmup_quota_reached_{sent_today}/{warmup_quota}_sender={sender}"}
+
         # Get or create campaign
         try:
             camp = get_or_create_campaign(api_key, site, sector)
@@ -224,7 +343,7 @@ def push_prospect(site: str, prospect_id: str, daily_limit: int = 50) -> dict:
         now = datetime.now(timezone.utc)
         c.execute("""
             UPDATE scrappe
-            SET emelia_segment_id = ?, emelia_contact_id = ?, contacted_at = ?
+            SET emelia_segment_id = ?, emelia_contact_id = ?, contacted_at = ?, status = 'pushed_emelia'
             WHERE id=? AND site_code=?
         """, [cid, contact_id or "pushed", now, pid, site])
 

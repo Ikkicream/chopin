@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 import requests
 
 import god_mode_backend as gm
+from email_validator import validate_and_score
 
 BASE_DIR = Path(__file__).parent.parent
 env_file = BASE_DIR / ".env"
@@ -207,30 +208,57 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None, max_res
                     email = fetch_email_from_site(website)
                     time.sleep(0.3)
 
-                if not email or not gm.validate_email(email):
+                if not email:
                     rejected += 1
                     continue
                 if email in seen_emails:
                     continue
                 seen_emails.add(email)
 
-                prospect = {
+                # Idempotence : skip si déjà checké Mailnjoy < 30j ou déjà en pending
+                if gm.email_recently_validated(email, days=30):
+                    rejected += 1
+                    continue
+                if gm.email_in_pending(email):
+                    rejected += 1
+                    continue
+
+                # === Validator email (6 étages spec EMAIL_VALIDATION_SCORING.md) ===
+                # Drop AVANT insertion DB si l'email échoue les hard rejects.
+                prospect_for_validation = {
                     "company_name": title,
-                    "contact_name": "",
-                    "email": email,
-                    "phone": phone,
-                    "sector": sector,
-                    "city": city,
-                    "postal_code": None,
-                    "website": website,
-                    "source": "serper_places",
-                    "search_query": q,
-                    "status": "validated",
-                    "raw_data": {"address": address, "rating": rating, "place_id": place.get("placeId")},
+                    "phone":         phone,
+                    "sector":        sector,
+                    "city":          city,
+                    "website":       website,
+                    "source":        "serper_places",
+                }
+                vres = validate_and_score(email, prospect_for_validation)
+                if vres["decision"] == "drop":
+                    rejected += 1
+                    continue
+                # queue → status manual_review (revue humaine), push → mailnjoy_pending (sera mis à mailnjoy_valid par le drain)
+                email_status = "manual_review" if vres["decision"] == "queue" else "mailnjoy_pending"
+
+                prospect = {
+                    "company_name":              title,
+                    "contact_name":              "",
+                    "email":                     vres["email"],
+                    "phone":                     phone,
+                    "sector":                    sector,
+                    "city":                      city,
+                    "postal_code":               None,
+                    "website":                   website,
+                    "source":                    "serper_places",
+                    "search_query":              q,
+                    "status":                    email_status,
+                    "raw_data":                  {"address": address, "rating": rating, "place_id": place.get("placeId")},
+                    "email_score":               vres["score"],
+                    "email_validation_reasons":  vres["reasons"],
                 }
                 prospect["score"] = score_prospect(prospect)
                 try:
-                    gm.add_prospect(site_code, prospect)
+                    gm.add_prospect_pending(site_code, prospect)
                     valid += 1
                 except Exception as e:
                     errors += 1

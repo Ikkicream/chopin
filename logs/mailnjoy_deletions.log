@@ -1,0 +1,3 @@
+{"ts": "2026-05-22T11:55:33.300772+00:00", "email": "contact@lesartisansnantais.com", "decision": "risky", "status": null, "category": null, "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-05-22T11:55:39.293290+00:00", "email": "jean.dupont@xn-fake-domain-thatdoesnotexist-xyz123.fr", "decision": "invalid", "status": null, "category": null, "reason": "mailnjoy invalid"}
+{"ts": "2026-05-22T11:55:42.608340+00:00", "email": "contact@junot.fr", "decision": "risky", "status": null, "category": null, "reason": "kill par décision user 2026-05-22"}

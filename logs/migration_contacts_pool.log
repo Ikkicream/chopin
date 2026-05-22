@@ -1,0 +1,13 @@
+2026-05-22T20:56:19.195014+00:00 === Migration contacts vers pool mutualisé ===
+2026-05-22T20:56:19.195168+00:00 Out: /home/autoblog/genesis/data/contacts.duckdb
+2026-05-22T20:56:19.221726+00:00 Schema OK (contacts + contact_site_history)
+2026-05-22T20:56:19.679359+00:00   [lcr] migrated 33 contacts, 33 history rows
+2026-05-22T20:56:19.695449+00:00   [mkd] migrated 1 contacts, 1 history rows
+2026-05-22T20:56:19.731139+00:00   [scrappe] migrated 3 contacts, 3 history rows
+2026-05-22T20:56:19.734275+00:00 === Stats finales ===
+2026-05-22T20:56:19.734342+00:00   contacts (uniques): 36
+2026-05-22T20:56:19.734365+00:00   history rows total: 36
+2026-05-22T20:56:19.734384+00:00   global blacklisted: 0
+2026-05-22T20:56:19.734406+00:00   par site: {'lcr': 35, 'mkd': 1}
+2026-05-22T20:56:19.734425+00:00   par state: {'prm': 1, 'lead': 13, 'cold_email': 22}
+2026-05-22T20:56:19.734442+00:00 === Migration terminée ===
