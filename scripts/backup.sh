@@ -43,9 +43,14 @@ zip -r "$BACKUP_DIR/$ZIP_NAME" . \
 
 echo "[OK] Backup: $BACKUP_DIR/$ZIP_NAME"
 
-# === 3. Rotation — garder les 30 derniers ZIPs ===
+# === 3. Génération du changelog .log humain ===
+LOG_NAME="genesis-${DATE}-v${VERSION}.log"
+python3 "$GENESIS_DIR/scripts/generate_changelog.py" "$BACKUP_DIR/$LOG_NAME" 2>&1 || echo "[WARN] changelog generation failed"
+
+# === 4. Rotation — garder les 3 derniers ZIPs et 3 derniers LOGs ===
 cd "$BACKUP_DIR"
-ls -t genesis-*.zip 2>/dev/null | tail -n +31 | xargs rm -f 2>/dev/null
+ls -t genesis-*.zip 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null
+ls -t genesis-*.log 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null
 
 # === BACKUP_V2_2026-05-22 : check fichiers critiques pool + master key ===
 echo "[CHECK] Fichiers critiques inclus dans le ZIP :"

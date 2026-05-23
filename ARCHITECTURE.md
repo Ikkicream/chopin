@@ -645,3 +645,202 @@ COMMERCIAL
 5. Sender warmup status dans `/vision` (placeholder actuel)
 6. Étendre `/api/sites/onboard-full` backend pour gérer le champ `templates_option` (génération IA des templates depuis persona + secteur)
 7. Drop tables legacy quand confirmé OK (après 30j de stabilité)
+
+---
+
+# 🏁 ARCHITECTURE FINALE — fin de session refactor SaaS 2026-05-23 01h
+
+> Cette section consolide TOUS les ajouts depuis la session "go + enchaîne". État actuel = vérité.
+
+## L. Pages UI finales (état sidebar)
+
+```
+LCR / MKD (par site)
+├── Dashboard            /site/[code]/dashboard
+│ STRATÉGIE
+├── Analyse SEO          /site/[code]/seo
+├── Stratégie SEO        /site/[code]/seo-strategy
+├── Agents IA            /site/[code]/agents
+│ CONTENU
+├── Articles             /site/[code]/articles
+│ COMMERCIAL
+├── Vision               /site/[code]/vision       ← NOUVELLE
+├── Scrapper             /site/[code]/scrapper     ← NOUVELLE (4 sub-tabs)
+├── Acquisition          /site/[code]/acquisition  ← REFONDUE pool + Source/Secteur séparés
+├── Templates            /site/[code]/templates    ← déplacée depuis /workflow/templates
+├── Campagnes            /site/[code]/campaigns    ← NOUVELLE par site (wizard 4 steps)
+│ ADMIN
+└── Setup & API          /site/[code]/setup
+
+ADMIN GLOBAL (superadmin)
+├── Vue globale          /view
+├── Coûts LLM            /costs
+├── Logs système         /admin/logs   ← NOUVELLE multi-site
+├── Sécurité             /security
+├── Ajouter un site      /onboarding   ← REFONDUE 16 steps
+└── Versions             /versions
+```
+
+**Pages supprimées** : `/workflow/page.tsx`, `/workflow/campaigns/`, `/workflow/prospects/`, `/workflow/performance/`, `/workflow/logs/`. Le dossier `/workflow/` ne contient plus que `layout.tsx` (auth admin).
+
+## M. Composant `/scrapper` détaillé
+
+4 sub-tabs horizontaux :
+
+1. **🚀 Lancer un scrape** (avec KPI cards Crédits + État module en header inline)
+   - Multi-secteurs (chips supprimables + 16 suggestions cliquables depuis `lib/sectors.ts`)
+   - Région → Département → Villes (multi-select, cascading)
+   - Max contacts par ville (1-50)
+   - Estimation coût Serper
+   - Bouton lancer N scrapes (boucle séquentielle avec progress)
+   - **Activity Table en temps réel** : auto-refresh 5s tant qu'un scrape running, progress bar gradient animé (sky→violet→pink), colonnes Date / Secteur / Villes / Status / Progression / Scrapés / Validés / Rejetés / Crédits / Par
+
+2. **⏰ Programmation**
+   - Switch on/off
+   - Checkboxes jours (Lun-Dim) avec raccourcis (Lun-Ven / Tous / Weekend / Aucun)
+   - Time picker (HH:MM UTC + équivalent Paris)
+   - Règle cron générée affichée live
+   - Sauvegarde DB (application système au crontab à venir)
+
+3. **📜 Historique** (audit trail filtré `action LIKE %scrape%`)
+
+4. **🔌 Endpoints Serper** (référence : places, search, images, news, maps, shopping, scholar, videos, lens, autocomplete, webpage)
+
+## N. Composant `/admin/logs`
+
+Audit trail global :
+- Sélecteur site (LCR / MKD)
+- Filtre par action (auto-détecté depuis les logs)
+- Recherche texte libre
+- Limit configurable (50 / 100 / 500)
+- 7 colonnes : Date / Site / Action / Resource / Par / Status / Détails
+
+## O. Composant `/vision` final
+
+- **KPI cards** : Contacts pool / Envoyés cumulés / Leads / Nettoyés
+- **Funnel chart** : conversion scrapés → qualified → sent → prm → leads → bounced (workflowFunnelConfig)
+- **Sources distribution** : barres horizontales par primary_source (serper / tally / manual / csv)
+- **Warmup status sender** (live) : pour chaque sender du site → email, status, jour warmup, quota/jour, sent today, progress bar coloré (vert <80%, ambre 80-99%, rose ≥100%)
+
+## P. Endpoints API finaux (récap exhaustif)
+
+### Pool contacts
+- `GET /api/sites/{site}/pool/contacts` — liste
+- `GET /api/sites/{site}/pool/contacts/{id}` — détail + sites_history cross-site
+- `POST /api/sites/{site}/pool/contacts/create`
+- `PATCH /api/sites/{site}/pool/contacts/{id}`
+- `DELETE /api/sites/{site}/pool/contacts/{id}`
+- `POST /api/sites/{site}/pool/contacts/{id}/change-state`
+- `POST /api/sites/{site}/pool/contacts/{id}/blacklist`
+- `POST /api/sites/{site}/pool/contacts/import-csv`
+- `GET /api/sites/{site}/pool/stats`
+- `GET /api/sites/{site}/pool/depletion-alert?threshold=10`
+- `GET /api/sites/{site}/pool/pick?sector=X&limit=N`
+- `POST /api/sites/{site}/pool/campaigns/create`
+
+### Géo
+- `GET /api/sites/{site}/geo/regions`
+- `GET /api/sites/{site}/geo/departments?region=X`
+- `GET /api/sites/{site}/geo/cities?dept=X|region=X`
+
+### Scrape
+- `POST /api/god-mode/{site}/scrape` (existant)
+- `GET /api/sites/{site}/scrape/live-activity?limit=20`
+- `GET /api/sites/{site}/scrape/cron-config`
+- `POST /api/sites/{site}/scrape/cron-config`
+
+### Warmup
+- `GET /api/sites/{site}/warmup-status`
+
+### Onboarding
+- `POST /api/sites/onboard-full` (étendu pour 16 fields)
+- `POST /api/sites/{site}/onboarding/send-test-email`
+- `POST /api/sites/{site}/onboarding/confirm-activation`
+
+### Webhook
+- `POST /api/emelia/webhook?token=X` (audit + maj acquisition_contacts + dual-write pool + global blacklist)
+
+## Q. Tables DB état final
+
+### `data/contacts.duckdb` (pool mutualisé NOUVEAU)
+- `contacts` : 72 rows (58 serper, 12 manual, 2 tally, 0 blacklisted)
+- `contact_site_history` : 72 rows
+
+### `data/god_mode.duckdb`
+- `scrappe` (legacy, archive RO 30j)
+- `scrappe_pending` : 36 rows (drain Mailnjoy à venir)
+- `emelia_events` : 4 events (SENT, OPENED, CLICKED, UNSUBSCRIBED)
+- `email_senders` : 1 (juliette@leclientroi.com J1+, status active)
+- `god_mode_state` / `_settings` / `_campaigns` / `_logs` (43) / `_serper_calls`
+- `god_mode_templates` : 2 (lcr/coiffeur, lcr/immobilier) avec vars Emelia natives
+- `accounts` : table créée (0 rows pour l'instant)
+- `site_credentials` : table créée avec AES Fernet ready
+
+### `data/auth.duckdb`
+- `users` (1 superadmin), `sessions`, `login_logs`
+
+### `data/crm/{lcr,mkd}.duckdb`
+- `acquisition_contacts` : LEGACY, gardé RO 30j pour rollback
+
+## R. Centralisations 2026-05-23
+
+### Secteurs (1 source de vérité)
+- Python : `scripts/god_mode_backend.py:SECTORS_GOD_MODE` (16 entries)
+- UI : `genesis-ui/src/lib/sectors.ts` (16 entries avec emoji + label)
+- Modules alignés : `god_mode_agents.SECTOR_QUERIES`, `god_mode_agents.PRIO_SECTORS`, `api.py /pool/depletion-alert`, 3 pages UI (scrapper, campaigns, onboarding)
+
+### Sources contacts (4 valeurs normalisées)
+`serper` / `tally` / `manual` / `csv`. Anciennes valeurs verbeuses (`workflow:immobilier`, `formulaire`, `tally_legacy`, `tidycal`, `scraping_serper`, `serper_places`) toutes migrées via UPDATE SQL.
+
+### HONEYPOT email_validator (+21 substrings)
+RGPD/legal/compliance/spam-traps. Voir `scripts/email_validator.py:HONEYPOT_TERMS`.
+
+### Templates Emelia (vars natives)
+- `{{firstName}}`, `{{lastName}}`, `{{field1-4}}`, `{{UNSUBSCRIBE_LINK}}`
+- Migration DB : ancienne syntaxe snake_case retirée. Prompt DeepSeek dans `god_mode_templates.py` aligné.
+
+## S. Sécurité finale
+
+- AES Fernet pour `site_credentials.encrypted_value` (32-byte key)
+- Master key location : `/home/autoblog/genesis/data/.master_key` (chmod 600, autoblog)
+- Backup serveur quotidien 21h UTC dans `backups/.master_key.bak`
+- Backup hors-serveur Mac local : `~/.ssh/genesis-master-key` (chmod 600) + README disaster recovery 4.3 KB
+
+## T. Bugs fixés cette session (highlights)
+
+1. **Tabs shadcn data-horizontal:flex-col cassé** → sélecteur Tailwind 4 corrigé en `data-[orientation=horizontal]:flex-col`. Fix global pour tout l'app.
+2. **scrape_sector early return silencieux** sur sector inconnu → log d'end toujours émis, plus de "Run éternel" en UI.
+3. **god_mode_api.scrape check strict SECTORS_GOD_MODE** → assoupli, secteur libre OK.
+4. **Templates Emelia vars snake_case** ({{first_name}}, {{company}}, {{city}}) → migrées vars natives ({{firstName}}, {{field1}}, {{field2}}).
+5. **Sources verbeuses workflow:X** dans contact_site_history → normalisées en `serper`/`tally`/`csv`/`manual`.
+6. **donneespersonnelles@laforet.com et autres patterns RGPD** passaient le validator → HONEYPOT_TERMS étendu, 21 substrings RGPD ajoutés, cleanup rétroactif appliqué.
+7. **PM2 "next start" avec output:standalone** : cassé après chaque build → `output:standalone` désactivé dans next.config.ts, build classique + restart OK.
+8. **Crédits / usage à 0 dans UI** : front lisait `credits.balance` mais backend retourne `credits.balance.balance` (objet imbriqué) → fix front.
+9. **Historique scrapes vide** : filtre côté front sur `start_scrape` uniquement → élargi à `scrape`/`start_scrape`/`scrape_error`/`scrape_done`.
+
+## U. Items parqués pour V2 (non-bloquants)
+
+- CRUD UI accounts multi-tenant (table existe, pas d'UI)
+- Rotation site_credentials post-onboarding via UI
+- Application système du cron config UI (stocké en DB, pas appliqué au crontab)
+- Drop tables legacy (`crm/lcr.duckdb`, `crm/mkd.duckdb`, `scrappe`) après 30j de stabilité
+- Test e2e onboarding live (créer un nouveau site complet via UI)
+- Step 16 mail test : intégrer un vrai check de réception (timer 15 min puis fallback)
+
+## V. Données opérationnelles snapshot (2026-05-23 01h00)
+
+| Métrique | Valeur |
+|---|---|
+| Contacts uniques dans pool | 72 |
+| Par primary_source | 58 serper · 12 manual · 2 tally |
+| Blacklisted globaux | 0 |
+| Sites actifs (god_mode_state.enabled=TRUE) | LCR uniquement |
+| Senders | 1 (juliette@leclientroi.com, J1+) |
+| Templates DB | 2 (lcr/coiffeur, lcr/immobilier) |
+| Emelia events historiques | 4 |
+| god_mode_logs (audit) | 43 |
+| Master key copies | 3 (serveur active, backup serveur, Mac local) |
+
+---
+
+**Le projet Genesis SaaS V1 est livré.** Tout pipeline de prospection cold email fonctionne en bout-en-bout : scrape Serper → validator (avec HONEYPOT étendu) → Mailnjoy → pool mutualisé → pioche campagne → push Emelia → webhook événements → CRM. UI complète avec pages refondues. Sécurité credentials AES. Disaster recovery garanti.

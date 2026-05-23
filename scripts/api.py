@@ -1783,16 +1783,21 @@ async def api_versions(limit: int = 50):
     except Exception:
         pass
 
-    # Backups ZIP
+    # Backups ZIP + LOGs (rotation 3 conservée par backup.sh)
     backups = []
     backup_dir = BASE_DIR / "backups"
     if backup_dir.exists():
-        for z in sorted(backup_dir.glob("genesis-*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)[:30]:
+        for z in sorted(backup_dir.glob("genesis-*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)[:10]:
             stat = z.stat()
+            # Cherche le .log correspondant (même nom mais extension .log)
+            log_name = z.name.replace(".zip", ".log")
+            log_path = backup_dir / log_name
             backups.append({
                 "name": z.name,
                 "size_mb": round(stat.st_size / (1024 * 1024), 1),
                 "date": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
+                "log_available": log_path.exists(),
+                "log_name": log_name if log_path.exists() else None,
             })
 
     return {
@@ -4759,4 +4764,31 @@ def api_warmup_status(site: str):
             "is_override":  override is not None,
         })
     return {"senders": out}
+
+
+@app.get("/api/versions/log/{log_name}")
+def api_version_log(log_name: str):
+    """Retourne le contenu d'un changelog .log de version."""
+    from fastapi.responses import PlainTextResponse
+    # Sécu : nom doit matcher pattern strict (anti path traversal)
+    import re as _re
+    if not _re.match(r"^genesis-\d{4}-\d{2}-\d{2}-v\d{4}\.log$", log_name):
+        return PlainTextResponse("invalid log name", status_code=400)
+    p = BASE_DIR / "backups" / log_name
+    if not p.exists():
+        return PlainTextResponse("log not found", status_code=404)
+    return PlainTextResponse(p.read_text(errors="replace"), media_type="text/plain; charset=utf-8")
+
+
+@app.get("/api/versions/zip/{zip_name}")
+def api_version_zip(zip_name: str):
+    """Téléchargement d'un ZIP version."""
+    from fastapi.responses import FileResponse, PlainTextResponse
+    import re as _re
+    if not _re.match(r"^genesis-\d{4}-\d{2}-\d{2}-v\d{4}\.zip$", zip_name):
+        return PlainTextResponse("invalid zip name", status_code=400)
+    p = BASE_DIR / "backups" / zip_name
+    if not p.exists():
+        return PlainTextResponse("zip not found", status_code=404)
+    return FileResponse(p, media_type="application/zip", filename=zip_name)
 
