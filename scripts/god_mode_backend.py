@@ -22,7 +22,7 @@ TEMPLATES_DIR = BASE_DIR / "memory" / "templates"
 SKILLS_DIR = BASE_DIR / "skills"
 
 VALID_SITES = {"lcr", "mkd"}
-SECTORS_GOD_MODE = ["immobilier", "restaurant", "garagiste", "coiffeur", "retail", "artisan"]
+SECTORS_GOD_MODE = ["immobilier", "restaurant", "garagiste", "coiffeur", "retail", "artisan", "fleuriste", "boulanger", "plombier", "electricien", "menuisier", "avocat", "comptable", "agence-marketing", "agence-web", "consultant"]
 
 # Top 50 INSEE communes par population (2025)
 TOP_50_INSEE = [

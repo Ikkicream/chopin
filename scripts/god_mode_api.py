@@ -136,8 +136,9 @@ def templates_list(site: str, user=Depends(require_admin)):
 @router.get("/{site}/templates/{sector}")
 def template_get(site: str, sector: str, user=Depends(require_admin)):
     _check_site(site)
-    if sector not in gm.SECTORS_GOD_MODE:
-        raise HTTPException(status_code=400, detail=f"Secteur invalide: {sector}")
+    # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
+    if not sector or not sector.strip():
+        raise HTTPException(status_code=400, detail="sector required")
     t = gm.get_template(site, sector)
     if not t:
         return {"site_code": site, "sector": sector, "raw_content": None, "html_content": None, "locked": False, "exists": False}
@@ -147,8 +148,9 @@ def template_get(site: str, sector: str, user=Depends(require_admin)):
 @router.post("/{site}/templates/{sector}/generate")
 async def template_generate(site: str, sector: str, request: Request, user=Depends(require_admin)):
     _check_site(site)
-    if sector not in gm.SECTORS_GOD_MODE:
-        raise HTTPException(status_code=400, detail=f"Secteur invalide: {sector}")
+    # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
+    if not sector or not sector.strip():
+        raise HTTPException(status_code=400, detail="sector required")
     import god_mode_templates as gm_tpl
     try:
         t = gm_tpl.generate_template(site, sector, user["username"])
@@ -164,8 +166,9 @@ async def template_generate(site: str, sector: str, request: Request, user=Depen
 @router.put("/{site}/templates/{sector}/html")
 async def template_update_html(site: str, sector: str, request: Request, user=Depends(require_admin)):
     _check_site(site)
-    if sector not in gm.SECTORS_GOD_MODE:
-        raise HTTPException(status_code=400, detail=f"Secteur invalide: {sector}")
+    # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
+    if not sector or not sector.strip():
+        raise HTTPException(status_code=400, detail="sector required")
     body = await request.json()
     html = body.get("html_content", "")
     try:
@@ -181,8 +184,9 @@ async def template_update_html(site: str, sector: str, request: Request, user=De
 @router.put("/{site}/templates/{sector}/subject")
 async def template_update_subject(site: str, sector: str, request: Request, user=Depends(require_admin)):
     _check_site(site)
-    if sector not in gm.SECTORS_GOD_MODE:
-        raise HTTPException(status_code=400, detail=f"Secteur invalide: {sector}")
+    # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
+    if not sector or not sector.strip():
+        raise HTTPException(status_code=400, detail="sector required")
     body = await request.json()
     subject = (body.get("subject") or "").strip()
     if not subject:
@@ -200,8 +204,9 @@ async def template_update_subject(site: str, sector: str, request: Request, user
 @router.post("/{site}/templates/{sector}/lock")
 async def template_lock(site: str, sector: str, request: Request, user=Depends(require_admin)):
     _check_site(site)
-    if sector not in gm.SECTORS_GOD_MODE:
-        raise HTTPException(status_code=400, detail=f"Secteur invalide: {sector}")
+    # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
+    if not sector or not sector.strip():
+        raise HTTPException(status_code=400, detail="sector required")
     t = gm.get_template(site, sector)
     if not t:
         raise HTTPException(status_code=404, detail="Template inexistant — générer avant de verrouiller")
@@ -214,8 +219,9 @@ async def template_lock(site: str, sector: str, request: Request, user=Depends(r
 @router.post("/{site}/templates/{sector}/unlock")
 async def template_unlock(site: str, sector: str, request: Request, user=Depends(require_admin)):
     _check_site(site)
-    if sector not in gm.SECTORS_GOD_MODE:
-        raise HTTPException(status_code=400, detail=f"Secteur invalide: {sector}")
+    # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
+    if not sector or not sector.strip():
+        raise HTTPException(status_code=400, detail="sector required")
     gm.unlock_template(site, sector, user["username"])
     gm.log_action(site, user["username"], user["user_id"], "unlock_template",
                   resource="template", resource_id=f"{site}/{sector}", ip=_ip(request))
@@ -266,8 +272,9 @@ async def scrape(site: str, request: Request, user=Depends(require_admin)):
     body = await request.json()
     sector = body.get("sector")
     cities = body.get("cities")
-    if sector not in gm.SECTORS_GOD_MODE:
-        raise HTTPException(status_code=400, detail=f"Secteur invalide: {sector}")
+    # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
+    if not sector or not sector.strip():
+        raise HTTPException(status_code=400, detail="sector required")
     max_results = min(int(body.get("max_results", settings["scrape_quota"])), settings["scrape_quota"])
 
     gm.log_action(site, user["username"], user["user_id"], "start_scrape",

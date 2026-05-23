@@ -4,7 +4,7 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-05-22 23:00 UTC (session enchaine : backend onboard V2 + multi-tenant + UI Acquisition pool + cleanup)
+2026-05-22 23:30 UTC (AES site_credentials + onboarding mail test + backup étendu)
 
 ## Goal en cours
 Tester le pipeline **Workflow LCR** de bout en bout (Serper → DeepSeek qualifier → push Emelia → cold email envoyé).
@@ -345,3 +345,39 @@ La page Acquisition est désormais 100 pourcent sur le pool mutualisé (lecture 
 - Step 16 onboarding mail test : envoyer effectivement le mail via /emails/test Emelia + UI confirmation
 - Page admin/logs (déplacer /workflow/logs vers /admin/logs)
 - Backup cron à étendre pour inclure data/contacts.duckdb
+
+
+## Session enchaine 2 — AES + mail test + backup — 2026-05-22 23:30
+
+### A. Chiffrement AES Fernet site_credentials
+- NOUVEAU module : scripts/site_credentials_backend.py
+- Helpers : encrypt_value, decrypt_value, set_credential, get_credential, list_credentials, delete_credential, migrate_plaintext_to_encrypted
+- Master key : env var SITE_CREDENTIALS_MASTER_KEY (prioritaire) sinon data/.master_key (auto-générée, chmod 600)
+- Backward compat : valeurs anciennes en clair sont re-chiffrées au premier get_credential
+- Endpoint /api/sites/onboard-full migré pour utiliser set_credential (AES) au lieu d INSERT direct
+- workflow_emelia_push._get_key etendu : lit site_credentials AES en priorité, fallback env vars
+
+### B. Step 16 onboarding mail test + activation
+- NOUVEAU endpoint POST /api/sites/{code}/onboarding/send-test-email
+  - Body : {test_email, sector}
+  - Crée campagne onboarding-test-{code} si absente + configure steps
+  - Appelle /emails/test Emelia (envoi instantané sans cadence)
+- NOUVEAU endpoint POST /api/sites/{code}/onboarding/confirm-activation
+  - Body : {received: true}
+  - Passe god_mode_state.enabled = TRUE pour ce site
+- Page UI onboarding étendue : après submit, le site est créé mais god_mode_state.enabled=FALSE
+  - Step 16 affiche bouton Envoyer mail test
+  - Apres envoi : bouton J ai reçu → confirm-activation → enabled=TRUE → redirect dashboard
+  - Bouton Renvoyer disponible si user n a pas reçu
+
+### C. Backup cron étendu
+- scripts/backup.sh : check explicite des fichiers critiques (contacts.duckdb, god_mode.duckdb, auth.duckdb, .master_key)
+- Copie séparée de .master_key vers BACKUP_DIR/.master_key.bak (disaster recovery)
+- Cron quotidien 21h UTC inchangé (continue de tourner)
+
+### Reste à faire pour vraiment SaaS-ready
+- Cron 6h30 demain matin = premier test grandeur nature (passive, vérifier les logs)
+- Page admin/logs (déplacer /workflow/logs vers /admin/logs au niveau global)
+- Endpoint /api/sites/{code}/credentials/{key_name} pour lire/setter les clés via UI (gestion des clés post-onboarding)
+- Multi-tenant : section UI accounts (CRUD comptes) — actuellement la table existe mais pas de CRUD
+- Test : un nouveau site complet créé via UI onboarding (vérifier les 16 steps end-to-end)

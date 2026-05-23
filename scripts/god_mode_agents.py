@@ -38,13 +38,25 @@ EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 PHONE_FR_RE = re.compile(r"0[1-9](?:[\s.-]?\d{2}){4}")
 
 # Queries par secteur (en français, ciblées France)
+# Sectors-presets : queries optimisées pour Serper Places.
+# Pour TOUT secteur libre non listé, fallback automatique : f"{sector} {{city}}".
 SECTOR_QUERIES = {
-    "immobilier": ["agence immobilière {city}", "agent immobilier {city} contact"],
-    "restaurant": ["restaurant {city} contact", "restaurateur {city}"],
-    "garagiste": ["garagiste {city}", "garage automobile {city} contact"],
-    "coiffeur": ["coiffeur {city}", "salon de coiffure {city}"],
-    "retail": ["commerce {city}", "boutique {city} contact"],
-    "artisan": ["artisan {city}", "plombier electricien {city}"],
+    "immobilier":  ["agence immobilière {city}", "agent immobilier {city} contact"],
+    "restaurant":  ["restaurant {city} contact", "restaurateur {city}"],
+    "garagiste":   ["garagiste {city}", "garage automobile {city} contact"],
+    "coiffeur":    ["coiffeur {city}", "salon de coiffure {city}"],
+    "retail":      ["commerce {city}", "boutique {city} contact"],
+    "artisan":     ["artisan {city}", "plombier electricien {city}"],
+    "fleuriste":   ["fleuriste {city}", "boutique fleurs {city} contact"],
+    "boulanger":   ["boulangerie {city}", "pâtisserie {city} contact"],
+    "plombier":    ["plombier {city}", "plomberie {city} contact"],
+    "electricien": ["electricien {city}", "entreprise électricité {city}"],
+    "menuisier":   ["menuisier {city}", "menuiserie {city} contact"],
+    "avocat":      ["avocat {city}", "cabinet avocat {city} contact"],
+    "comptable":   ["expert comptable {city}", "cabinet comptable {city}"],
+    "agence-marketing": ["agence marketing {city}", "agence communication {city}"],
+    "agence-web":  ["agence web {city}", "développement web {city} contact"],
+    "consultant":  ["consultant {city}", "cabinet conseil {city}"],
 }
 
 
@@ -143,7 +155,11 @@ def extract_phone(text: str) -> str | None:
 
 
 # ── Qualifieur ────────────────────────────────────────────────────────────────
-PRIO_SECTORS = {"immobilier": 30, "retail": 30, "restaurant": 25, "coiffeur": 20, "garagiste": 20, "artisan": 15}
+PRIO_SECTORS = {
+    "immobilier": 30, "retail": 30, "restaurant": 25, "coiffeur": 20, "garagiste": 20, "artisan": 15,
+    "fleuriste": 10, "boulanger": 10, "plombier": 10, "electricien": 10, "menuisier": 10,
+    "avocat": 15, "comptable": 15, "agence-marketing": 15, "agence-web": 15, "consultant": 10,
+}
 
 
 def score_prospect(prospect: dict) -> int:
@@ -168,9 +184,18 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None, max_res
     """Scrape Serper places pour un secteur, valide emails, insert dans `scrappe`.
     Retourne {scraped, valid, rejected, errors}.
     """
-    if sector not in gm.SECTORS_GOD_MODE:
-        return {"error": f"Secteur invalide: {sector}"}
+    # 2026-05-22 : secteur libre — plus de check strict, juste skip si vide
+    if not sector or not sector.strip():
+        gm.log_action(site_code, username, "system", "scrape",
+                      resource="sector", resource_id=sector or "",
+                      payload={"sector": sector, "error": "empty sector"},
+                      success=False, error_message="empty sector")
+        return {"error": "sector required"}
     if not SERPER_KEY:
+        gm.log_action(site_code, username, "system", "scrape",
+                      resource="sector", resource_id=sector,
+                      payload={"sector": sector, "error": "SERPER_API_KEY missing"},
+                      success=False, error_message="SERPER_API_KEY missing")
         return {"error": "SERPER_API_KEY manquante"}
 
     cities = cities or random.sample(gm.TOP_50_INSEE, min(10, len(gm.TOP_50_INSEE)))
@@ -277,7 +302,7 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None, max_res
                         if _pool_cid:
                             _cpb.upsert_site_history(_pool_cid, site_code,
                                 state="cold_email",
-                                source=f"workflow:{sector}" if sector else "workflow",
+                                source="serper",
                                 by="scrape_sector")
                     except Exception as _pool_err:
                         print(f"  [scrape][pool dual-write] {_pool_err}")

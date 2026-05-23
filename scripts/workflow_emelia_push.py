@@ -426,7 +426,7 @@ def push_prospect(site: str, prospect_id: str, daily_limit: int = 50) -> dict:
                 if _pool_cid:
                     _cpb.upsert_site_history(_pool_cid, site,
                         state="cold_email",
-                        source=f"workflow:{sector}" if sector else "workflow",
+                        source="serper",
                         by="workflow_runner")
                     _cpb.mark_pushed_to_emelia(_pool_cid, site, cid, contact_id or "pushed")
             except Exception as _pool_err:

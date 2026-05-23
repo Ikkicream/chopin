@@ -284,9 +284,22 @@ def rgpd_check(email: str, prospect: dict) -> tuple[bool, str]:
 # Substrings qui doivent IMMÉDIATEMENT drop l'email (honeypots + DPO/RGPD = ne JAMAIS contacter).
 # Détection par substring dans l'email entier (pas juste le local).
 HONEYPOT_TERMS = (
+    # Spam traps / sécurité
     "spamtrap", "honeypot", "trap@", "abuse@", "spam@",
-    # RGPD / DPO : contacter ces adresses en cold email = plainte CNIL garantie.
+    "postmaster", "hostmaster", "mailer-daemon",
+    # RGPD / DPO / vie privée : contacter ces adresses en cold email = plainte CNIL.
     "rgpd@", "dpo@", "gdpr@", "@rgpd.", "@dpo.",
+    "donneespersonnelles", "donnees-personnelles", "donneeperso", "donnees-perso",
+    "privacy@", "privacy.", "@privacy.",
+    "vie-privee", "vieprivee",
+    # Mentions légales / juridique / compliance
+    "mentionslegales", "mentions-legales", "mention-legale",
+    "juridique@", "@juridique.", "legal@", "@legal.", "compliance@", "compliance.",
+    "conformite@", "@conformite.",
+    # Autorités françaises / RGPD officiel
+    "cnil@", "@cnil.", "cnil-",
+    # Anonymisation / droits utilisateurs
+    "anonymisation", "droits-rgpd", "droits-personnels", "exercice-droits",
 )
 GENERIC_LOCALS = {"contact", "info", "hello", "bonjour", "accueil"}
 

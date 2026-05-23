@@ -45,7 +45,7 @@ def _tally_dual_write_pool(site, email, fields, form_id):
         }, primary_source="tally")
         if pool_cid:
             _cpb.upsert_site_history(pool_cid, site, state="lead",
-                source=f"tally:{form_id}", by="tally_sync")
+                source="tally", by="tally_sync")
     except Exception as _e:
         print(f"  [tally][pool dual-write] {_e}")
 

@@ -4207,7 +4207,8 @@ def api_pool_depletion(site: str, threshold: int = 10):
     """Alerte secteur épuisé pour ce site."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from contacts_pool_backend import check_pool_depletion
-    SECTORS = ["immobilier", "restaurant", "garagiste", "coiffeur", "retail", "artisan"]
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from god_mode_backend import SECTORS_GOD_MODE as SECTORS
     return {"depleted": check_pool_depletion(site, SECTORS, threshold=threshold)}
 
 
@@ -4543,4 +4544,219 @@ async def api_onboarding_confirm(site: str, request: Request):
     finally:
         c.close()
     return {"ok": True, "site": site, "enabled": True}
+
+
+@app.get("/api/sites/{site}/geo/regions")
+def api_geo_regions(site: str):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from workflow_geo import list_regions
+    return {"regions": list_regions()}
+
+
+@app.get("/api/sites/{site}/geo/departments")
+def api_geo_departments(site: str, region: str = ""):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from workflow_geo import list_departments
+    return {"departments": list_departments(region or None)}
+
+
+@app.get("/api/sites/{site}/geo/cities")
+def api_geo_cities(site: str, dept: str = "", region: str = "", min_pop: int = 10000):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from workflow_geo import list_cities
+    return {"cities": list_cities(dept or None, region or None, min_pop=min_pop)}
+
+
+@app.get("/api/sites/{site}/scrape/cron-config")
+def api_scrape_cron_get(site: str):
+    import duckdb as _dd, json as _json
+    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    try:
+        row = c.execute("""
+            SELECT scrape_cron_days, scrape_cron_hour, scrape_cron_minute, scrape_cron_enabled
+            FROM god_mode_settings WHERE site_code = ?
+        """, [site]).fetchone()
+    finally:
+        c.close()
+    if not row:
+        return {"days": [1,2,3,4,5], "hour": 6, "minute": 30, "enabled": True, "cron_expr": "30 6 * * 1-5"}
+    days_raw, hour, minute, enabled = row
+    try:
+        days = _json.loads(days_raw) if isinstance(days_raw, str) else (days_raw or [1,2,3,4,5])
+    except Exception:
+        days = [1,2,3,4,5]
+    cron_expr = _build_cron(minute, hour, days)
+    return {"days": days, "hour": hour, "minute": minute, "enabled": bool(enabled), "cron_expr": cron_expr}
+
+
+@app.post("/api/sites/{site}/scrape/cron-config")
+async def api_scrape_cron_set(site: str, request: Request):
+    body = await request.json()
+    days = body.get("days", [1,2,3,4,5])
+    hour = int(body.get("hour", 6))
+    minute = int(body.get("minute", 30))
+    enabled = bool(body.get("enabled", True))
+    import duckdb as _dd, json as _json
+    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"))
+    try:
+        existing = c.execute("SELECT site_code FROM god_mode_settings WHERE site_code = ?", [site]).fetchone()
+        if existing:
+            c.execute("""
+                UPDATE god_mode_settings
+                SET scrape_cron_days = ?, scrape_cron_hour = ?, scrape_cron_minute = ?, scrape_cron_enabled = ?
+                WHERE site_code = ?
+            """, [_json.dumps(days), hour, minute, enabled, site])
+        else:
+            c.execute("""
+                INSERT INTO god_mode_settings
+                (site_code, scrape_cron_days, scrape_cron_hour, scrape_cron_minute, scrape_cron_enabled)
+                VALUES (?, ?, ?, ?, ?)
+            """, [site, _json.dumps(days), hour, minute, enabled])
+    finally:
+        c.close()
+    return {"ok": True, "cron_expr": _build_cron(minute, hour, days), "enabled": enabled}
+
+
+def _build_cron(minute: int, hour: int, days: list) -> str:
+    """Génère expression crontab depuis (minute, heure, jours[1..7]).
+    1=lundi ... 7=dimanche → cron 0=dimanche, 1=lundi ... 6=samedi
+    """
+    if not days:
+        return f"{minute} {hour} * * *"
+    cron_days_map = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:0}
+    cron_days = sorted(set(cron_days_map[d] for d in days if d in cron_days_map))
+    if cron_days == [1,2,3,4,5]:
+        return f"{minute} {hour} * * 1-5"
+    if cron_days == [0,1,2,3,4,5,6]:
+        return f"{minute} {hour} * * *"
+    return f"{minute} {hour} * * {','.join(str(d) for d in cron_days)}"
+
+
+@app.get("/api/sites/{site}/scrape/live-activity")
+def api_scrape_live_activity(site: str, limit: int = 20):
+    """Live-activity feed des scrapes : matche start_scrape + scrape + crédits Serper consommés."""
+    import duckdb as _dd, json as _json
+    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    try:
+        starts = c.execute("""
+            SELECT id, created_at, resource_id, username, payload
+            FROM god_mode_logs
+            WHERE site_code = ? AND action = 'start_scrape'
+            ORDER BY created_at DESC LIMIT ?
+        """, [site, limit]).fetchall()
+
+        out = []
+        for s in starts:
+            sid, start_at, sector, username, payload_raw = s
+            try:
+                start_payload = _json.loads(payload_raw) if isinstance(payload_raw, str) else (payload_raw or {})
+            except Exception:
+                start_payload = {}
+            cities = start_payload.get("cities") or []
+            max_results = start_payload.get("max_results", 0)
+
+            # Match avec le scrape end (même sector, postérieur, dans les 10 min)
+            end_row = c.execute("""
+                SELECT created_at, payload, success
+                FROM god_mode_logs
+                WHERE site_code = ? AND action = 'scrape' AND resource_id = ?
+                  AND created_at > ? AND created_at < ? + INTERVAL 10 MINUTE
+                ORDER BY created_at ASC LIMIT 1
+            """, [site, sector, start_at, start_at]).fetchone()
+
+            end_at = None; scraped = 0; valid = 0; rejected = 0; errors = 0; status = "running"
+            if end_row:
+                end_at, end_payload_raw, success = end_row
+                try:
+                    ep = _json.loads(end_payload_raw) if isinstance(end_payload_raw, str) else (end_payload_raw or {})
+                except Exception:
+                    ep = {}
+                scraped  = ep.get("scraped", 0)
+                valid    = ep.get("valid", 0)
+                rejected = ep.get("rejected", 0)
+                errors   = ep.get("errors", 0)
+                status   = "done" if success else "failed"
+
+            # Calc credits consommés entre start_at et end_at (ou now si running)
+            until_clause = "AND created_at <= ?" if end_at else ""
+            params = [site, sector.split()[0] if sector else "", start_at]
+            if end_at: params.append(end_at)
+            credits_used = c.execute(f"""
+                SELECT COALESCE(SUM(credits), 0)
+                FROM god_mode_serper_calls
+                WHERE site_code = ? AND query LIKE '%' || ? || '%'
+                  AND created_at >= ? {until_clause}
+            """, params).fetchone()[0]
+
+            # Duration
+            duration_s = None
+            if end_at:
+                try: duration_s = int((end_at - start_at).total_seconds())
+                except Exception: pass
+
+            # Progression (% de complétion)
+            # En running : on estime progress depuis le temps écoulé / 60s par ville (très approximatif)
+            if status == "running":
+                elapsed = (_dt_now() - start_at).total_seconds() if start_at else 0
+                est_total = max(60, 30 * (len(cities) or 1))  # 30s par ville env
+                progress_pct = min(95, int(elapsed / est_total * 100))
+            else:
+                progress_pct = 100
+
+            out.append({
+                "id":            sid,
+                "start_at":      str(start_at) if start_at else None,
+                "end_at":        str(end_at) if end_at else None,
+                "duration_s":    duration_s,
+                "sector":        sector,
+                "cities":        cities,
+                "max_results":   max_results,
+                "username":      username or "cron",
+                "status":        status,
+                "scraped":       scraped,
+                "valid":         valid,
+                "rejected":      rejected,
+                "errors":        errors,
+                "credits_used":  int(credits_used or 0),
+                "progress_pct":  progress_pct,
+            })
+        return {"activity": out}
+    finally:
+        c.close()
+
+
+def _dt_now():
+    from datetime import datetime
+    return datetime.now()
+
+
+@app.get("/api/sites/{site}/warmup-status")
+def api_warmup_status(site: str):
+    """Retourne le statut warmup du/des senders d'un site."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from workflow_emelia_push import daily_warmup_quota, emelia_sent_today_by_sender
+    import duckdb as _dd
+    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    try:
+        rows = c.execute("SELECT sender_email, sender_name, warmup_start_date, status, daily_max_override FROM email_senders WHERE site_code = ?", [site]).fetchall()
+    finally:
+        c.close()
+    out = []
+    from datetime import date as _date
+    today = _date.today()
+    for sender_email, sender_name, start_date, status, override in rows:
+        days_since = (today - start_date).days + 1 if start_date else 0
+        quota = daily_warmup_quota(sender_email) or 0
+        sent = emelia_sent_today_by_sender(sender_email) or 0
+        out.append({
+            "sender_email": sender_email,
+            "sender_name":  sender_name,
+            "status":       status,
+            "warmup_day":   days_since,
+            "daily_quota":  quota,
+            "sent_today":   sent,
+            "remaining":    max(0, quota - sent),
+            "is_override":  override is not None,
+        })
+    return {"senders": out}
 

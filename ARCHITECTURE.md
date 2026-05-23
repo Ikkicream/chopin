@@ -485,3 +485,163 @@ graph LR
 4. Le **Chantier 1.3** (démarrer les 5 campagnes LCR DRAFT) reste bloqué tant que le bug templates n'est pas fixé et tant que le quota warmup J1=10 ne le permet pas pleinement.
 
 **Aucun code ne sera modifié tant que tu n'as pas validé ce document.**
+
+---
+
+# 🔄 MISES À JOUR POST-REFACTOR — 2026-05-22 (session "go + enchaîne")
+
+> Le contenu ci-dessus reflète l'état du projet **AVANT** la session de refactor du 2026-05-22. Cette section synthétise tous les changements depuis. C'est la **vérité actuelle** de l'architecture.
+
+## A. Nouveau modèle de données — Pool contacts mutualisé
+
+| Avant | Après |
+|---|---|
+| 2 DBs séparées par site : `crm/lcr.duckdb` + `crm/mkd.duckdb` | 1 pool unique `data/contacts.duckdb` |
+| Table `acquisition_contacts` par site | 2 tables : `contacts` (master PK email) + `contact_site_history` (relation N-N) |
+| Pas de dédup cross-site | Dédup par email global |
+| Pas de cooldown | 30j cross-site, 7j même site (re-push) |
+| Pas de blacklist globale | `contacts.global_blacklisted` BOOLEAN — cascade sur tous les sites |
+
+**Voir** : `specs/contacts-model.md` (212 lignes).
+
+## B. Modules backend nouveaux
+
+| Module | Rôle | Helpers publics |
+|---|---|---|
+| `scripts/contacts_pool_backend.py` | Backend du pool mutualisé | find_by_email_global, create_in_pool, set_global_blacklist, get_history_for_site, upsert_site_history, change_state_for_site, mark_pushed_to_emelia, record_emelia_event, list_contacts_for_site, stats_for_site, pick_for_campaign, count_available_for_sector, check_pool_depletion |
+| `scripts/site_credentials_backend.py` | Chiffrement AES Fernet des clés API par site | encrypt_value, decrypt_value, set_credential, get_credential, list_credentials, delete_credential, migrate_plaintext_to_encrypted |
+| `scripts/migrate_contacts_to_pool.py` | Script one-shot de migration (déjà run) | — |
+
+## C. Dual-write activé sur 5 maillons
+
+Tous les flux d'écriture alimentent désormais en parallèle **le pool ET l'ancien système** (transition douce, sans rupture) :
+
+| Maillon | Fichier | Action sur pool |
+|---|---|---|
+| Webhook Emelia | `api.py:api_emelia_webhook` | INSERT contacts + change_state_for_site + set_global_blacklist (si BOUNCE/UNSUB) |
+| Push prospect Emelia | `workflow_emelia_push.py:push_prospect` | create_in_pool + upsert_site_history + mark_pushed_to_emelia |
+| Tally sync | `tally_to_prm.py` | create_in_pool + upsert_site_history (state=lead direct) |
+| Cron sync Emelia | `emelia_to_crm.py` | _dual_write_pool helper (cron 19h) |
+| **Scrape Serper** | `god_mode_agents.py:scrape_sector` | create_in_pool + upsert_site_history (state=cold_email) |
+
+**Conséquence** : à partir du 2026-05-22, **toute donnée qui entre dans le système atterit dans le pool `data/contacts.duckdb`**, peu importe la source (scrape, Tally, webhook, cron, manuel UI).
+
+## D. Pipeline scrape (mis à jour)
+
+```mermaid
+graph TD
+    UI[/site/[code]/scrapper - Page UI] --> POST[POST /api/god-mode/{site}/scrape]
+    CRON[Cron 30 6 * * 1-5<br>workflow_runner.py] --> POST
+    POST --> SS[god_mode_agents.scrape_sector]
+    SS --> SERPER[Serper Places API]
+    SERPER --> EV[email_validator]
+    EV -->|drop| KILL[Jamais inséré]
+    EV -->|push/queue| DUAL{DUAL-WRITE}
+    DUAL --> PEND[scrappe_pending<br>legacy - Mailnjoy queue]
+    DUAL --> POOL_C[contacts.duckdb master]
+    DUAL --> POOL_H[contact_site_history<br>state=cold_email]
+    PEND --> MN[mailnjoy_check]
+    MN -->|valid| SCRAPPE[scrappe status=mailnjoy_valid]
+    MN -->|invalid| DEL[DELETE pending]
+    SCRAPPE --> READY[Disponible pour pioche /campaigns]
+    POOL_H -.-> READY
+```
+
+## E. Pages UI (état actuel sidebar Commercial)
+
+```
+COMMERCIAL
+├─ Vision           /site/[code]/vision           ✓ (créée)
+├─ Scrapper         /site/[code]/scrapper         ✓ (créée — utilise scrapp.png)
+├─ Acquisition     /site/[code]/acquisition     ✓ (refondue, lit/écrit pool)
+├─ Templates       /site/[code]/templates       ✓ (déplacée depuis /workflow/templates)
+└─ Campagnes       /site/[code]/campaigns       ✓ (créée, wizard 4 steps + algo pioche)
+```
+
+**Pages supprimées** :
+- `/site/[code]/workflow/page.tsx` (overview workflow → fusionné dans /vision)
+- `/site/[code]/workflow/campaigns/` (→ /campaigns)
+- `/site/[code]/workflow/prospects/` (→ fusionné dans /acquisition)
+- `/site/[code]/workflow/performance/` (→ /vision funnel)
+- Ancienne page `/onboarding` 3 steps → refondue 16 steps
+
+**Pages restantes orphelines** :
+- `/site/[code]/workflow/logs/` (gardée mais hors sidebar — accessible direct)
+
+## F. Endpoints API ajoutés (15 nouveaux)
+
+### Pool contacts (CRUD + pioche)
+- GET `/api/sites/{site}/pool/contacts` — liste pool pour ce site
+- GET `/api/sites/{site}/pool/contacts/{id}` — détail + historique cross-site
+- POST `/api/sites/{site}/pool/contacts/create` — création
+- PATCH `/api/sites/{site}/pool/contacts/{id}` — update fields
+- DELETE `/api/sites/{site}/pool/contacts/{id}` — delete
+- POST `/api/sites/{site}/pool/contacts/{id}/change-state` — state manuel
+- POST `/api/sites/{site}/pool/contacts/{id}/blacklist` — blacklist global
+- POST `/api/sites/{site}/pool/contacts/import-csv` — import CSV
+
+### Stats / alertes
+- GET `/api/sites/{site}/pool/stats` — stats par state/source
+- GET `/api/sites/{site}/pool/depletion-alert?threshold=10` — alerte secteurs épuisés
+- GET `/api/sites/{site}/pool/pick?sector=X&limit=N` — aperçu pioche
+
+### Campagnes
+- POST `/api/sites/{site}/pool/campaigns/create` — création complète (pick + Emelia + steps + start + webhook)
+
+### Onboarding
+- POST `/api/sites/{site}/onboarding/send-test-email` — envoi mail test step 16
+- POST `/api/sites/{site}/onboarding/confirm-activation` — activation post-test
+
+### Pré-existant utilisé par /scrapper
+- POST `/api/god-mode/{site}/scrape` — lance scrape_sector en thread
+- GET `/api/god-mode/{site}/serper/credits` — solde Serper
+- GET `/api/god-mode/{site}/state` — état module god_mode
+- POST `/api/god-mode/{site}/toggle` — activation/désactivation
+- GET `/api/god-mode/{site}/logs?limit=20` — historique actions
+
+## G. Tables DB ajoutées (4)
+
+| Table | DB | Usage |
+|---|---|---|
+| `contacts` | data/contacts.duckdb (nouveau) | Master pool, PK email |
+| `contact_site_history` | data/contacts.duckdb | Relation N-N contact × site avec état |
+| `accounts` | data/god_mode.duckdb | Multi-tenant (account propriétaire d'un site) |
+| `site_credentials` | data/god_mode.duckdb | Clés API par site, chiffrées AES Fernet |
+
+**Colonnes ajoutées** à `god_mode_settings` : sectors_enabled (JSON), daily_quota_per_sector, emelia_daily_limit, cooldown_same_site_days, cooldown_global_days, account_id.
+
+## H. Sécurité — chiffrement credentials
+
+- Master key Fernet : `data/.master_key` (chmod 600, autoblog:autoblog)
+- Backup auto via cron 21h UTC dans `backups/.master_key.bak`
+- Copie hors-serveur : `~/.ssh/genesis-master-key` (Mac local) + doc README associée
+- Lecture : `site_credentials_backend.get_credential(site, key_name)` retourne le plaintext déchiffré
+- `workflow_emelia_push._get_key()` lit en priorité site_credentials, fallback env vars
+
+## I. Specs documentaires (3 nouveaux dans `specs/`)
+
+- `specs/contacts-model.md` — schéma 2 tables + règles métier + migration
+- `specs/onboarding-checklist.md` — 16 steps détaillés + tableau résumé
+- `specs/campaigns-spec.md` — wizard 4 steps + algo SQL pioche + endpoints
+
+## J. État opérationnel actuel (2026-05-22 23:55 UTC)
+
+| Métrique | Valeur |
+|---|---|
+| Contacts uniques dans le pool | 36 (35 LCR + 1 MKD historique) |
+| Contact_site_history rows | 36 |
+| Global blacklisted | 0 |
+| Tables anciennes (`crm/lcr.duckdb`, `crm/mkd.duckdb`, `scrappe`) | Conservées en RO pour rollback 30j |
+| Site `lcr` enabled | TRUE (god_mode_state) |
+| Site `mkd` enabled | FALSE |
+| Master key location | OK (3 copies : serveur + backup serveur + Mac local) |
+
+## K. Restes à coder (pour finir le SaaS proprement)
+
+1. Cron 6h30 demain matin = premier test grandeur nature du pipeline complet (passif)
+2. Page UI gestion `accounts` (CRUD multi-tenant)
+3. UI gestion `site_credentials` post-onboarding (rotation des clés)
+4. Page `/admin/logs` au niveau global (déplacer `/workflow/logs`)
+5. Sender warmup status dans `/vision` (placeholder actuel)
+6. Étendre `/api/sites/onboard-full` backend pour gérer le champ `templates_option` (génération IA des templates depuis persona + secteur)
+7. Drop tables legacy quand confirmé OK (après 30j de stabilité)

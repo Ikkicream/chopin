@@ -3,7 +3,7 @@
 god_mode_templates.py — Génération de templates email cold via DeepSeek.
 
 Pour chaque (site, secteur), génère 1 template avec:
-  - subject (variable: {{first_name}}, {{company}})
+  - subject (variable: {{firstName}}, {{field1}})
   - raw text (avec variables Emelia)
   - HTML (avec signature Juliette injectée)
 """
@@ -101,7 +101,7 @@ Générer 1 template d'email cold OUTREACH ultra-court (8-12 lignes max) en fran
 CONTRAINTES STRICTES:
 - Subject line: 5-8 mots, intriguant, sans clickbait, pas de "RE:" ou "FW:"
 - Corps: tutoiement ou vouvoiement adapté, ton humain, NE PAS commencer par "J'espère que..."
-- Variables Emelia OBLIGATOIRES dans le corps: {{{{first_name}}}}, {{{{company}}}}, {{{{city}}}}
+- Variables Emelia OBLIGATOIRES dans le corps: {{{{firstName}}}}, {{{{field1}}}}, {{{{field2}}}}
 - 1 question ouverte à la fin pour engager la réponse
 - AUCUNE signature dans ton output (sera ajoutée séparément)
 - AUCUN lien d'unsubscribe dans ton output
