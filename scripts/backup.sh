@@ -3,7 +3,7 @@
 # Usage: cron chaque soir 23h → git push + ZIP daté
 # Emplacement: /home/autoblog/genesis/scripts/backup.sh
 
-set -e
+# set -e retiré 2026-05-23 — git push fail ne doit pas arrêter le backup
 
 GENESIS_DIR="/home/autoblog/genesis"
 BACKUP_DIR="/home/autoblog/genesis/backups"
@@ -55,18 +55,17 @@ ls -t genesis-*.log 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null
 # === BACKUP_V2_2026-05-22 : check fichiers critiques pool + master key ===
 echo "[CHECK] Fichiers critiques inclus dans le ZIP :"
 for f in data/contacts.duckdb data/god_mode.duckdb data/auth.duckdb data/.master_key; do
-  if [ -f "/" ]; then
-    SIZE=
-    echo "  ✓  ( bytes)"
+  if [ -f "\/" ]; then
+    SIZE=\n    echo "  ✓ \ (\ bytes)"
   else
-    echo "  ⚠  MANQUANT"
+    echo "  ⚠ \ MANQUANT"
   fi
 done
 
 # Backup spécifique master_key (copie chiffrée à part pour disaster recovery)
-if [ -f "/data/.master_key" ]; then
-  cp -p "/data/.master_key" "/.master_key.bak"
-  echo "[OK] Master key backed up to /.master_key.bak"
+if [ -f "\/data/.master_key" ]; then
+  cp -p "\/data/.master_key" "\/.master_key.bak"
+  echo "[OK] Master key backed up to \/.master_key.bak"
 fi
 
 echo "[OK] Backup terminé — $(date)"
