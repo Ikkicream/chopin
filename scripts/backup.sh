@@ -43,8 +43,14 @@ zip -r "$BACKUP_DIR/$ZIP_NAME" . \
 
 echo "[OK] Backup: $BACKUP_DIR/$ZIP_NAME"
 
-# === 3. Génération du changelog .log humain ===
+# === 3. Génération du changelog .log humain (avec DeepSeek si dispo) ===
 LOG_NAME="genesis-${DATE}-v${VERSION}.log"
+# Source .env pour DEEPSEEK_API_KEY
+if [ -f "$GENESIS_DIR/.env" ]; then
+  set -a
+  source "$GENESIS_DIR/.env"
+  set +a
+fi
 python3 "$GENESIS_DIR/scripts/generate_changelog.py" "$BACKUP_DIR/$LOG_NAME" 2>&1 || echo "[WARN] changelog generation failed"
 
 # === 4. Rotation — garder les 3 derniers ZIPs et 3 derniers LOGs ===
