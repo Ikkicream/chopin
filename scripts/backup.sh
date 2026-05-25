@@ -43,6 +43,21 @@ zip -r "$BACKUP_DIR/$ZIP_NAME" . \
 
 echo "[OK] Backup: $BACKUP_DIR/$ZIP_NAME"
 
+# === 2b. Frontend genesis-ui (dossier FRÈRE de genesis) — source only ===
+# Sans ça, toute l'UI (Next.js/shadcn) n'était jamais sauvegardée. node_modules/.next exclus (régénérables).
+UI_DIR="/home/autoblog/genesis-ui"
+if [ -d "$UI_DIR" ]; then
+  ( cd "$(dirname "$UI_DIR")" && zip -r "$BACKUP_DIR/$ZIP_NAME" "$(basename "$UI_DIR")" \
+      -x "*/node_modules/*" \
+      -x "*/.next/*" \
+      -x "*/.turbo/*" \
+      -x "*/.pnpm-store/*" \
+      > /dev/null 2>&1 )
+  echo "[OK] Frontend genesis-ui ajouté au ZIP (sans node_modules/.next)"
+else
+  echo "[WARN] genesis-ui introuvable — frontend non sauvegardé"
+fi
+
 # === 3. Génération du changelog .log humain (avec DeepSeek si dispo) ===
 LOG_NAME="genesis-${DATE}-v${VERSION}.log"
 # Source .env pour DEEPSEEK_API_KEY

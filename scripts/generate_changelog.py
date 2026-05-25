@@ -31,14 +31,17 @@ def git_run(args: list[str]) -> str:
         return f"[git error: {e}]"
 
 
-def find_previous_log_commit() -> str | None:
-    """Trouve le sha du dernier .log existant (pour delta depuis lui)."""
+def find_previous_log_commit(current_sha: str = "") -> str | None:
+    """Trouve le sha du dernier .log existant (pour delta depuis lui).
+
+    Tolère le format markdown réel `**head_sha** : <sha>`. Ignore un .log dont
+    le sha == HEAD courant (cas d'une régénération manuelle où le .log existe déjà)."""
     logs = sorted(BACKUP_DIR.glob("genesis-*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
     for log in logs[:5]:
         try:
             content = log.read_text(errors="ignore")
-            m = re.search(r"head_sha:\s*([a-f0-9]{7,40})", content)
-            if m:
+            m = re.search(r"head_sha\W*([0-9a-f]{7,40})", content)
+            if m and m.group(1) != current_sha:
                 return m.group(1)
         except Exception:
             continue
@@ -63,9 +66,13 @@ def categorize(file_path: str) -> str:
 def extract_functions_touched(diff_text: str) -> list[str]:
     """Récupère les fonctions/classes Python ou TS touchées depuis un git diff."""
     funcs = set()
-    for line in diff_text.split("\n"):
+    for raw in diff_text.split("\n"):
+        # On ne garde que les lignes ajoutées/contextuelles, en retirant le marqueur diff (+/-)
+        if raw.startswith(("+++", "---")):
+            continue
+        line = raw[1:] if raw[:1] in ("+", "-") else raw
         # Python : def foo(...) ou class Bar(...)
-        m = re.match(r"^(?:@@.*?@@ )?\s*(def|class|async def)\s+([A-Za-z_][\w]*)", line)
+        m = re.match(r"^\s*(async def|def|class)\s+([A-Za-z_][\w]*)", line)
         if m:
             funcs.add(f"{m.group(1)} {m.group(2)}()")
         # TS/JS : function foo, const foo = (, export default function foo
@@ -78,25 +85,40 @@ def extract_functions_touched(diff_text: str) -> list[str]:
     return sorted(funcs)[:30]  # cap à 30
 
 
-def humanize_with_deepseek(commits_msgs: list[str], categories: dict) -> str:
-    """Si DEEPSEEK_API_KEY dispo, demande un résumé humain. Sinon fallback template."""
+def humanize_with_deepseek(commits_msgs: list[str], categories: dict,
+                           files_changed: list[str] | None = None,
+                           functions: list[str] | None = None) -> str:
+    """Si DEEPSEEK_API_KEY dispo, demande un résumé humain. Sinon fallback template.
+
+    On fournit à DeepSeek les FICHIERS et FONCTIONS réellement touchés : les messages
+    de commit sont souvent génériques ('auto: backup'), c'est le diff qui porte le sens."""
     deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
     if not deepseek_key:
         return _fallback_summary(commits_msgs, categories)
     try:
         import requests
-        commits_txt = "\n".join(f"- {m}" for m in commits_msgs[:30])
+        commits_txt = "\n".join(f"- {m}" for m in commits_msgs[:30]) or "- (messages génériques)"
         cats_txt = "\n".join(f"- {cat}: {len(files)} fichier(s)" for cat, files in categories.items())
-        prompt = f"""Résume en 2-3 phrases en français naturel ce qui a changé dans cette version Genesis (SaaS prospection cold email B2B).
-Mets l'accent sur les nouvelles features et fixes importants. Pas de jargon technique inutile.
+        files_txt = "\n".join(f"- {f}" for f in (files_changed or [])[:40]) or "- (aucun)"
+        funcs_txt = "\n".join(f"- {fn}" for fn in (functions or [])[:40]) or "- (aucune)"
+        prompt = f"""Tu rédiges la note de version d'un SaaS de prospection cold email B2B (Genesis).
+À partir des FICHIERS et FONCTIONS modifiés ci-dessous, déduis et résume en 2-4 phrases de français
+naturel les nouvelles features et corrections de cette version. Ignore les messages de commit
+génériques type 'auto: backup'. Pas de jargon inutile, sois concret.
 
 Commits :
 {commits_txt}
 
-Catégories de fichiers modifiés :
+Fichiers modifiés :
+{files_txt}
+
+Fonctions / classes touchées :
+{funcs_txt}
+
+Catégories :
 {cats_txt}
 
-Résumé en 2-3 phrases :"""
+Note de version (2-4 phrases) :"""
         r = requests.post(
             "https://api.deepseek.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {deepseek_key}", "Content-Type": "application/json"},
@@ -135,12 +157,17 @@ def main():
     version = f"v{commit_count}.{head_sha}" if commit_count.isdigit() else head_sha
 
     # Delta depuis le précédent .log
-    prev_sha = find_previous_log_commit()
+    prev_sha = find_previous_log_commit(head_sha)
+    n_commits = int(commit_count) if commit_count.isdigit() else 0
     if prev_sha:
         commits_range = f"{prev_sha}..HEAD"
+    elif n_commits > 1:
+        # Pas de précédent log : delta depuis l'avant-dernier commit (jamais 'HEAD' nu,
+        # qui comparerait au working tree au lieu de l'historique).
+        depth = min(10, n_commits - 1)
+        commits_range = f"HEAD~{depth}..HEAD"
     else:
-        # Pas de précédent log : prendre les 10 derniers commits
-        commits_range = "HEAD~10..HEAD" if commit_count.isdigit() and int(commit_count) > 10 else "HEAD"
+        commits_range = "HEAD"  # tout premier commit du repo
 
     # Récupère les commits
     commits_raw = git_run(["git", "log", commits_range, "--pretty=format:%h|%cI|%an|%s"]).split("\n")
@@ -171,8 +198,8 @@ def main():
     full_diff = git_run(["git", "diff", commits_range])
     functions = extract_functions_touched(full_diff)
 
-    # Résumé humain
-    summary = humanize_with_deepseek(commits_msgs, categories)
+    # Résumé humain (nourri par les fichiers + fonctions réels, pas juste les messages)
+    summary = humanize_with_deepseek(commits_msgs, categories, files_changed, functions)
 
     # Écriture du log
     BACKUP_DIR.mkdir(exist_ok=True)
