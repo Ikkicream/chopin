@@ -59,19 +59,21 @@ ls -t genesis-*.zip 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null
 ls -t genesis-*.log 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null
 
 # === BACKUP_V2_2026-05-22 : check fichiers critiques pool + master key ===
+# NB : on est dans $BACKUP_DIR ici (cd plus haut) → on utilise des chemins absolus.
 echo "[CHECK] Fichiers critiques inclus dans le ZIP :"
 for f in data/contacts.duckdb data/god_mode.duckdb data/auth.duckdb data/.master_key; do
-  if [ -f "\/" ]; then
-    SIZE=\n    echo "  ✓ \ (\ bytes)"
+  if [ -f "$GENESIS_DIR/$f" ]; then
+    SIZE=$(stat -c%s "$GENESIS_DIR/$f" 2>/dev/null || echo "?")
+    echo "  ✓ $f ($SIZE bytes)"
   else
-    echo "  ⚠ \ MANQUANT"
+    echo "  ⚠ $f MANQUANT"
   fi
 done
 
 # Backup spécifique master_key (copie chiffrée à part pour disaster recovery)
-if [ -f "\/data/.master_key" ]; then
-  cp -p "\/data/.master_key" "\/.master_key.bak"
-  echo "[OK] Master key backed up to \/.master_key.bak"
+if [ -f "$GENESIS_DIR/data/.master_key" ]; then
+  cp -p "$GENESIS_DIR/data/.master_key" "$BACKUP_DIR/.master_key.bak"
+  echo "[OK] Master key backed up to $BACKUP_DIR/.master_key.bak"
 fi
 
 echo "[OK] Backup terminé — $(date)"

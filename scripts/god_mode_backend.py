@@ -46,6 +46,114 @@ def _auth():
     return duckdb.connect(str(AUTH_DB), read_only=True)
 
 
+# ── Secteurs (source de vérité dynamique, plafond 30) ──────────────────────────
+# SECTORS_GOD_MODE reste la liste SCRAPABLE (Serper). La table `sectors` est la
+# source de vérité globale : elle contient les 16 scrapables + autre + tout secteur
+# créé à l'import CSV (non scrapable). Plafond strict : 30 secteurs au total.
+MAX_SECTORS = 30
+
+# Seed aligné avec genesis-ui/src/lib/sectors.ts
+SECTOR_SEED = [
+    {"code": "immobilier",       "label": "Immobilier",       "emoji": "🏠", "kind": "b2c"},
+    {"code": "restaurant",       "label": "Restaurant",       "emoji": "🍕", "kind": "b2c"},
+    {"code": "garagiste",        "label": "Garagiste",        "emoji": "🚗", "kind": "b2c"},
+    {"code": "coiffeur",         "label": "Coiffeur",         "emoji": "💇", "kind": "b2c"},
+    {"code": "retail",           "label": "Retail",           "emoji": "🛍️", "kind": "b2c"},
+    {"code": "artisan",          "label": "Artisan",          "emoji": "🔧", "kind": "b2c"},
+    {"code": "fleuriste",        "label": "Fleuriste",        "emoji": "💐", "kind": "b2c"},
+    {"code": "boulanger",        "label": "Boulanger",        "emoji": "🥖", "kind": "b2c"},
+    {"code": "plombier",         "label": "Plombier",         "emoji": "🔧", "kind": "b2c"},
+    {"code": "electricien",      "label": "Électricien",      "emoji": "⚡", "kind": "b2c"},
+    {"code": "menuisier",        "label": "Menuisier",        "emoji": "🪵", "kind": "b2c"},
+    {"code": "avocat",           "label": "Avocat",           "emoji": "⚖️", "kind": "b2b"},
+    {"code": "comptable",        "label": "Comptable",        "emoji": "📊", "kind": "b2b"},
+    {"code": "agence-marketing", "label": "Agence Marketing", "emoji": "📣", "kind": "b2b"},
+    {"code": "agence-web",       "label": "Agence Web",       "emoji": "💻", "kind": "b2b"},
+    {"code": "consultant",       "label": "Consultant",       "emoji": "🧑‍💼", "kind": "b2b"},
+    {"code": "autre",            "label": "Autre",            "emoji": "📦", "kind": "mixed"},
+]
+_SECTORS_INIT = False
+
+
+def _ensure_sectors_table() -> None:
+    """Crée + seed la table `sectors` (idempotent, 1×/process)."""
+    global _SECTORS_INIT
+    if _SECTORS_INIT:
+        return
+    c = _conn()
+    try:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS sectors (
+                code        VARCHAR PRIMARY KEY,
+                label       VARCHAR,
+                emoji       VARCHAR,
+                kind        VARCHAR DEFAULT 'mixed',   -- b2b | b2c | mixed
+                scrapable   BOOLEAN DEFAULT FALSE,
+                source      VARCHAR DEFAULT 'seed',    -- seed | import
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        for s in SECTOR_SEED:
+            scrapable = s["code"] in SECTORS_GOD_MODE
+            c.execute(
+                "INSERT INTO sectors (code, label, emoji, kind, scrapable, source) "
+                "VALUES (?, ?, ?, ?, ?, 'seed') ON CONFLICT (code) DO NOTHING",
+                [s["code"], s["label"], s["emoji"], s["kind"], scrapable],
+            )
+        _SECTORS_INIT = True
+    finally:
+        c.close()
+
+
+def list_sectors() -> list[dict]:
+    """Tous les secteurs (seed + importés), triés scrapables d'abord."""
+    _ensure_sectors_table()
+    c = _conn()
+    try:
+        rows = c.execute(
+            "SELECT code, label, emoji, kind, scrapable, source FROM sectors "
+            "ORDER BY scrapable DESC, code"
+        ).fetchall()
+    finally:
+        c.close()
+    out = [
+        {"code": r[0], "label": r[1], "emoji": r[2], "kind": r[3],
+         "scrapable": bool(r[4]), "source": r[5]}
+        for r in rows
+    ]
+    return out or [
+        {**s, "scrapable": s["code"] in SECTORS_GOD_MODE, "source": "seed"}
+        for s in SECTOR_SEED
+    ]
+
+
+def add_sector(code: str, label: str = "", emoji: str = "🏷️", kind: str = "mixed") -> dict:
+    """Crée un secteur importé (scrapable=FALSE). Refuse si plafond 30 atteint.
+
+    Retourne {created|exists|rejected, code, total}. En cas de rejet, l'appelant
+    doit basculer la catégorie concernée vers 'autre'."""
+    _ensure_sectors_table()
+    code = (code or "").strip().lower().replace(" ", "-")
+    if not code:
+        return {"rejected": True, "reason": "empty_code"}
+    c = _conn()
+    try:
+        existing = c.execute("SELECT code FROM sectors WHERE code = ?", [code]).fetchone()
+        total = c.execute("SELECT COUNT(*) FROM sectors").fetchone()[0]
+        if existing:
+            return {"exists": True, "code": code, "total": total}
+        if total >= MAX_SECTORS:
+            return {"rejected": True, "reason": "cap_reached", "code": code, "total": total}
+        c.execute(
+            "INSERT INTO sectors (code, label, emoji, kind, scrapable, source) "
+            "VALUES (?, ?, ?, ?, FALSE, 'import')",
+            [code, label or code.replace("-", " ").title(), emoji or "🏷️", kind or "mixed"],
+        )
+        return {"created": True, "code": code, "total": total + 1}
+    finally:
+        c.close()
+
+
 # ── Auth admin ────────────────────────────────────────────────────────────────
 def verify_admin(token: str | None):
     """Retourne dict user si role=admin, sinon None."""

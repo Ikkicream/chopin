@@ -26,15 +26,17 @@ Onboarding 16 steps prêt pour ajouter d'autres sites (`/onboarding`).
 ## Architecture data — POOL MUTUALISÉ
 
 **Source de vérité contacts** : `data/contacts.duckdb` (2 tables) :
-- `contacts` (master, PK email unique, 72 contacts actuellement)
+- `contacts` (master, PK email unique). Champs identité/contact + `sectors` (JSON), `postal_code`/`dept_code`/`region_code`, `email_score`, `job_title`/`civility`/`job_function` (ajoutés 2026-05-25 pour l'import CSV)
 - `contact_site_history` (relation N-N par site, état + history)
+
+**Entrées dans le pool** : scrape Serper · formulaires Tally · webhook Emelia · **import CSV** (`/site/[code]/acquisition`, source `manual`). Import = 2 phases `analyze` (détection séparateur/charset + mapping colonnes + matching secteur DeepSeek + dédup) → `commit` (SSE, upsert batché). Détails : `scripts/csv_import_backend.py`, ARCHITECTURE.md.
 
 **Cooldowns** : 30j cross-site / 7j re-push même site. Blacklist globale (UNSUBSCRIBE/BOUNCE depuis n'importe quel site = bloqué partout).
 
 **Dual-write actif** sur 5 maillons (toute écriture alimente pool + legacy en parallèle) : webhook Emelia + push Emelia + Tally sync + emelia_to_crm cron + scrape Serper.
 
 DBs annexes :
-- `data/god_mode.duckdb` : scrappe_pending, email_senders, emelia_events, god_mode_settings/state/logs/templates, accounts, site_credentials (AES Fernet)
+- `data/god_mode.duckdb` : scrappe_pending, email_senders, emelia_events, god_mode_settings/state/logs/templates, accounts, site_credentials (AES Fernet), `sectors` (source de vérité dynamique des secteurs, plafond 30)
 - `data/auth.duckdb` : users, sessions, login_logs
 - `data/contacts.duckdb` : pool mutualisé
 - `data/crm/{lcr,mkd}.duckdb` : LEGACY, RO 30j puis drop
@@ -57,7 +59,7 @@ Disaster recovery : copie locale Mac à `~/.ssh/genesis-master-key` + README. Ba
 | Contenu | Articles | /site/[code]/articles |
 | **Commercial** | Vision (KPI+funnel+warmup) | /site/[code]/vision |
 | | Scrapper (Serper multi-sect+région→ville) | /site/[code]/scrapper |
-| | Acquisition (pool, Source+Secteur) | /site/[code]/acquisition |
+| | Acquisition (pool, Source+Secteur, **import CSV** drag&drop) | /site/[code]/acquisition |
 | | Templates (vars Emelia natives) | /site/[code]/templates |
 | | Campagnes (wizard 4 steps) | /site/[code]/campaigns |
 | Admin | Setup & API | /site/[code]/setup |
@@ -68,10 +70,11 @@ Disaster recovery : copie locale Mac à `~/.ssh/genesis-master-key` + README. Ba
 
 ## Listes centralisées (1 source de vérité)
 
-**Secteurs (16)** :
-- Python : `scripts/god_mode_backend.py:SECTORS_GOD_MODE`
-- UI : `genesis-ui/src/lib/sectors.ts`
-- → pour ajouter un secteur : 2 lignes à modifier
+**Secteurs (dynamiques, DB-backed, plafond 30)** :
+- Source de vérité runtime : table `sectors` dans `data/god_mode.duckdb` (seed 16 + `autre`, + secteurs créés à l'import CSV). API : `GET /api/sectors`. Helpers : `god_mode_backend.list_sectors()`/`add_sector()`.
+- `scripts/god_mode_backend.py:SECTORS_GOD_MODE` = sous-liste **scrapable** (Serper) uniquement (les secteurs importés ne sont pas scrapés).
+- UI : seed/fallback `genesis-ui/src/lib/sectors.ts` + hook dynamique `lib/use-sectors.ts` (merge avec `/api/sectors`).
+- → seed à ajouter : modifier `SECTOR_SEED` (backend) + `SECTORS` (UI). Les secteurs d'import se créent seuls (cap 30).
 
 **Honeypot RGPD/legal** : `scripts/email_validator.py:HONEYPOT_TERMS` (drop avant scrappe_pending). +21 substrings RGPD/CNIL/legal/compliance.
 

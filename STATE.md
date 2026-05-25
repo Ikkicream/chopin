@@ -381,3 +381,30 @@ La page Acquisition est désormais 100 pourcent sur le pool mutualisé (lecture 
 - Endpoint /api/sites/{code}/credentials/{key_name} pour lire/setter les clés via UI (gestion des clés post-onboarding)
 - Multi-tenant : section UI accounts (CRUD comptes) — actuellement la table existe mais pas de CRUD
 - Test : un nouveau site complet créé via UI onboarding (vérifier les 16 steps end-to-end)
+
+---
+
+## Session IMPORT CSV INTELLIGENT — 2026-05-25
+
+Nouvelle feature : import CSV drag&drop vers le pool mutualisé (`/site/[code]/acquisition` → bouton « Importer CSV »).
+
+**Flux en 2 phases** (le fichier est uploadé 1× sur le VPS sous `data/imports/{site}/`, chmod 600, purge >7j) :
+1. `POST /api/sites/{site}/pool/import/analyze` (multipart) → détecte séparateur (`;`/`,`/tab/`|`) + charset (utf-8/cp1252/latin-1, NFC) + mappe les colonnes (alias FR/EN) + **1 seul appel DeepSeek** pour mapper les catégories du fichier vers les secteurs + pré-analyse dédup (1 requête `SELECT email`). Renvoie un `import_id` + récap.
+2. `POST /api/sites/{site}/pool/import/{import_id}/commit` → **StreamingResponse SSE** (`data: {step,pct,…}`), upsert batché (1 connexion réutilisée), `source="manual"`, state `cold_email`.
+
+**Secteurs dynamiques (DB-backed, plafond 30)** : nouvelle table `sectors` dans `god_mode.duckdb` (seed = 16 + `autre`). DeepSeek crée les secteurs manquants (B2B/B2C) sans jamais dépasser **30 au total** ; au-delà → bucket `autre`. `GET /api/sectors` + hook front `useSectors()` (lib/use-sectors.ts). `SECTORS_GOD_MODE` reste la liste *scrapable* (Serper), les secteurs importés ne sont pas scrapés.
+
+**Dédup** : clé = email. Doublon existant → enrichissement NULL-only (jamais d'écrasement). Doublon interne au fichier → 1ʳᵉ occurrence gardée. Lignes KO (email invalide) listées avec raison.
+
+**Fichiers** :
+- back : `scripts/csv_import_backend.py` (nouveau), `scripts/api.py` (3 endpoints), `scripts/contacts_pool_backend.py` (migration colonnes `job_title`/`civility`/`job_function` + `create_in_pool`/`upsert_site_history` acceptent `conn`), `scripts/god_mode_backend.py` (table `sectors` + `list_sectors()`/`add_sector()`).
+- front : `components/import-wizard.tsx` (nouveau, drag&drop + récap + anneau % + confetti), `lib/use-sectors.ts` (nouveau), `lib/sectors.ts` (+`autre`), page acquisition (branchement, ancien import textarea supprimé). Dépendance `canvas-confetti`.
+
+**Testé** (2026-05-25) sur `responsable_marketing.csv` (5037 lignes directeurs marketing, séparateur `;`, utf-8) :
+- échantillon 10 lignes → 10 ajoutés en `manual`, dept dérivé du CP, website préfixé `https://`, accents OK, secteurs créés (banque/assurance/industrie/agroalimentaire).
+- HTTP analyze + commit SSE OK ; ré-analyse du même échantillon → 10 détectés en *enrichis* (dédup), commit → updated=10/added=0.
+- mapping secteur complet du fichier : 13 nouveaux secteurs, total **30/30** pile au plafond (les plus petits volumes → `autre`).
+
+⚠️ **Op** : PM2 tourne sous l'utilisateur `autoblog` → restart via `sudo -u autoblog bash -lc "pm2 restart genesis-dashboard|genesis-ui"`. Les fichiers écrits par l'API doivent rester accessibles à `autoblog` (chown `data/imports`).
+
+**Reste** : importer les ~5027 lignes restantes de `responsable_marketing.csv` (via l'UI drag&drop ou commit CLI) — en attente de validation user.

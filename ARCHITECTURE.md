@@ -843,4 +843,26 @@ RGPD/legal/compliance/spam-traps. Voir `scripts/email_validator.py:HONEYPOT_TERM
 
 ---
 
+## Import CSV intelligent (2026-05-25)
+
+Entrée alternative dans le pool (en plus du scrape Serper et des formulaires Tally) : import manuel de fichiers CSV depuis `/site/[code]/acquisition`.
+
+```
+Fichier .csv (drag&drop)
+  → POST /api/sites/{site}/pool/import/analyze (multipart)
+       détection séparateur + charset · mapping colonnes (alias FR/EN)
+       · DeepSeek 1 call : catégories fichier → secteurs (cap 30, bucket "autre")
+       · pré-analyse dédup (1 requête SELECT email) → récap OK/KO, new/update
+  → [popup récap, validation user]
+  → POST /api/sites/{site}/pool/import/{import_id}/commit (SSE)
+       upsert batché (1 conn) → contacts (source="manual") + contact_site_history (cold_email)
+```
+
+- Fichiers uploadés : `data/imports/{site}/` (chmod 600, purge >7j, gitignore via `data/`).
+- **Table `sectors`** (`god_mode.duckdb`) = source de vérité dynamique des secteurs : seed 16 + `autre`, + secteurs créés à l'import, **plafond 30**. `GET /api/sectors`. `SECTORS_GOD_MODE` reste la sous-liste *scrapable* (Serper).
+- Pool : nouvelles colonnes `job_title`, `civility`, `job_function` (migration idempotente dans `contacts_pool_backend._ensure_schema`).
+- Modules : `scripts/csv_import_backend.py`, front `components/import-wizard.tsx` + `lib/use-sectors.ts`.
+
+---
+
 **Le projet Genesis SaaS V1 est livré.** Tout pipeline de prospection cold email fonctionne en bout-en-bout : scrape Serper → validator (avec HONEYPOT étendu) → Mailnjoy → pool mutualisé → pioche campagne → push Emelia → webhook événements → CRM. UI complète avec pages refondues. Sécurité credentials AES. Disaster recovery garanti.

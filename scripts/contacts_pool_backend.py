@@ -33,7 +33,39 @@ STATE_RANK = {
 }
 
 
+# Colonnes ajoutées après la création initiale de la table (migration idempotente).
+# DuckDB ne garantit pas ADD COLUMN IF NOT EXISTS sur toutes les versions → on vérifie
+# PRAGMA table_info avant chaque ALTER.
+_EXTRA_COLS: dict[str, str] = {
+    "job_title":    "VARCHAR",   # ← jobTitle (intitulé de poste libre)
+    "civility":     "VARCHAR",   # ← civility (Monsieur / Madame)
+    "job_function": "VARCHAR",   # ← function (rôle normalisé majuscules)
+}
+_MIGRATED = False
+
+
+def _ensure_schema() -> None:
+    """Ajoute les colonnes manquantes à `contacts`. Idempotent, 1×/process."""
+    global _MIGRATED
+    if _MIGRATED:
+        return
+    try:
+        c = duckdb.connect(str(POOL_DB))
+        try:
+            existing = {r[1] for r in c.execute("PRAGMA table_info(contacts)").fetchall()}
+            for col, typ in _EXTRA_COLS.items():
+                if col not in existing:
+                    c.execute(f"ALTER TABLE contacts ADD COLUMN {col} {typ}")
+        finally:
+            c.close()
+        _MIGRATED = True
+    except Exception:
+        # Table pas encore créée (1er boot) ou course : on réessaiera au prochain appel.
+        pass
+
+
 def _conn(read_only: bool = False) -> duckdb.DuckDBPyConnection:
+    _ensure_schema()
     return duckdb.connect(str(POOL_DB), read_only=read_only)
 
 
@@ -76,36 +108,46 @@ def find_by_email_global(email: str) -> dict | None:
     return d
 
 
-def create_in_pool(data: dict, primary_source: str | None = None) -> str | None:
-    """Insère ou enrichit un contact dans le pool. Retourne contact_id (ou None si email invalide)."""
+def create_in_pool(data: dict, primary_source: str | None = None,
+                   conn: duckdb.DuckDBPyConnection | None = None) -> str | None:
+    """Insère ou enrichit un contact dans le pool. Retourne contact_id (ou None si email invalide).
+
+    Dédup par email : si le contact existe, on n'enrichit QUE les champs NULL/vides
+    (jamais d'écrasement). `conn` permet de réutiliser une connexion (import en masse).
+    """
     email = _normalize_email(data.get("email", ""))
     if not email or "@" not in email:
         return None
 
-    c = _conn()
+    c = conn or _conn()
+    own_conn = conn is None
     try:
         existing = c.execute("SELECT id FROM contacts WHERE email = ?", [email]).fetchone()
         if existing:
             cid = existing[0]
-            # Update NULL-only
-            updates = []
-            params = []
-            for col in ("prenom", "nom", "societe", "tel", "website", "city",
-                        "dept_code", "region_code", "postal_code", "email_score",
-                        "primary_source"):
+            # Update NULL-only : on lit toute la row une fois plutôt qu'un SELECT par colonne.
+            scalar_cols = ("prenom", "nom", "societe", "tel", "website", "city",
+                           "dept_code", "region_code", "postal_code", "email_score",
+                           "primary_source", "job_title", "civility", "job_function")
+            json_cols = ("sectors", "email_validation_reasons", "mailnjoy_check")
+            all_cols = scalar_cols + json_cols
+            cur_row = c.execute(
+                f"SELECT {', '.join(all_cols)} FROM contacts WHERE id = ?", [cid]
+            ).fetchone()
+            cur = dict(zip(all_cols, cur_row)) if cur_row else {}
+            updates, params = [], []
+            for col in scalar_cols:
                 v = data.get(col)
                 if v is None or v == "":
                     continue
-                row = c.execute(f"SELECT {col} FROM contacts WHERE id = ?", [cid]).fetchone()
-                if row and (row[0] is None or row[0] == ""):
+                if cur.get(col) is None or cur.get(col) == "":
                     updates.append(f"{col} = ?")
                     params.append(v)
-            for col in ("sectors", "email_validation_reasons", "mailnjoy_check"):
+            for col in json_cols:
                 v = data.get(col)
                 if v is None:
                     continue
-                row = c.execute(f"SELECT {col} FROM contacts WHERE id = ?", [cid]).fetchone()
-                if row and row[0] is None:
+                if cur.get(col) is None:
                     updates.append(f"{col} = ?")
                     params.append(json.dumps(v) if not isinstance(v, str) else v)
             if updates:
@@ -120,8 +162,9 @@ def create_in_pool(data: dict, primary_source: str | None = None) -> str | None:
             INSERT INTO contacts
             (id, email, prenom, nom, societe, tel, website, city, dept_code, region_code,
              postal_code, sectors, primary_source, email_score, email_validation_reasons,
-             mailnjoy_check, global_blacklisted, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE,
+             mailnjoy_check, job_title, civility, job_function,
+             global_blacklisted, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE,
                     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         """, [
             cid, email, data.get("prenom"), data.get("nom"), data.get("societe"),
@@ -132,10 +175,12 @@ def create_in_pool(data: dict, primary_source: str | None = None) -> str | None:
             data.get("email_score"),
             json.dumps(data.get("email_validation_reasons")) if data.get("email_validation_reasons") else None,
             json.dumps(data.get("mailnjoy_check")) if data.get("mailnjoy_check") else None,
+            data.get("job_title"), data.get("civility"), data.get("job_function"),
         ])
         return cid
     finally:
-        c.close()
+        if own_conn:
+            c.close()
 
 
 def set_global_blacklist(email: str, reason: str = "") -> bool:
@@ -184,9 +229,13 @@ def get_history_for_site(contact_id: str, site_code: str) -> dict | None:
 
 def upsert_site_history(contact_id: str, site_code: str, state: str = "cold_email",
                         source: str = "manual", account_id: str | None = None,
-                        by: str = "system", note: str = "") -> str:
-    """Crée ou met à jour la row contact_site_history (contact_id, site_code)."""
-    c = _conn()
+                        by: str = "system", note: str = "",
+                        conn: duckdb.DuckDBPyConnection | None = None) -> str:
+    """Crée ou met à jour la row contact_site_history (contact_id, site_code).
+
+    `conn` permet de réutiliser une connexion (import en masse)."""
+    c = conn or _conn()
+    own_conn = conn is None
     try:
         existing = c.execute(
             "SELECT id, state, state_history FROM contact_site_history WHERE contact_id = ? AND site_code = ?",
@@ -214,7 +263,8 @@ def upsert_site_history(contact_id: str, site_code: str, state: str = "cold_emai
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)
         """, [hid, contact_id, site_code, account_id, state, source, json.dumps(history)])
     finally:
-        c.close()
+        if own_conn:
+            c.close()
     return hid
 
 

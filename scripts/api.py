@@ -1815,6 +1815,32 @@ async def api_versions(limit: int = 50):
     }
 
 
+@app.get("/api/version")
+def api_version():
+    """Version courante (rapide, sans réseau) — pour l'affichage sidebar.
+
+    `version` = v{nb_commits}.{sha} ; `deployed_at` = date du dernier backup ZIP
+    (= snapshot de mise en prod)."""
+    try:
+        count = subprocess.run(["git", "rev-list", "--count", "HEAD"], cwd=str(BASE_DIR),
+                               capture_output=True, text=True, timeout=5).stdout.strip()
+        sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=str(BASE_DIR),
+                             capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:
+        count, sha = "", ""
+    version = f"v{count}.{sha}" if count and sha else (sha or "dev")
+
+    deployed_at, backup_name = None, None
+    backup_dir = BASE_DIR / "backups"
+    if backup_dir.exists():
+        zips = sorted(backup_dir.glob("genesis-*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if zips:
+            backup_name = zips[0].name
+            deployed_at = datetime.fromtimestamp(zips[0].stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+
+    return {"version": version, "deployed_at": deployed_at, "backup": backup_name}
+
+
 # ── SEO Ahrefs Data ───────────────────────────────────────────────────────────
 
 @app.get("/api/seo-ahrefs/{site}")
@@ -4467,6 +4493,67 @@ async def api_pool_csv_import(site: str, request: Request):
             errors += 1
             print(f"  [csv import] err: {e}")
     return {"ok": True, "added": added, "skipped": skipped, "errors": errors}
+
+
+# ── Import CSV intelligent (analyze → commit SSE) ────────────────────────────--
+@app.post("/api/sites/{site}/pool/import/analyze")
+async def api_pool_import_analyze(site: str, file: UploadFile = File(...)):
+    """Phase 1 : upload + détection séparateur/charset + mapping + matching secteur
+    DeepSeek (1 call, cap 30) + pré-analyse dédup. Renvoie un récap (import_id)."""
+    name = (file.filename or "import.csv")
+    if not name.lower().endswith(".csv"):
+        return {"error": "format invalide — fichier .csv attendu"}
+    raw = await file.read()
+    if len(raw) > 50 * 1024 * 1024:
+        return {"error": "fichier trop volumineux (max 50 Mo)"}
+
+    import re
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", name)[:80]
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    dest_dir = BASE_DIR / "data" / "imports" / site
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"{ts}_{safe}"
+    dest.write_bytes(raw)
+    try:
+        dest.chmod(0o600)
+    except Exception:
+        pass
+
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from csv_import_backend import analyze
+    try:
+        return analyze(str(dest), site, filename=name)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return {"error": f"analyse échouée: {e}"}
+
+
+@app.post("/api/sites/{site}/pool/import/{import_id}/commit")
+async def api_pool_import_commit(site: str, import_id: str):
+    """Phase 2 : import batché. Stream SSE des events de progression {step, pct, …}."""
+    from fastapi.responses import StreamingResponse
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from csv_import_backend import commit_import
+
+    def _gen():
+        try:
+            for ev in commit_import(import_id, site):
+                yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            yield f"data: {json.dumps({'step': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(_gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/sectors")
+def api_list_sectors():
+    """Liste dynamique des secteurs (seed 16 + autre + secteurs importés). Cap 30."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from god_mode_backend import list_sectors, MAX_SECTORS
+    sectors = list_sectors()
+    return {"sectors": sectors, "total": len(sectors), "max": MAX_SECTORS}
 
 
 @app.post("/api/sites/{site}/onboarding/send-test-email")
