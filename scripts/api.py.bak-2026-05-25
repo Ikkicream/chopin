@@ -4287,69 +4287,6 @@ async def api_pool_blacklist(site: str, contact_id: str, request: Request):
     return {"ok": True}
 
 
-# ============================================================================
-# Templates cold email par secteur — propositions IA + édition + verrouillage
-# (2026-05-25) Modèle 1-ligne-par-email. Store : email_templates (god_mode.duckdb).
-# L'IA propose ; le user édite et verrouille chaque email. Pas d'envoi auto.
-# Cf. context/lcr/sector-angles.md + scripts/email_generator.py.
-# ============================================================================
-@app.post("/api/sites/{site}/templates/generate")
-async def api_templates_generate(site: str, request: Request):
-    """Génère (DeepSeek) les 3 propositions d'un secteur, sans écraser un email verrouillé. Body: {sector}."""
-    body = await request.json()
-    sector = (body.get("sector") or "").strip()
-    if not sector:
-        return {"ok": False, "error": "sector required"}
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import email_templates_backend as etb
-    try:
-        return etb.generate(site, sector)
-    except Exception as e:
-        return {"ok": False, "error": f"generation failed: {e}"}
-
-
-@app.get("/api/sites/{site}/templates")
-async def api_templates_list(site: str):
-    """Récap par secteur (nb d'emails + nb verrouillés) + secteurs supportés (pour l'UI)."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import email_templates_backend as etb
-    from email_generator import supported_sectors
-    return {"ok": True, "sectors": etb.list_sectors(site), "available": supported_sectors()}
-
-
-@app.get("/api/sites/{site}/templates/{sector}")
-async def api_templates_get(site: str, sector: str):
-    """Les emails d'un secteur (first / relance1 / relance2)."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import email_templates_backend as etb
-    return {"ok": True, "emails": etb.get_sector(site, sector)}
-
-
-@app.put("/api/sites/{site}/templates/{sector}/{kind}")
-async def api_templates_update(site: str, sector: str, kind: str, request: Request):
-    """Édition manuelle d'un email. Body: {subject, body_html}. Re-valide, rouvre (unlock)."""
-    body = await request.json()
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import email_templates_backend as etb
-    return etb.update(site, sector, kind, body.get("subject", ""), body.get("body_html", ""))
-
-
-@app.post("/api/sites/{site}/templates/{sector}/{kind}/lock")
-async def api_templates_lock(site: str, sector: str, kind: str):
-    """Verrouille (approuve) un email — refuse si non conforme."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import email_templates_backend as etb
-    return etb.set_lock(site, sector, kind, True)
-
-
-@app.post("/api/sites/{site}/templates/{sector}/{kind}/unlock")
-async def api_templates_unlock(site: str, sector: str, kind: str):
-    """Déverrouille un email (pour réédition)."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import email_templates_backend as etb
-    return etb.set_lock(site, sector, kind, False)
-
-
 @app.post("/api/sites/{site}/pool/campaigns/create")
 async def api_pool_campaigns_create(site: str, request: Request):
     """Crée une campagne Emelia depuis le pool : pick N contacts → create Emelia → push.

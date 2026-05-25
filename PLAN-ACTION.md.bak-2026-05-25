@@ -326,29 +326,3 @@ rm -rf /home/autoblog/.paperclip/instances/default/db/
 | `context/shared/emelia-api.md` | 71 endpoints Emelia |
 | `context/shared/emelia-knowledge/` | Base connaissance Emelia (4 fichiers) |
 | `context/shared/prospects.csv` | 79 263 contacts B2B |
-
-
----
-
-## SPRINT FUTUR — Templates cold email à structure HTML verrouillée
-> Ajouté 2026-05-25, après la refonte génération cold email (cf. STATE.md § COLD EMAIL).
-
-**Besoin (user)** : fournir une **base HTML par template** (mise en page fixe : header, image, sections, footer). Dans l'éditeur, on ne doit pouvoir changer QUE les **textes, images et liens** — la **structure reste identique**.
-
-**Mécanisme retenu**
-- Placeholders nommés `{{...}}` dans le HTML fourni par le user.
-- Type de zone détecté par **contexte** : `src="{{x}}"` → IMAGE · `href="{{x}}"` → LIEN · sinon → TEXTE.
-- L'UI génère un **éditeur de zones** (formulaire : un champ par zone) qui **remplace l'éditeur Tiptap libre** ; la structure HTML est figée, jamais éditée à la main.
-- **DeepSeek ne remplit QUE les zones TEXTE** (à partir de `context/lcr/sector-angles.md`) ; images / liens / structure inchangés.
-- Validateur (≤150 mots, 1 CTA, interdits FR — `email_generator.validate_email`) appliqué au texte des zones.
-- Stockage : **template (structure) + valeurs des zones (JSON)** ; HTML final = structure + substitution.
-
-**À clarifier au lancement** : une structure unique pour tous, ou une par secteur / par type d'email (1er vs relance) ?
-
-**Impact technique**
-- `src/components/email-body-editor.tsx` (Tiptap) → nouveau `email-zones-editor.tsx` (formulaire de zones).
-- `scripts/email_generator.py` : génère des **valeurs de zones texte** au lieu d'un body HTML complet.
-- `scripts/email_templates_backend.py` + table `email_templates` : stocker template HTML + zones (JSON) au lieu de `body_html` brut.
-- L'aperçu reste un rendu HTML (structure + zones substituées + variables Emelia d'exemple).
-
-**Prérequis** : le user fournit le(s) HTML de base (collé ou déposé sur le VPS).

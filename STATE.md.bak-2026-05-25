@@ -4,7 +4,7 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-05-25 (refonte génération cold email par secteur — voir dernière section « COLD EMAIL »)
+2026-05-22 23:30 UTC (AES site_credentials + onboarding mail test + backup étendu)
 
 ## Goal en cours
 Tester le pipeline **Workflow LCR** de bout en bout (Serper → DeepSeek qualifier → push Emelia → cold email envoyé).
@@ -407,45 +407,4 @@ Nouvelle feature : import CSV drag&drop vers le pool mutualisé (`/site/[code]/a
 
 ⚠️ **Op** : PM2 tourne sous l'utilisateur `autoblog` → restart via `sudo -u autoblog bash -lc "pm2 restart genesis-dashboard|genesis-ui"`. Les fichiers écrits par l'API doivent rester accessibles à `autoblog` (chown `data/imports`).
 
-**Reste** : ~~importer les ~5027 lignes restantes~~ → **FAIT**. Le pool contient désormais **5112 contacts** (cf. section COLD EMAIL ci-dessous pour la photo réelle par secteur).
-
-
----
-
-## Session COLD EMAIL — refonte génération par secteur — 2026-05-25 (incréments 1-3 LIVRÉS)
-
-### Constat de départ
-- Templates Emelia = **mail-merge pauvre** : `emelia_campaign_manager.get_default_steps()` = 2 templates figés, signe « Camille », icebreaker générique.
-- **Réalité du pool LCR (corrige les sections précédentes)** : l'import est FAIT → **5112 contacts**, dont **~94 % directeurs/responsables marketing grands comptes** (banque, agro, industrie, luxe, assurance, tourisme, médias…), **PAS** les PME locales du `campaign-plan.md`. PME locales (resto/commerce/artisan) = ~53 (1 %). Bucket `autre` = 2065 (40 %).
-
-### Décisions user (2026-05-25)
-- **Move upmarket assumé** : LCR vise les directeurs marketing grands comptes → offre = **SMS + RCS comme canal de campagne premium** (pas le drive-to-store PME). Les 53 PME locales gardent leur angle à part.
-- **Perso = données structurées seules** (poste + secteur + entreprise + ville). PAS de scrape website pour l'instant → perso **persona-niveau** (pas de vrai 1to1 individuel). Le scrape rebranchera le vrai 1to1 plus tard.
-- **Review humaine obligatoire** sur les premiers batchs (warmup J1).
-- **PAS de séquence ni d'envoi automatiques** : l'IA PROPOSE 3 emails par secteur ; le user **édite et programme/verrouille chaque email lui-même**. → outil = **assistant de rédaction**, pas un automate. L'incrément ④ (branchement pipeline) est **ABANDONNÉ**.
-- **Secteurs EXCLUS** : industrie (378) + agroalimentaire (376) = 754 contacts (SMS marketing non pertinent). Bucket `autre` (2065) = phase 2.
-
-### Skills Claude Code installés (sur le Mac `~/IA/Projets/.agents/skills/`, outil de CONCEPTION)
-- `cold-email` (coreyhaines31) + `cold-email-templates-34` (ColdIQ) — markdown pur, notés Low Risk.
-- `cold-email-verifier` (arnanech/op) NON installé : repo 404 + redondant avec Mailnjoy + email_validator.
-- ⚠️ Ces skills aident MOI à concevoir ; le runtime génère via **DeepSeek sur le VPS** (`llm_call.py`). L'expertise est transférée dans les angles + le prompt.
-
-### Livré et testé
-- **`context/lcr/sector-angles.md`** (NOUVEAU) : 10 secteurs × séquence 3 mails validés. Preuves mappées honnêtement (Immo92→immo, +35 % boutique→retail/luxe, +25 %/ROIx50→restau, « 500+/10M SMS »→neutre). Industrie/agro = EXCLUS.
-- **`context/shared/cold-email-rules.md`** : ajusté mode persona-niveau (icebreaker = fait réel OU douleur secteur ; E2 = cas client OU preuve volume). Backup `.bak-2026-05-25`.
-- **`scripts/email_generator.py`** (NOUVEAU) : `generate_sequence(site,sector)` → angle + DeepSeek (`call_llm_json`) → finalise (Juliette, CTA TidyCal, signature + désinscription RGPD) → `validate_email()` (interdits FR, ≤150 mots, 1 seul `<a>` TidyCal, objet) → exclut industrie/agro/autre. + `supported_sectors()` (10 secteurs UI). CLI dry-run OK.
-- **`scripts/email_templates_backend.py`** (NOUVEAU — remplace le doublon `sector_templates_backend`, supprimé) : table **`email_templates`** (`god_mode.duckdb`), **modèle 1-ligne-par-email** `(site, sector, kind)` kind∈{first,relance1,relance2}, chacun **éditable/verrouillable seul** (`locked` = approbation ; **régénérer respecte les verrous** ; éditer rouvre). Helpers : generate / get_sector / list_sectors / update / set_lock.
-- **`scripts/api.py`** : **6 routes** `/api/sites/{site}/templates/*` — generate · list(+available) · get{sector} · PUT {sector}/{kind} · {kind}/lock · {kind}/unlock. Backup `api.py.bak-2026-05-25`.
-- **UI stepper** (genesis-ui) : `src/app/site/[code]/templates/page.tsx` REFONDUE (stepper 3 étapes : Select secteur → email kind → éditeur + **aperçu live** ; **mobile = onglets** Éditer/Aperçu ; badge conformité ; lock). + `src/components/email-body-editor.tsx` (NOUVEAU, **Tiptap**, switch **Visuel/Brut**). Build OK, déployé. Backup page `.bak-2026-05-25`.
-  - ⚠️ **Validation VISUELLE par le user EN ATTENTE** (rendu mobile, génération IA depuis l'UI, Tiptap, aperçu) — pas de navigateur côté agent.
-
-### Reste à faire (cold email)
-- **Valider le visuel de l'UI stepper** (mobile surtout) + tour d'ajustements.
-- **SPRINT FUTUR** (détaillé dans `PLAN-ACTION.md`) : templates à **structure HTML VERROUILLÉE**. Le user fournit le HTML ; seules les zones **texte / image / lien** éditables (placeholders `{{...}}` ; type par contexte : `src=`→image, `href=`→lien, sinon texte). DeepSeek ne remplit QUE les textes. → l'éditeur Tiptap deviendra un **éditeur de zones** (formulaire).
-- Plus tard : scrape website (vrai 1to1), bucket `autre`, image de signature.
-
-### Op / pièges
-- `get_default_steps()` (legacy, 3 call sites) NON modifié — ④ abandonné. `email_templates` n'est PAS branché à l'envoi (assistant de rédaction).
-- API Python sans `--reload` → `pm2 restart genesis-dashboard` pour recharger.
-- **genesis-ui = build prod (port 3100)** → `npm run build` PUIS `pm2 restart genesis-ui` obligatoires pour déployer le front.
-- Écrire dans `god_mode.duckdb` en process externe = OK (le cron le fait), écritures ponctuelles (connect/close).
+**Reste** : importer les ~5027 lignes restantes de `responsable_marketing.csv` (via l'UI drag&drop ou commit CLI) — en attente de validation user.
