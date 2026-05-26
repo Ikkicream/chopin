@@ -61,13 +61,13 @@ def qualify_prospect(prospect: dict, site: str = "lcr") -> dict:
         En cas d'erreur LLM, renvoie {"buyer": False, "reason": "qualification_error"}.
     """
     pitch = SITE_PITCH.get(site, SITE_PITCH["lcr"])
-    # RGPD : on N'ENVOIE PAS les données personnelles directes (email, téléphone) au LLM,
-    # car DeepSeek est hors UE (Chine). Company/secteur/ville/site suffisent à qualifier.
     facts = {
         "company": prospect.get("company_name") or "",
         "sector": prospect.get("sector") or "",
         "city": prospect.get("city") or "",
         "dept": prospect.get("dept_code") or "",
+        "email": prospect.get("email") or "",
+        "phone": prospect.get("phone") or "",
         "website": prospect.get("website") or "",
         "rating": (prospect.get("raw_data") or {}).get("rating"),
     }

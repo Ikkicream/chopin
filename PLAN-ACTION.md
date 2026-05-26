@@ -352,3 +352,57 @@ rm -rf /home/autoblog/.paperclip/instances/default/db/
 - L'aperçu reste un rendu HTML (structure + zones substituées + variables Emelia d'exemple).
 
 **Prérequis** : le user fournit le(s) HTML de base (collé ou déposé sur le VPS).
+
+
+---
+
+## SPRINTS AUTH / RBAC / RGPD — plan validé 2026-05-26
+
+Contexte : beaucoup d'auth existe DÉJÀ (TOTP `pyotp`, login 2-étapes, page `/security` avec QR PNG, champ `role`, CRUD `/api/auth/users`, `reset_password` admin, `send_password_telegram`). Décisions user : **3 rôles fixes** (superadmin / stratégie / contenu / commercial), **superadmin = tous les sites**, users normaux = **1 seul site**.
+
+### Sprint 1 — Auth & 2FA : fix + finalisation
+- [ ] Fix bug `nav-user.tsx` (menu user en bas de sidebar → accès `/security` + logout)
+- [ ] Tester le flux 2FA end-to-end (login 2-step → setup QR → confirm → disable)
+- [ ] Création de compte (superadmin) : mot de passe temporaire + **bloc COPIABLE** (identifiant, mdp, URL login, pas-à-pas 2FA/QR à transmettre hors-email)
+- [ ] Aucun reset par email (confirmer) ; reset = superadmin only ; option : forcer le 2FA à la 1ʳᵉ connexion
+
+### Sprint 2 — RBAC (3 rôles) + isolation « 1 user = 1 site »
+- [ ] Rôles superadmin/stratégie/contenu/commercial → mapping rôle → sections sidebar
+- [ ] Backend : helper central d'enforcement `site ∈ session.sites` + module autorisé par rôle, sur les ~40 endpoints `/api/sites/{site}/*` (superadmin = bypass) — **FERME LA FAILLE** actuelle
+- [ ] `users.sites` = exactement 1 site (non-superadmin), validé à la création
+- [ ] Front : sidebar filtrée par rôle ; switcher de sites masqué si 1 seul site
+- [ ] UI superadmin : CRUD users (créer / **bloquer** [champ `disabled`] / changer rôle / changer site / reset mdp)
+- [ ] Migration : peupler `users.sites` + désigner le superadmin
+
+### Sprint 3 — Revue de sécurité
+- [ ] `/security-review` sur auth/RBAC/isolation (déclenché par le user)
+
+### Sprint 4 — RGPD / Privacy by design (outil B2B exclusivement)
+- [ ] 4a : **questions de cadrage RGPD** PUIS LIA intérêt légitime [lawve.ai legitimate-interest · O. Schmidt-Prietz] + compliance [lawve.ai]
+- [ ] 4b : politique de confidentialité / privacy notice [lawve.ai gdpr-privacy-notice-eu]
+- [ ] 4c : sécurisation données contacts (chiffrement at-rest, contrôle d'accès, rétention/purge)
+- [ ] 4d : caviardage PDF [github Ldecavel/skill-caviardage-pdf] + anonymisation [datanaos]
+- Liens ouverts au lancement du sprint ; questions d'abord.
+
+Ordre conseillé : S1 → S2 → S3 → S4.
+
+### Sprint technique — Durcissement du déploiement front (staleness) [ajouté 2026-05-26]
+**Problème observé** : chaque `npm run build` régénère les IDs internes Next (chunks, Server Actions). Un onglet resté ouvert sur l'ancien build casse → page « This page couldn't load » et logs `genesis-ui-error.log` saturés de `Failed to find Server Action "x"`. Récurrent à chaque déploiement front.
+**À faire** :
+- Exposer un **build-id** (ex. `GET /api/version` ou variable injectée au build) et le comparer côté client → **bannière « Nouvelle version disponible — recharger »**.
+- Ajouter un **`global-error.tsx` FR** + error boundary qui propose « Recharger » proprement (au lieu du message Next brut anglais).
+- Optionnel : reload auto si le build-id change ; filtrer le bruit de scan dans les logs.
+**Priorité** : basse (polish), mais à traiter car ça pollue l'UX à chaque déploiement.
+
+### Sprint — Éditeur de newsletters HTML (concrétise le « sprint futur templates HTML ») [2026-05-26]
+**Besoin** : créer des templates email à partir d'une **structure HTML de base** (ex. `~/Desktop/LCR/leclientroi-newsletter-v2.html`), éditable en mode SIMPLE — **uniquement texte + images, jamais la structure**.
+**Structure v2 analysée** : HTML email (tables, styles inline, Plus Jakarta Sans), ~8 `<img>` + 1 image de fond (hero), ~20 zones texte (h1/h2/h3/p/span), liens CTA, variables Emelia `{{unsubscribe_url}}`/`{{preferences_url}}`.
+**Goal user** :
+- Aperçu fidèle de la newsletter.
+- Éditer le **texte** en mode simple.
+- Modifier une **image** : icône « modifier » → dialog shadcn (aperçu image actuelle + **meta taille/poids** + **input URL** nouvelle image + boutons Valider/Confirmer).
+- **Sauvegarder** : nommer la version + date.
+- **Envoyer à Emelia** (1er temps), puis autres canaux.
+- **Stepper templates — step 2** : « Sélectionner un template HTML » EN PLUS de « Générer (IA) ».
+**Technique** : stockage versionné (table `html_templates`), meta image via fetch (HEAD = poids, dimensions), envoi = HTML en step Emelia (`rawHtml:true`).
+**À trancher avant de coder** : mode d'édition (in-place sur l'aperçu vs panneau de zones).

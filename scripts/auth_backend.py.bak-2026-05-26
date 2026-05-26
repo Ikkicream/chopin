@@ -85,8 +85,6 @@ def _ensure_schema() -> None:
             conn.execute("ALTER TABLE users ADD COLUMN totp_secret VARCHAR DEFAULT ''")
         if "totp_enabled" not in existing_cols:
             conn.execute("ALTER TABLE users ADD COLUMN totp_enabled BOOLEAN DEFAULT FALSE")
-        if "disabled" not in existing_cols:
-            conn.execute("ALTER TABLE users ADD COLUMN disabled BOOLEAN DEFAULT FALSE")
     finally:
         conn.close()
     _SCHEMA_READY = True
@@ -184,8 +182,7 @@ def create_user(username, password, role="viewer", nom="", prenom="", email="", 
 def list_users():
     conn = get_db()
     result = conn.execute(
-        "SELECT id, username, role, nom, prenom, email, created_at, phone, sites, totp_enabled, "
-        "COALESCE(disabled, FALSE) "
+        "SELECT id, username, role, nom, prenom, email, created_at, phone, sites, totp_enabled "
         "FROM users ORDER BY created_at"
     ).fetchall()
     conn.close()
@@ -196,7 +193,6 @@ def list_users():
             "email": r[5], "created_at": str(r[6]), "phone": r[7] or "",
             "sites": _json.loads(r[8]) if r[8] else [],
             "mfa_enabled": bool(r[9]),
-            "disabled": bool(r[10]),
         }
         for r in result
     ]
@@ -212,7 +208,7 @@ def delete_user(user_id):
 def update_user(user_id, data):
     conn = get_db()
     fields, values = [], []
-    for k in ["role", "nom", "prenom", "email", "phone", "sites", "disabled"]:
+    for k in ["role", "nom", "prenom", "email", "phone", "sites"]:
         if k in data:
             fields.append(f"{k} = ?")
             values.append(data[k])
@@ -238,7 +234,7 @@ def login(username, password, totp_code: str = "", ip: str = ""):
 
     conn = get_db()
     row = conn.execute(
-        "SELECT id, password_hash, role, nom, prenom, totp_secret, totp_enabled, sites, COALESCE(disabled, FALSE) "
+        "SELECT id, password_hash, role, nom, prenom, totp_secret, totp_enabled, sites "
         "FROM users WHERE username = ?",
         [username],
     ).fetchone()
@@ -248,18 +244,13 @@ def login(username, password, totp_code: str = "", ip: str = ""):
         _audit_log("AUTH_FAIL", ip=ip, username=username, extra="reason=unknown_user")
         return {"error": "invalid_credentials"}
 
-    user_id, stored_hash, role, nom, prenom, totp_secret, totp_enabled, sites, disabled = row
+    user_id, stored_hash, role, nom, prenom, totp_secret, totp_enabled, sites = row
 
     if not verify_password(password, stored_hash):
         conn.close()
         _record_attempt(ip)
         _audit_log("AUTH_FAIL", ip=ip, username=username, extra="reason=bad_password")
         return {"error": "invalid_credentials"}
-
-    if disabled:
-        conn.close()
-        _audit_log("AUTH_FAIL", ip=ip, username=username, extra="reason=account_disabled")
-        return {"error": "account_disabled"}
 
     # Migration douce SHA-256 → bcrypt
     if _is_legacy_hash(stored_hash) and bcrypt is not None:
@@ -331,19 +322,6 @@ def logout(token):
     conn = get_db()
     conn.execute("DELETE FROM sessions WHERE token = ?", [token])
     conn.close()
-
-
-def count_online_users() -> int:
-    """Nombre d'utilisateurs distincts ayant une session non expirée (≈ connectés)."""
-    conn = get_db()
-    try:
-        row = conn.execute(
-            "SELECT count(DISTINCT user_id) FROM sessions WHERE expires_at > ?",
-            [datetime.now(timezone.utc).isoformat()],
-        ).fetchone()
-        return int(row[0]) if row else 0
-    finally:
-        conn.close()
 
 
 def reset_password(user_id):

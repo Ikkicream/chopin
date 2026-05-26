@@ -12,7 +12,7 @@ import sys
 import subprocess
 sys.path.insert(0, str(__import__('pathlib').Path(__file__).parent))
 from god_mode_api import router as god_mode_router
-from auth_backend import login as auth_login, reset_password as auth_reset, send_password_telegram as auth_send_telegram, log_login as auth_log_login, get_login_logs as auth_get_logs, verify_session as auth_verify, logout as auth_logout, list_users as auth_list_users, create_user as auth_create_user, delete_user as auth_delete_user, update_user as auth_update_user, count_online_users as auth_count_online
+from auth_backend import login as auth_login, reset_password as auth_reset, send_password_telegram as auth_send_telegram, log_login as auth_log_login, get_login_logs as auth_get_logs, verify_session as auth_verify, logout as auth_logout, list_users as auth_list_users, create_user as auth_create_user, delete_user as auth_delete_user, update_user as auth_update_user
 from emelia_campaign_manager import (
     get_sector_breakdown as emelia_sectors, get_prospects_by_sector as emelia_prospects,
     create_emelia_campaign as emelia_create, configure_steps as emelia_steps,
@@ -120,22 +120,10 @@ async def auth_middleware(request: Request, call_next):
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=401, content={"error": "Bearer token required"})
 
-    # Rôles disposant de tous les accès (bypass admin-only + isolation site)
-    _SUPER = ("admin", "superadmin")
-
-    # Endpoints admin-only (gestion users / logs)
-    if any(path.startswith(p) for p in _ADMIN_PREFIXES) and sess.get("role") not in _SUPER:
+    # Endpoints admin-only
+    if any(path.startswith(p) for p in _ADMIN_PREFIXES) and sess.get("role") != "admin":
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=403, content={"error": "admin role required"})
-
-    # Isolation multi-tenant : un user n'accède qu'à SES sites (superadmin = tous).
-    # Couvre tous les endpoints /api/sites/{site}/* en un seul point de contrôle.
-    if path.startswith("/api/sites/"):
-        parts = path.split("/")
-        site = parts[3] if len(parts) > 3 else ""
-        if site and sess.get("role") not in _SUPER and site not in (sess.get("sites") or []):
-            from fastapi.responses import JSONResponse
-            return JSONResponse(status_code=403, content={"error": f"access denied for site '{site}'"})
 
     # Attache la session au request pour les handlers
     request.state.session = sess
@@ -231,42 +219,6 @@ def get_campaigns():
         return {"campaigns": enriched}
     except Exception as e:
         return {"campaigns": [], "error": str(e)}
-
-
-# ── /api/admin/superadmin-bar (barre superadmin temps réel) ─────────────────────
-_SB_CACHE = {"ts": 0.0, "routing": 0}
-
-@app.get("/api/admin/superadmin-bar")
-async def api_superadmin_bar(request: Request):
-    """Stats pour la top bar superadmin : IP de connexion, users connectés, campagnes en routage."""
-    sess = getattr(request.state, "session", None)
-    if not sess or sess.get("role") not in ("admin", "superadmin"):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=403, content={"error": "superadmin only"})
-
-    xff = request.headers.get("x-forwarded-for", "")
-    ip = xff.split(",")[0].strip() if xff else (request.client.host if request.client else "")
-
-    try:
-        users_online = auth_count_online()
-    except Exception:
-        users_online = 0
-
-    import time as _t, os as _os
-    routing = _SB_CACHE["routing"]
-    if _t.time() - _SB_CACHE["ts"] > 60:  # cache 60s — évite de spammer Emelia à chaque poll
-        try:
-            key = _os.environ.get("EMELIA_API_KEY", "") or load_env().get("EMELIA_API_KEY", "")
-            r = requests.post("https://api.emelia.io/graphql",
-                              headers={"Authorization": key, "Content-Type": "application/json"},
-                              json={"query": "{ campaigns { status } }"}, timeout=8)
-            camps = r.json().get("data", {}).get("campaigns", []) or []
-            routing = sum(1 for c in camps if str(c.get("status", "")).upper() in ("RUNNING", "STARTED", "ONGOING", "SENDING"))
-            _SB_CACHE.update(ts=_t.time(), routing=routing)
-        except Exception:
-            pass
-
-    return {"ok": True, "ip": ip, "users_online": users_online, "campaigns_routing": routing}
 
 
 # ── /api/articles ─────────────────────────────────────────────────────────────
@@ -2583,64 +2535,17 @@ async def api_auth_users():
 
 @app.post("/api/auth/users")
 async def api_auth_create(request: Request):
-    """Crée un user (superadmin). Génère un mot de passe temporaire si absent, accepte
-    role + 1 site + phone, et renvoie le mdp en clair + un bloc d'accès copiable
-    (à transmettre par un canal hors-email). Telegram optionnel."""
-    import secrets, json as _json
+    """Create a user (admin only)."""
     data = await request.json()
-    username = (data.get("username") or "").strip()
-    if not username:
-        return {"error": "username requis"}
-    role = data.get("role") or "commercial"
-    password = data.get("password") or secrets.token_urlsafe(9)  # mdp temp si non fourni
-
-    # Sites : exactement 1 pour les non-superadmin
-    sites = data.get("sites")
-    if isinstance(sites, list):
-        sites_json = _json.dumps(sites)
-    elif isinstance(sites, str) and sites.strip():
-        sites_json = sites
-    else:
-        sites_json = "[]"
-    if role != "superadmin":
-        try:
-            arr = _json.loads(sites_json)
-        except Exception:
-            arr = []
-        if len(arr) != 1:
-            return {"error": "un utilisateur non-superadmin doit avoir exactement 1 site"}
-
     uid = auth_create_user(
-        username, password, role=role,
+        data.get("username", ""), data.get("password", ""),
+        role=data.get("role", "viewer"),
         nom=data.get("nom", ""), prenom=data.get("prenom", ""),
-        email=data.get("email", ""), phone=data.get("phone", ""),
-        sites=sites_json,
+        email=data.get("email", "")
     )
     if not uid:
         return {"error": "username already exists"}
-
-    login_url = "https://api.cheffer.email"
-    access_text = (
-        "Acces Genesis\n"
-        "--------------------\n"
-        f"URL : {login_url}\n"
-        f"Identifiant : {username}\n"
-        f"Mot de passe : {password}\n\n"
-        "Securite - active la double authentification (obligatoire) :\n"
-        "1. Connecte-toi, menu en bas -> Securite (MFA).\n"
-        "2. Clique Activer MFA : un QR code s'affiche.\n"
-        "3. Scanne-le avec Google Authenticator / Authy / 1Password.\n"
-        "4. Saisis le code a 6 chiffres pour valider.\n"
-        "A la prochaine connexion, le code 2FA te sera demande."
-    )
-    telegram_sent = False
-    if data.get("phone"):
-        try:
-            telegram_sent = auth_send_telegram(data["phone"], username, password)
-        except Exception:
-            telegram_sent = False
-    return {"ok": True, "id": uid, "username": username, "password": password,
-            "access_text": access_text, "telegram_sent": telegram_sent}
+    return {"ok": True, "id": uid}
 
 @app.delete("/api/auth/users/{user_id}")
 async def api_auth_delete(user_id: str):
@@ -4443,69 +4348,6 @@ async def api_templates_unlock(site: str, sector: str, kind: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import email_templates_backend as etb
     return etb.set_lock(site, sector, kind, False)
-
-
-# ============================================================================
-# Newsletters HTML éditables (structure verrouillée, texte + images) — 2026-05-26
-# Structures de base = structures/*.html ; versions = table html_templates.
-# ============================================================================
-@app.get("/api/sites/{site}/html/structures")
-async def api_html_structures(site: str):
-    """Liste les structures HTML de base disponibles."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import html_templates_backend as htb
-    return {"ok": True, "structures": htb.list_structures()}
-
-
-@app.get("/api/sites/{site}/html/structures/{name}")
-async def api_html_structure_get(site: str, name: str):
-    """HTML d'une structure de base (point de départ d'une édition)."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import html_templates_backend as htb
-    html = htb.get_structure(name)
-    if html is None:
-        return {"ok": False, "error": "structure introuvable"}
-    return {"ok": True, "name": name, "html": html}
-
-
-@app.get("/api/sites/{site}/html/templates")
-async def api_html_templates_list(site: str):
-    """Versions sauvegardées (newsletters éditées)."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import html_templates_backend as htb
-    return {"ok": True, "versions": htb.list_versions(site)}
-
-
-@app.get("/api/sites/{site}/html/templates/{vid}")
-async def api_html_template_get(site: str, vid: str):
-    """HTML complet d'une version sauvegardée."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import html_templates_backend as htb
-    v = htb.get_version(site, vid)
-    return {"ok": bool(v), "version": v}
-
-
-@app.post("/api/sites/{site}/html/templates")
-async def api_html_template_save(site: str, request: Request):
-    """Sauvegarde une version éditée. Body: {name, html, source}."""
-    body = await request.json()
-    name = (body.get("name") or "").strip()
-    html = body.get("html") or ""
-    if not name or not html:
-        return {"ok": False, "error": "name et html requis"}
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import html_templates_backend as htb
-    sess = getattr(request.state, "session", None)
-    by = (sess or {}).get("username", "ui")
-    return {"ok": True, "id": htb.save_version(site, name, html, source=body.get("source", ""), by=by)}
-
-
-@app.delete("/api/sites/{site}/html/templates/{vid}")
-async def api_html_template_delete(site: str, vid: str):
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import html_templates_backend as htb
-    htb.delete_version(site, vid)
-    return {"ok": True}
 
 
 @app.post("/api/sites/{site}/pool/campaigns/create")

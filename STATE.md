@@ -449,3 +449,59 @@ Nouvelle feature : import CSV drag&drop vers le pool mutualisé (`/site/[code]/a
 - API Python sans `--reload` → `pm2 restart genesis-dashboard` pour recharger.
 - **genesis-ui = build prod (port 3100)** → `npm run build` PUIS `pm2 restart genesis-ui` obligatoires pour déployer le front.
 - Écrire dans `god_mode.duckdb` en process externe = OK (le cron le fait), écritures ponctuelles (connect/close).
+
+
+---
+
+## Session AUTH / RBAC — 2026-05-26 (Sprints 1-2 ; plan détaillé dans PLAN-ACTION.md)
+
+**État au départ** : auth + 2FA TOTP + QR **déjà en place** (`auth_backend.py` pyotp, page `/security`, login 2-étapes). **1 seul user** : `camille` (superadmin, sites lcr+mkd, **2FA OFF**).
+
+### Livré et déployé
+- **`POST /api/auth/users` étendu** : génère un mdp temporaire si absent, accepte role+sites+phone, renvoie le mdp + un `access_text` **copiable** (id/mdp/URL/pas-à-pas 2FA). Validation : non-superadmin = **exactement 1 site**. Telegram optionnel.
+- **Page `/admin/users`** (NOUVELLE, dans la sidebar admin global) : créer (rôle+site+mdp auto+**bloc copiable**), lister, changer rôle, reset mdp, supprimer.
+- **Isolation multi-tenant** (middleware `api.py`) : `/api/sites/{site}/*` vérifie `site ∈ session.sites` (superadmin bypass) → **ferme la faille** (avant : tout user authentifié accédait à tous les sites). + **FIX** : le check admin-only excluait `superadmin`.
+- **Sidebar filtrée par rôle** (`app-sidebar.tsx` `buildNavSite` + `ROLE_SECTIONS`) : superadmin=tout, strategie/contenu/commercial = leur section. **Switcher de sites masqué si 1 seul site** (`team-switcher.tsx`).
+- **Rôles** : `superadmin` / `strategie` / `contenu` / `commercial`.
+- Backups : `api.py.bak-2026-05-26`, `app-sidebar.tsx.bak-2026-05-26`, `team-switcher.tsx.bak-2026-05-26`.
+
+### Reste (auth/RBAC)
+- **Fix menu nav-user** (bas de sidebar) : BLOQUÉ — attend l'erreur **console** du user. Le code est sain (même pattern que le switcher) ; les logs « Failed to find Server Action » = **bruit** (clients périmés après rebuilds), pas la cause.
+- **« Bloquer » un user** (champ `disabled` + check login + bouton UI) — Tâche 7.
+- Option : **forcer le 2FA à la 1re connexion** (à décider).
+- **camille : activer son 2FA** (actuellement OFF).
+- Sprint 3 : `/security-review` (déclenché par le user). Sprint 4 : RGPD (questions d'abord). Sprint technique : durcissement déploiement front (staleness).
+
+### À TESTER par le user (validation visuelle — pas de navigateur côté agent)
+1. `/admin/users` → créer un compte « commercial » sur lcr → le **bloc d'accès copiable** s'affiche.
+2. Se connecter avec ce compte → il ne voit que la section **Commercial**, **pas de switcher** (1 site), et l'accès à mkd est **refusé (403)**.
+3. Bug nav-user : **hard refresh** puis console si ça persiste.
+
+### MAJ 2026-05-26 (suite) — Sprint 2 COMPLET
+- ✅ **Mode superadmin UI** : rôle affiché sous le nom (nav-user), **liseré 5px ambre** autour de la fenêtre, **top bar** (date live + IP + users connectés + campagnes en routage + déconnexion). Endpoint `GET /api/admin/superadmin-bar` (cache 60s Emelia). Composant `superadmin-bar.tsx`. Validé visuellement par le user.
+- ✅ **Bloquer/débloquer un compte** : colonne `disabled` (auth.duckdb), `login()` refuse `account_disabled`, `update_user`/`list_users` gèrent `disabled`, bouton + badge dans `/admin/users`.
+- Backups : `auth_backend.py.bak-2026-05-26`, `nav-user.tsx.bak-2026-05-26`, `client-shell.tsx.bak-2026-05-26`.
+- **Sprints 1 & 2 = bouclés.** Reste : nav-user (attend console user), option « forcer 2FA 1re connexion », Sprint 3 `/security-review` (déclenché par user), Sprint 4 RGPD (questions d'abord). camille : activer 2FA.
+
+### MAJ 2026-05-26 — Sprint 4 RGPD (en cours)
+Décisions user : base légale = **intérêt légitime B2B**, **anonymiser** avant LLM (0 PII hors UE), conservation **3 ans**.
+Entités (cf. mémoire reference_legal_entities) : LCR=HUMANETICS LABS (SARL, SIREN 995210010, Colombes, dpo@humaneticslabs.com) · MKD=MKD GROUPE (SARL, SIREN 852283761, Maisons-Alfort, dpo@mkdgroupe.com). Responsable RGPD=société, DPO=Camille.
+- ✅ **4a LIA** + **4b privacy notices** (×2) → `/home/autoblog/genesis/legal/` (lia-prospection-b2b.md, privacy-notice-lcr.md, privacy-notice-mkd.md). MODÈLES à faire viser par un juriste avant publication.
+- ✅ **4c (partie)** : `workflow_qualifier.py` n'envoie plus email+téléphone à DeepSeek (backup .bak-2026-05-26). email_generator/god_mode_templates déjà sans PII.
+- Reste 4c : auditer csv_import (mapping secteur), **purge auto 3 ans**, **chiffrement at-rest contacts.duckdb** (était parké).
+- Reste 4d : caviardage PDF (skill github Ldecavel) + anonymisation exports (datanaos).
+
+### MAJ 2026-05-26 — Sprint 4 RGPD : 4c + 4d clôturés
+- ✅ **4c audit DeepSeek COMPLET** : qualifier (email+tél retirés), csv_import (n'envoie que les noms de catégories, jamais les contacts), email_generator/templates (par secteur). → 0 PII vers DeepSeek.
+- ✅ **4c purge 3 ans** : `scripts/rgpd_purge.py` (anonymise les prospects froids > 3 ans, épargne leads/clients/blacklistés ; dry-run + `--apply`). **Cron mensuel** 1er à 4h → `logs/rgpd_purge.log`. 0 concerné aujourd'hui (données récentes).
+- 🟡 **Chiffrement at-rest `contacts.duckdb`** : NON fait en applicatif (DuckDB n'a pas de chiffrement natif ; la clé serait sur le même serveur = gain faible). En place : secrets AES (site_credentials), chmod 600, RBAC+2FA, backups. **RECO = activer le chiffrement de volume côté Hetzner** (action infra, pas du code).
+- ✅ **4d caviardage PDF** : skill `caviardage-pdf` installé (Mac, MIT, 100% local, PyMuPDF) — outil à la demande.
+- 🟡 **4d anonymisation exports (datanaos)** : service externe payant, **aucun use case d'export actif** dans Genesis (l'anonymisation est déjà couverte par la purge + le qualifier). À brancher seulement si besoin réel.
+
+**Sprint 4 RGPD clôturé.** Restes = décision infra (chiffrement disque Hetzner) ou service externe (datanaos) si besoin.
+**Restes globaux hors-dev** : #1 nav-user (attend console user), #8 `/security-review` (user lance), publier les privacy notices sur les sites.
+
+### ⚠️ PIÈGE OP (2026-05-26) — genesis-ui = pnpm
+`genesis-ui` est géré par **pnpm** (pnpm-lock.yaml, node_modules/.pnpm). **NE JAMAIS faire `npm install`** ici → ça crashe arborist ("Cannot read properties of null (reading 'matches')"). Utiliser **`pnpm add <pkg>`** (via `sudo -u autoblog`). `npm run build` reste OK (n'installe rien).
+### Sprint éditeur newsletters HTML — incrément ① fait
+- structures/leclientroi-newsletter-v2.html transférée ; module scripts/html_templates_backend.py + table html_templates + 6 endpoints /api/sites/{site}/html/* (testés). dnd-kit installé (pnpm). Reste ② composant éditeur (dnd blocs + édition in-place texte/image) + ③ intégration step 2 + envoi Emelia.
