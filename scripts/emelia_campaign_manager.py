@@ -186,8 +186,38 @@ def list_campaigns():
 
 
 # Default email templates
-def get_default_steps(sector, company_type="entreprise"):
-    """Generate 3-email sequence for a sector."""
+def get_default_steps(sector, company_type="entreprise", site="lcr"):
+    """Génère la séquence 3 emails pour un secteur.
+
+    DB-first : utilise d'abord les templates validés dans `email_templates`
+    (générés via DeepSeek : icebreaker, lien secteur, signature Juliette).
+    Fallback sur les templates génériques ci-dessous si la base est vide/incomplète.
+    """
+    # --- 1. Templates validés en base (par site) ---
+    try:
+        import email_templates_backend as etb
+        by_kind = {r["kind"]: r for r in etb.get_sector(site, sector)}
+        order = ["first", "relance1", "relance2"]
+        if all(by_kind.get(k) and (by_kind[k].get("body_html") or "").strip() for k in order):
+            delays = [
+                {"amount": 0, "unit": "MINUTES"},
+                {"amount": 3, "unit": "DAYS"},
+                {"amount": 7, "unit": "DAYS"},
+            ]
+            return [
+                {"delay": delays[i], "versions": [{
+                    "subject":  by_kind[k].get("subject") or "",
+                    "disabled": False,
+                    "message":  by_kind[k]["body_html"],
+                    "rawHtml":  True,
+                    "attachments": [],
+                }]}
+                for i, k in enumerate(order)
+            ]
+    except Exception as e:
+        print(f"  [steps] DB templates indispo, fallback générique ({e})")
+
+    # --- 2. Fallback : templates génériques codés en dur ---
     templates = {
         "retail": {
             "subject1": "SMS g\u00e9olocalis\u00e9 pour vos points de vente",

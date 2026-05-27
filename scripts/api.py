@@ -3174,6 +3174,20 @@ async def api_campaign_stats_single(campaign_id: str):
         return {"error": str(e)}
 
 
+@app.get("/api/campaigns/{campaign_id}/stats")
+def get_campaign_stats_flat(campaign_id: str):
+    """Stats Emelia d'une campagne, a plat (mailsSent, uniqueOpensPercent, ...) — consomme par /site/[code]/campaigns."""
+    try:
+        key = load_env().get("EMELIA_API_KEY", "")
+        H = {"Authorization": key, "Content-Type": "application/json"}
+        r = requests.get(f"https://api.emelia.io/stats?campaignId={campaign_id}", headers=H, timeout=15)
+        if r.status_code == 200:
+            return r.json()
+        return {"error": f"emelia status {r.status_code}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ── PRM endpoints supprimés le 2026-05-20 (remplacés par /api/sites/{site}/acquisition) ──
 
 @app.get("/api/campaigns/list-with-stats")
@@ -4508,6 +4522,30 @@ async def api_html_template_delete(site: str, vid: str):
     return {"ok": True}
 
 
+@app.post("/api/sites/{site}/imagekit/upload")
+async def api_imagekit_upload(site: str, file: UploadFile = File(...)):
+    """Upload une image vers ImageKit (clé privée côté serveur, jamais exposée). Renvoie l'URL."""
+    import os as _os, base64 as _b64
+    key = _os.environ.get("IMAGEKIT_PRIVATE_KEY", "") or load_env().get("IMAGEKIT_PRIVATE_KEY", "")
+    if not key:
+        return {"ok": False, "error": "IMAGEKIT_PRIVATE_KEY manquante dans .env"}
+    content = await file.read()
+    auth = _b64.b64encode((key + ":").encode()).decode()
+    try:
+        r = requests.post(
+            "https://upload.imagekit.io/api/v1/files/upload",
+            headers={"Authorization": "Basic " + auth},
+            files={"file": (file.filename or "upload.png", content)},
+            data={"fileName": file.filename or "upload.png", "useUniqueFileName": "true", "folder": "/genesis-newsletters"},
+            timeout=30,
+        )
+        if r.status_code not in (200, 201):
+            return {"ok": False, "error": f"imagekit {r.status_code}: {r.text[:200]}"}
+        return {"ok": True, "url": r.json().get("url", "")}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 @app.post("/api/sites/{site}/pool/campaigns/create")
 async def api_pool_campaigns_create(site: str, request: Request):
     """Crée une campagne Emelia depuis le pool : pick N contacts → create Emelia → push.
@@ -4557,7 +4595,7 @@ async def api_pool_campaigns_create(site: str, request: Request):
 
     # 4. Configure steps (template du secteur)
     try:
-        steps = get_default_steps(sector)
+        steps = get_default_steps(sector, site=site)
         requests.patch(f"{EMELIA_URL}/emails/campaigns/{cid}/steps",
                        json={"steps": steps}, headers=H, timeout=20)
     except Exception as e:
@@ -4821,7 +4859,7 @@ async def api_onboarding_send_test(site: str, request: Request):
             return {"ok": False, "error": "no campaign _id returned"}
         # Configure steps avec template du secteur
         try:
-            steps = get_default_steps(sector)
+            steps = get_default_steps(sector, site=site)
             requests.patch(f"{EMELIA_URL}/emails/campaigns/{cid}/steps",
                            json={"steps": steps}, headers=H, timeout=20)
         except Exception as e:

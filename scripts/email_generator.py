@@ -32,13 +32,41 @@ RULES_FILE = BASE_DIR / "context" / "shared" / "cold-email-rules.md"
 
 CTA_URL = "https://tidycal.com/1rr6kv1/15-minute-meeting"
 
-# Signature conforme cold-email-rules.md (Juliette) + lien désinscription RGPD/Emelia obligatoire.
+# Numéro de téléphone de Juliette (signature). Laissé vide tant que non renseigné par le user.
+PHONE = "07 44 30 66 03"
+
+# Liens vers les pages SECTEUR de leclientroi.com (insérés en <a href> dans les emails).
+SECTOR_LINKS = {
+    "immobilier": "https://leclientroi.com/secteurs/immobilier",
+    "restaurant": "https://leclientroi.com/secteurs/sms-restauration",
+    "retail":     "https://leclientroi.com/secteurs/sms-retail-franchise",
+}
+# Ressources générales (fallback quand le secteur n'a pas de page dédiée + liens variés).
+RESOURCE_LINKS = {
+    "guide":    "https://leclientroi.com/guides",
+    "app":      "https://leclientroi.com/fonctionnalites/app-mobile",
+    "fidelite": "https://leclientroi.com/fonctionnalites/qr-code",
+    "accueil":  "https://leclientroi.com",
+}
+
+
+def site_link(sector: str) -> str:
+    """Lien à insérer dans l'email : page du secteur si elle existe, sinon le guide."""
+    return SECTOR_LINKS.get(sector) or RESOURCE_LINKS["guide"]
+
+
+# Signature Juliette : icône + téléphone (si renseigné) + lien site + désinscription RGPD obligatoire.
 SIGNATURE_HTML = (
-    '<p style="margin-top:16px">Juliette<br>'
-    '<strong>Le Client ROI</strong><br>'
-    '<a href="https://leclientroi.com">leclientroi.com</a> · contact@leclientroi.com</p>'
-    '<p style="font-size:12px;color:#888">'
-    '<a href="{{UNSUBSCRIBE_LINK}}">Me retirer de la liste</a></p>'
+    '<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:18px;border-top:1px solid #e5e5e5;padding-top:12px"><tr>'
+    '<td style="vertical-align:middle;padding-right:10px">'
+    '<img src="https://ik.imagekit.io/rgpdsimplement/mail.png" alt="Le Client ROI" width="40" height="40" style="display:block;border-radius:8px">'
+    '</td>'
+    '<td style="vertical-align:middle;font-size:13px;color:#555;line-height:1.5">'
+    '<strong style="color:#171717">Juliette</strong> · Le Client ROI<br>'
+    + (f'☎️ <a href="tel:+33{PHONE.replace(" ", "")[1:]}" style="color:#555;text-decoration:none">{PHONE}</a> · ' if PHONE else '')
+    + '<a href="https://leclientroi.com" style="color:#7E22CE">leclientroi.com</a> · contact@leclientroi.com'
+    '</td></tr></table>'
+    '<p style="font-size:12px;color:#888;margin-top:8px"><a href="{{UNSUBSCRIBE_LINK}}" style="color:#888">Me retirer de la liste</a></p>'
 )
 
 # Secteur DB -> sous-chaîne reconnaissable du titre de section dans sector-angles.md.
@@ -147,7 +175,8 @@ def validate_email(subject: str, body_html: str) -> list[str]:
 
 
 def _clean_body(body: str) -> str:
-    """Nettoie une signature parasite générée par DeepSeek + force des <p>, puis appose Juliette."""
+    """Nettoie une signature parasite générée par DeepSeek + force des <p>. N'appose PAS la signature
+    (faite après _ensure_sector_link, pour que le lien secteur ne soit pas avalé par le nettoyage)."""
     # Retirer toute signature inventée (Camille / Juliette / LeClientROI en fin).
     body = re.sub(r"<p[^>]*>\s*(Camille|Juliette)\b.*?</p>\s*$", "", body, flags=re.S | re.I)
     body = re.sub(r"(Camille|Juliette)\s*<br>.*?(LeClientROI|Le Client ROI).*$", "", body, flags=re.S | re.I)
@@ -155,7 +184,7 @@ def _clean_body(body: str) -> str:
     if "<p>" not in body and "<p " not in body:
         body = "".join(f"<p>{p.strip()}</p>" for p in body.split("\n\n") if p.strip())
     body = body.replace("\n", "<br>")
-    return body + SIGNATURE_HTML
+    return body
 
 
 def to_emelia_steps(emails: list[dict]) -> list[dict]:
@@ -178,14 +207,23 @@ def to_emelia_steps(emails: list[dict]) -> list[dict]:
 
 
 SYSTEM = (
-    "Tu es Juliette, commerciale chez Le Client ROI (plateforme SMS + RCS marketing). "
-    "Tu écris des cold emails B2B courts et humains à des DIRECTEURS / RESPONSABLES MARKETING "
-    "de moyennes et grandes entreprises (pas des PME locales). Tu respectes À LA LETTRE les "
-    "règles fournies. Tu réponds UNIQUEMENT en JSON valide, sans texte autour."
+    "Tu es Juliette, commerciale chez Le Client ROI (plateforme SMS + RCS marketing), et une "
+    "EXPERTE du cold email B2B et de l'ICE BREAKER. Tu écris à des directeurs / responsables "
+    "marketing de moyennes et grandes entreprises. Ton style : humain, conversationnel, "
+    "contractions, zéro jargon corporate — on doit croire qu'un humain l'a écrit, pas un robot.\n"
+    "La recette qui convertit :\n"
+    "• E1 (1er contact) : ICE BREAKER = accroche qui montre qu'on s'est intéressé à SON monde "
+    "(secteur / fonction), puis une QUESTION OUVERTE qui engage la réflexion, puis une proposition "
+    "de valeur concise, puis un CTA à FAIBLE engagement (10-15 min). Jamais de pitch agressif.\n"
+    "• E2 (relance) : angle neuf + PREUVE SOCIALE chiffrée + rappel du différenciateur, CTA soft.\n"
+    "• E3 (breakup) : honnête, respecte le temps du prospect, donne la PERMISSION de dire non "
+    "(« un simple non me va »), reste mémorable, porte ouverte.\n"
+    "Tu respectes À LA LETTRE les règles fournies. Réponds UNIQUEMENT en JSON valide, sans texte autour."
 )
 
 
 def build_prompt(sector: str, angle_block: str, rules: str) -> str:
+    lien = site_link(sector)
     return f"""=== RÈGLES COLD EMAIL (à respecter à la lettre) ===
 {rules}
 
@@ -193,13 +231,21 @@ def build_prompt(sector: str, angle_block: str, rules: str) -> str:
 {angle_block}
 
 === MISSION ===
-Produis la séquence de 3 emails (E1 J+0, E2 J+3, E3 J+7) pour ce secteur, en t'appuyant sur
-l'angle et les brouillons ci-dessus. Tu peux reformuler pour que ce soit fluide et humain,
-mais tu gardes l'angle, les preuves autorisées et l'esprit.
+Écris une VRAIE séquence cold email B2B de 3 emails (E1 J+0, E2 J+3, E3 J+7) pour ce secteur.
+L'angle ci-dessus est ta base d'idées — REFORMULE-le pour que ça sonne vivant et personnel,
+jamais comme un publipostage. Garde les preuves autorisées et l'esprit du secteur.
+
+EXIGENCES DE QUALITÉ (style cold email qui obtient des réponses) :
+- E1 commence par un ICE BREAKER ancré sur le secteur / la fonction du destinataire
+  (PAS « Bonjour, nous proposons… »), enchaîne sur une QUESTION OUVERTE, puis la valeur, puis le CTA.
+- Ton parlé, phrases courtes, contractions. Bannis « je me permets », « n'hésitez pas », le jargon.
+- E2 : une preuve sociale CHIFFRÉE et concrète. E3 : breakup qui donne la permission de dire non.
 
 CONTRAINTES DE FORMAT :
 - Chaque paragraphe dans un <p>…</p> distinct.
-- Le CTA est UNIQUEMENT ce lien, une seule fois par email, en <a href="{CTA_URL}">…</a>.
+- Le CTA (prise de RDV) est UNIQUEMENT ce lien, une seule fois par email, en <a href="{CTA_URL}">…</a>.
+- En PLUS du CTA, insère dans le corps AU MOINS UN lien vers le site en <a href="{lien}">texte parlant</a> (page du secteur / ressource).
+- Quand le nom du secteur (ou un mot-clé sectoriel évident) apparaît dans le texte, mets-le en <strong>…</strong>.
 - Variables autorisées : {{{{firstName}}}} (prénom), {{{{field1}}}} (entreprise).
 - N'INVENTE PAS de signature ni de lien de désinscription : ils sont ajoutés automatiquement.
 - Objet court (2-4 mots, minuscule, sans emoji), ≤ 150 mots par email.
@@ -211,6 +257,17 @@ Réponds STRICTEMENT en JSON :
   {{"subject": "...", "body_html": "<p>...</p>", "delay_days": 3}},
   {{"subject": "...", "body_html": "<p>...</p>", "delay_days": 7}}
 ]"""
+
+
+def _ensure_sector_link(body: str, lien: str) -> str:
+    """Garantit un lien vers le site DANS LE CORPS (hors signature) : si DeepSeek ne l'a pas mis,
+    on rend le 1er mot en gras (= le secteur) cliquable vers sa page ; sinon on ajoute un lien."""
+    if not body or lien in body:
+        return body
+    m = re.search(r"<strong>(.*?)</strong>", body)
+    if m:
+        return body.replace(m.group(0), f'<a href="{lien}"><strong>{m.group(1)}</strong></a>', 1)
+    return body + f'<p><a href="{lien}">En savoir plus sur notre solution</a></p>'
 
 
 def generate_sequence(site: str, sector: str) -> dict:
@@ -234,8 +291,10 @@ def generate_sequence(site: str, sector: str) -> dict:
 
     all_errors: dict[int, list[str]] = {}
     for i, em in enumerate(emails):
-        em["body_html"] = _clean_body(em.get("body_html", ""))
-        errs = validate_email(em.get("subject", ""), em["body_html"])
+        corps = _clean_body(em.get("body_html", ""))            # 1. retire la fausse signature DeepSeek
+        corps = _ensure_sector_link(corps, site_link(sector))   # 2. garantit le lien secteur (sur corps propre)
+        errs = validate_email(em.get("subject", ""), corps)     # valide le corps SANS la signature (≤150 mots)
+        em["body_html"] = corps + SIGNATURE_HTML                # 3. appose la vraie signature Juliette
         if errs:
             all_errors[i + 1] = errs
 

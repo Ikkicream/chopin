@@ -211,7 +211,7 @@ def get_or_create_campaign(api_key: str, site: str, sector: str) -> dict:
         # === Configurer steps (template du secteur) + START + register webhook ===
         try:
             from emelia_campaign_manager import get_default_steps
-            steps = get_default_steps(sector)
+            steps = get_default_steps(sector, site=site)
             requests.patch(
                 f"{EMELIA_URL}/emails/campaigns/{cid}/steps",
                 json={"steps": steps},
