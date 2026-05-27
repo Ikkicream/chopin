@@ -246,6 +246,15 @@ def get_default_steps(sector, company_type="entreprise", site="lcr"):
     ]
 
 
+def build_newsletter_steps(html, subject):
+    """Envoi unique (1 step) d'une newsletter validee : le HTML tel quel, rawHtml=True."""
+    return [{
+        "delay": {"amount": 0, "unit": "MINUTES"},
+        "versions": [{"subject": subject or "", "disabled": False,
+                      "message": html or "", "rawHtml": True, "attachments": []}],
+    }]
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", choices=["list-sectors", "stats", "create"], required=True)

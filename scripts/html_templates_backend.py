@@ -110,3 +110,14 @@ def delete_version(site: str, vid: str) -> None:
 
 if __name__ == "__main__":
     print("structures:", list_structures())
+
+
+def rename_version(site: str, vid: str, name: str) -> bool:
+    """Renomme une version (message validé). Le nom est ce que lit le wizard campagne."""
+    _ensure_table()
+    c = _conn()
+    try:
+        c.execute("UPDATE html_templates SET name=? WHERE site_code=? AND id=?", [name, site, vid])
+    finally:
+        c.close()
+    return True

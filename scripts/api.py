@@ -4514,12 +4514,117 @@ async def api_html_template_save(site: str, request: Request):
     return {"ok": True, "id": htb.save_version(site, name, html, source=body.get("source", ""), by=by)}
 
 
+@app.patch("/api/sites/{site}/html/templates/{vid}")
+async def api_html_template_rename(site: str, vid: str, request: Request):
+    """Renomme un message validé. Body: {name}. Le nouveau nom remonte dans le wizard campagne."""
+    body = await request.json()
+    name = (body.get("name") or "").strip()
+    if not name:
+        return {"ok": False, "error": "name requis"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import html_templates_backend as htb
+    htb.rename_version(site, vid, name)
+    return {"ok": True}
+
+
 @app.delete("/api/sites/{site}/html/templates/{vid}")
 async def api_html_template_delete(site: str, vid: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import html_templates_backend as htb
     htb.delete_version(site, vid)
     return {"ok": True}
+
+
+@app.post("/api/sites/{site}/html/lint")
+async def api_html_lint(site: str, request: Request):
+    """Lint email via emailens (lint + analyze), local. Body: {html, ref?, target_type?}. Persiste le resultat."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import email_lint_backend as elb
+    body = await request.json()
+    html = body.get("html") or ""
+    target_type = (body.get("target_type") or "structure").strip()
+    target_ref = (body.get("ref") or "").strip()
+    res = elb.run_lint(html)
+    if res.get("ok") and target_ref:
+        sess = getattr(request.state, "session", None)
+        by = (sess or {}).get("username", "ui")
+        try:
+            elb.save_result(site, target_type, target_ref, res, by=by)
+        except Exception:
+            pass
+    return res
+
+
+@app.get("/api/sites/{site}/html/lint")
+def api_html_lint_results(site: str):
+    """Derniers resultats de lint stockes (badges de la liste newsletters)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import email_lint_backend as elb
+    return {"results": elb.get_all_results(site)}
+
+
+@app.post("/api/sites/{site}/mass-campaigns/create")
+async def api_mass_campaign_create(site: str, request: Request):
+    """Mass campaign via Sweego depuis un message valide. Body: {name, sector, message_id, subject, volume_target, dry_run?}."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import sweego_backend as sw, html_templates_backend as htb, email_lint_backend as elb
+    from contacts_pool_backend import pick_for_campaign, count_available_for_sector
+    body = await request.json()
+    name = (body.get("name") or "").strip()
+    sector = (body.get("sector") or "").strip()
+    message_id = (body.get("message_id") or "").strip()
+    subject = (body.get("subject") or "").strip()
+    volume = int(body.get("volume_target") or 30)
+    dry_run = bool(body.get("dry_run"))
+    if not name or not sector or not message_id or not subject:
+        return {"ok": False, "error": "name, sector, message_id, subject requis"}
+    msg = htb.get_version(site, message_id)
+    if not msg:
+        return {"ok": False, "error": "message valide introuvable"}
+    if not dry_run:
+        stored = elb.get_all_results(site).get(f"version:{message_id}")
+        if stored is None:
+            return {"ok": False, "error": "Teste d'abord ce message (bouton Tester) avant l'envoi."}
+        if stored.get("blocking"):
+            return {"ok": False, "error": "Message bloquant au lint. Corrige-le avant l'envoi."}
+    avail = count_available_for_sector(site, sector)
+    if avail == 0:
+        return {"ok": False, "error": f"aucun contact dispo secteur {sector}"}
+    contacts = pick_for_campaign(site, sector, limit=min(volume, avail))
+    emails = [c["email"] for c in contacts if c.get("email")]
+    if not emails:
+        return {"ok": False, "error": "aucun email exploitable"}
+    campaign_id = f"{site}-{sector}-" + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    res = sw.send_campaign(campaign_id, subject, msg["html"], emails, dry_run=dry_run)
+    if not res.get("ok"):
+        return res
+    if dry_run:
+        return {"ok": True, "dry_run": True, "would_send": len(emails), "campaign_id": campaign_id}
+    from contacts_pool_backend import mark_pushed_to_emelia
+    for c in contacts:
+        try:
+            mark_pushed_to_emelia(c["id"], site, campaign_id, "")
+        except Exception:
+            pass
+    sess = getattr(request.state, "session", None)
+    by = (sess or {}).get("username", "ui")
+    rid = sw.record_campaign(site, name, campaign_id, subject, sector, message_id,
+                             len(emails), res.get("transaction_id"), by=by)
+    return {"ok": True, "campaign_id": campaign_id, "sent": res.get("sent"), "record_id": rid}
+
+
+@app.get("/api/sites/{site}/mass-campaigns")
+def api_mass_campaigns_list(site: str):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import sweego_backend as sw
+    return {"campaigns": sw.list_campaigns(site)}
+
+
+@app.get("/api/sites/{site}/mass-campaigns/stats")
+def api_mass_campaigns_stats(site: str, date_start: str = "", date_end: str = ""):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import sweego_backend as sw
+    return {"engagement": sw.engagement_stats(date_start or None, date_end or None), "msp": sw.msp_stats()}
 
 
 @app.post("/api/sites/{site}/imagekit/upload")
@@ -4557,14 +4662,34 @@ async def api_pool_campaigns_create(site: str, request: Request):
     sector = (body.get("sector") or "").strip()
     volume_target = int(body.get("volume_target") or 30)
     volume_per_day = int(body.get("volume_per_day") or 10)
+    message_type = (body.get("message_type") or "cold_email").strip()
+    message_id = (body.get("message_id") or "").strip()
+    subject = (body.get("subject") or "").strip()
 
     if not name or not sector:
         return {"ok": False, "error": "name and sector required"}
 
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from contacts_pool_backend import pick_for_campaign, mark_pushed_to_emelia, count_available_for_sector
-    from emelia_campaign_manager import get_default_steps
+    from emelia_campaign_manager import get_default_steps, build_newsletter_steps
     from workflow_emelia_push import _get_key
+
+    # 0. Préparer le message (fail-fast AVANT toute création côté Emelia)
+    if message_type == "newsletter":
+        import html_templates_backend as htb, email_lint_backend as elb
+        msg = htb.get_version(site, message_id)
+        if not msg:
+            return {"ok": False, "error": "Message validé introuvable."}
+        if not subject:
+            return {"ok": False, "error": "Sujet requis pour une newsletter."}
+        stored = elb.get_all_results(site).get(f"version:{message_id}")
+        if stored is None:
+            return {"ok": False, "error": "Teste d'abord ce message (bouton Tester) avant de l'envoyer."}
+        if stored.get("blocking"):
+            return {"ok": False, "error": "Message bloquant au lint (lien cassé / variable inconnue). Corrige-le avant l'envoi."}
+        steps = build_newsletter_steps(msg["html"], subject)
+    else:
+        steps = get_default_steps(sector, site=site)
 
     # 1. Pick contacts
     available = count_available_for_sector(site, sector)
@@ -4593,9 +4718,8 @@ async def api_pool_campaigns_create(site: str, request: Request):
     if not cid:
         return {"ok": False, "error": "no campaign _id returned"}
 
-    # 4. Configure steps (template du secteur)
+    # 4. Configure steps (préparés à l'étape 0 : séquence cold email OU newsletter)
     try:
-        steps = get_default_steps(sector, site=site)
         requests.patch(f"{EMELIA_URL}/emails/campaigns/{cid}/steps",
                        json={"steps": steps}, headers=H, timeout=20)
     except Exception as e:
@@ -4983,6 +5107,11 @@ def _build_cron(minute: int, hour: int, days: list) -> str:
     return f"{minute} {hour} * * {','.join(str(d) for d in cron_days)}"
 
 
+# Au-dela de ce delai, un scrape sans log de fin est considere mort (thread tue par un
+# restart process, ou hang). Un scrape reel se termine en minutes -> 2h = marge tres large.
+SCRAPE_STALE_TIMEOUT_MIN = 120
+
+
 @app.get("/api/sites/{site}/scrape/live-activity")
 def api_scrape_live_activity(site: str, limit: int = 20):
     """Live-activity feed des scrapes : matche start_scrape + scrape + crédits Serper consommés."""
@@ -5027,6 +5156,23 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 rejected = ep.get("rejected", 0)
                 errors   = ep.get("errors", 0)
                 status   = "done" if success else "failed"
+            else:
+                # Pas de log de fin (run interrompu / timeout ou en cours) : le recap chiffre du log
+                # final manque. On recupere le VRAI nombre de contacts SAUVES (insertion au fil de
+                # l'eau, AVANT la fin). Borne a la fenetre de ce run -> 1 run a la fois = pas de chevauchement.
+                _nxt = c.execute(
+                    "SELECT min(created_at) FROM god_mode_logs WHERE site_code = ? "
+                    "AND action = 'start_scrape' AND resource_id = ? AND created_at > ?",
+                    [site, sector, start_at]).fetchone()[0]
+                _upper = _nxt or _dt_now()
+                try:
+                    valid = c.execute(
+                        "SELECT (SELECT count(*) FROM scrappe_pending WHERE site_code = ? AND sector = ? "
+                        "AND created_at >= ? AND created_at < ?) + (SELECT count(*) FROM scrappe "
+                        "WHERE site_code = ? AND sector = ? AND created_at >= ? AND created_at < ?)",
+                        [site, sector, start_at, _upper, site, sector, start_at, _upper]).fetchone()[0] or 0
+                except Exception:
+                    valid = 0
 
             # Calc credits consommés entre start_at et end_at (ou now si running)
             until_clause = "AND created_at <= ?" if end_at else ""
@@ -5049,8 +5195,13 @@ def api_scrape_live_activity(site: str, limit: int = 20):
             # En running : on estime progress depuis le temps écoulé / 60s par ville (très approximatif)
             if status == "running":
                 elapsed = (_dt_now() - start_at).total_seconds() if start_at else 0
-                est_total = max(60, 30 * (len(cities) or 1))  # 30s par ville env
-                progress_pct = min(95, int(elapsed / est_total * 100))
+                if elapsed > SCRAPE_STALE_TIMEOUT_MIN * 60:
+                    # Plus de fin loggee apres 2h -> run mort (thread tue par un restart). On le clot.
+                    status = "timeout"
+                    progress_pct = 100
+                else:
+                    est_total = max(60, 30 * (len(cities) or 1))  # 30s par ville env
+                    progress_pct = min(95, int(elapsed / est_total * 100))
             else:
                 progress_pct = 100
 
