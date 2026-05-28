@@ -4528,7 +4528,10 @@ async def api_html_template_rename(site: str, vid: str, request: Request):
 
 
 @app.delete("/api/sites/{site}/html/templates/{vid}")
-async def api_html_template_delete(site: str, vid: str):
+async def api_html_template_delete(site: str, vid: str, request: Request):
+    sess = getattr(request.state, "session", None)
+    if not sess or sess.get("role") != "superadmin":
+        return {"ok": False, "error": "Suppression réservée aux superadmin."}
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import html_templates_backend as htb
     htb.delete_version(site, vid)
@@ -4625,6 +4628,41 @@ def api_mass_campaigns_stats(site: str, date_start: str = "", date_end: str = ""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import sweego_backend as sw
     return {"engagement": sw.engagement_stats(date_start or None, date_end or None), "msp": sw.msp_stats()}
+
+
+@app.get("/api/sites/{site}/cleanup/counts")
+def api_cleanup_counts(site: str):
+    """Compteurs du POOL global (contacts.duckdb) : jamais vérifiés + vérifiés > 6 mois."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import cleanup_backend as cb
+    return {
+        "unverified": cb.count_unverified(),
+        "stale": cb.count_stale(days=180),
+        "stale_days": 180,
+    }
+
+
+@app.get("/api/sites/{site}/cleanup/contacts")
+def api_cleanup_list(site: str, limit: int = 500):
+    """Liste paginée du POOL pour la page Cleanup (table)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import cleanup_backend as cb
+    return {"contacts": cb.list_pool(limit=limit)}
+
+
+@app.post("/api/sites/{site}/cleanup/run")
+async def api_cleanup_run(site: str, request: Request):
+    """Lance un cycle de nettoyage. Body: {mode: 'unverified'|'stale', limit?: int}."""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    body = await request.json()
+    mode = (body.get("mode") or "").strip()
+    if mode not in ("unverified", "stale"):
+        return {"ok": False, "error": "mode requis (unverified | stale)"}
+    limit = int(body.get("limit") or 200)
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import cleanup_backend as cb
+    return {"ok": True, **cb.run_cleanup(mode=mode, site=site, limit=limit)}
 
 
 @app.post("/api/sites/{site}/imagekit/upload")

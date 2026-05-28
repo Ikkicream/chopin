@@ -250,6 +250,15 @@ def check_pending_queue(site_code: str | None = None, delay_ms: int = 200, max_r
             "raw_id":     _payload.get("userId") or _payload.get("id"),
         }
 
+        # Log dans god_mode_logs (visible /admin/logs)
+        try:
+            gm.log_action(row.get("site_code") or "lcr", "system", "drain", "mailnjoy_check",
+                          resource="email", resource_id=email,
+                          payload={"decision": result["decision"], "result": mn_check.get("result")},
+                          success=result["decision"] == "valid",
+                          error=result["decision"] if result["decision"] != "valid" else None)
+        except Exception:
+            pass
         if result["decision"] == "valid":
             gm.move_pending_to_scrappe(pid, mn_check=mn_check)
             stats["valid"] += 1

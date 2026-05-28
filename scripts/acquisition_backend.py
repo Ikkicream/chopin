@@ -89,6 +89,11 @@ def _ensure_schema(site: str) -> None:
                 conn.execute(sql)
             except Exception:
                 pass
+        # Migration : colonne mailnjoy_check (JSON de la dernière vérif address)
+        try:
+            conn.execute("ALTER TABLE acquisition_contacts ADD COLUMN IF NOT EXISTS mailnjoy_check VARCHAR")
+        except Exception:
+            pass
     finally:
         conn.close()
     _SCHEMA_INIT[site] = True
@@ -128,7 +133,7 @@ def find_by_email(site: str, email: str) -> dict | None:
     try:
         row = conn.execute(
             "SELECT id, state, source, email, nom, prenom, societe, tel, notes, "
-            "state_history, created_at, updated_at, last_action_at "
+            "state_history, created_at, updated_at, last_action_at, mailnjoy_check "
             "FROM acquisition_contacts WHERE email = ?",
             [email],
         ).fetchone()
@@ -154,6 +159,7 @@ def _row_to_dict(row) -> dict:
         "created_at":      str(row[10]) if row[10] else "",
         "updated_at":      str(row[11]) if row[11] else "",
         "last_action_at":  str(row[12]) if row[12] else "",
+        "mailnjoy_check":  _safe_json(row[13]) if len(row) > 13 else None,
     }
 
 
@@ -164,6 +170,57 @@ def _safe_json(s: str | None):
         return json.loads(s)
     except Exception:
         return []
+
+
+def _validate_address(email: str) -> dict:
+    """Validation pré-import : validator local (gratuit) puis Mailnjoy (1 crédit).
+
+    Renvoie :
+      - {"ok": True, "mailnjoy_check": {...} | None}  -> contact à créer
+      - {"ok": False, "decision": "...", "reason": "..."} -> contact rejeté
+    """
+    import sys as _sys
+    _sys.path.insert(0, str(BASE_DIR / "scripts"))
+    # 1) validator local (gratuit)
+    try:
+        from email_validator import validate_and_score
+        vres = validate_and_score(email, {"sector": ""})
+        if vres["decision"] == "drop":
+            return {"ok": False, "decision": "drop", "reason": "; ".join(vres.get("reasons", []))[:200]}
+    except Exception as e:
+        # validator KO -> on n'empêche pas l'import, on laisse Mailnjoy décider
+        pass
+
+    # 2) Mailnjoy (si configuré + crédit OK)
+    try:
+        from mailnjoy_check import is_configured, get_credit, check_email_mailnjoy, _log_deletion
+    except Exception:
+        return {"ok": True, "mailnjoy_check": None}
+    if not is_configured():
+        return {"ok": True, "mailnjoy_check": None}
+    credit = get_credit()
+    if credit is not None and credit < 100:
+        # On insère mais on marque pending pour le drain async ultérieur
+        return {"ok": True, "mailnjoy_check": {"decision": "pending", "reason": f"credit_low={credit}",
+                                                "checked_at": datetime.now(timezone.utc).isoformat()}}
+
+    mn = check_email_mailnjoy(email)
+    _raw = mn.get("raw") or {}
+    _p = _raw.get("unitaryCheck") if isinstance(_raw, dict) and "unitaryCheck" in _raw else _raw
+    mn_check = {
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "result": f"{_p.get('status', '?')}/{_p.get('category', '?')}" if _p else None,
+        "decision": mn["decision"],
+        "raw_id": _p.get("userId") or _p.get("id") if _p else None,
+    }
+    if mn["decision"] in ("invalid", "risky"):
+        try:
+            _log_deletion(email, mn["decision"], _raw, "acquisition import")
+        except Exception:
+            pass
+        return {"ok": False, "decision": mn["decision"], "reason": mn_check["result"]}
+    # valid (ou erreur Mailnjoy -> on garde, le drain ré-essaiera)
+    return {"ok": True, "mailnjoy_check": mn_check}
 
 
 def create(site: str, data: dict, by: str = "manual") -> dict:
@@ -180,6 +237,23 @@ def create(site: str, data: dict, by: str = "manual") -> dict:
             return change_state(site, existing["id"], new_state, by=by, note=data.get("notes", ""))
         return {"existing": True, **existing}
 
+    # Pré-import : validator local + Mailnjoy
+    vcheck = _validate_address(email)
+    # Log dans god_mode_logs (visible dans /admin/logs)
+    try:
+        import god_mode_backend as _gm
+        _gm.log_action(site, by, "system", "mailnjoy_check", resource="email", resource_id=email,
+                       payload={"decision": vcheck.get("decision") or "valid",
+                                "result": (vcheck.get("mailnjoy_check") or {}).get("result") if vcheck.get("ok") else None,
+                                "reason": vcheck.get("reason")},
+                       success=bool(vcheck.get("ok")),
+                       error=vcheck.get("reason") if not vcheck.get("ok") else None)
+    except Exception:
+        pass
+    if not vcheck.get("ok"):
+        return {"rejected": True, "email": email, "decision": vcheck.get("decision"), "reason": vcheck.get("reason")}
+    mn_check_json = json.dumps(vcheck.get("mailnjoy_check")) if vcheck.get("mailnjoy_check") else None
+
     new_id = _new_id()
     state = data.get("state", "cold_email")
     if state not in VALID_STATES:
@@ -194,8 +268,8 @@ def create(site: str, data: dict, by: str = "manual") -> dict:
                (id, state, source, email, nom, prenom, societe, tel, notes, state_history,
                 created_at, updated_at, last_action_at,
                 sector, dept_code, region_code,
-                email_sent_at, emelia_campaign_id, emelia_contact_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                email_sent_at, emelia_campaign_id, emelia_contact_id, mailnjoy_check)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [
                 new_id, state, source, email,
                 data.get("nom", ""), data.get("prenom", ""), data.get("societe", ""),
@@ -203,6 +277,7 @@ def create(site: str, data: dict, by: str = "manual") -> dict:
                 _now(), _now(), _now() if state != "cold_email" else None,
                 data.get("sector"), data.get("dept_code"), data.get("region_code"),
                 data.get("email_sent_at"), data.get("emelia_campaign_id"), data.get("emelia_contact_id"),
+                mn_check_json,
             ],
         )
     finally:
@@ -273,7 +348,7 @@ def list_contacts(site: str, state: list[str] | None = None, source: list[str] |
         total = conn.execute(f"SELECT COUNT(*) FROM acquisition_contacts{where_sql}", params).fetchone()[0]
         rows = conn.execute(
             f"""SELECT id, state, source, email, nom, prenom, societe, tel, notes,
-                       state_history, created_at, updated_at, last_action_at
+                       state_history, created_at, updated_at, last_action_at, mailnjoy_check
                 FROM acquisition_contacts{where_sql}
                 ORDER BY COALESCE(last_action_at, updated_at) DESC
                 LIMIT ? OFFSET ?""",
@@ -331,7 +406,7 @@ def blacklist(site: str, contact_id: str, push_emelia: bool = False, emelia_api_
 
 def bulk_import(site: str, rows: list[dict], source: str = "import_csv", default_state: str = "cold_email") -> dict:
     """Import en masse. Dédup par email. Retourne stats."""
-    added, skipped, errors = 0, 0, 0
+    added, skipped, errors, rejected = 0, 0, 0, 0
     for r in rows:
         email = (r.get("email") or "").strip().lower()
         if not email or "@" not in email:
@@ -354,9 +429,11 @@ def bulk_import(site: str, rows: list[dict], source: str = "import_csv", default
         res = create(site, payload, by="bulk_import")
         if res.get("created"):
             added += 1
+        elif res.get("rejected"):
+            rejected += 1
         else:
             skipped += 1
-    return {"added": added, "skipped": skipped, "errors": errors, "total_seen": len(rows)}
+    return {"added": added, "skipped": skipped, "errors": errors, "rejected": rejected, "total_seen": len(rows)}
 
 
 def stats(site: str) -> dict:
