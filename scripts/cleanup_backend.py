@@ -143,50 +143,112 @@ def list_for_cleanup(mode: str, days: int = 180, limit: int = 200) -> list[dict]
     return out
 
 
-def run_cleanup(mode: str, site: str = "lcr", days: int = 180, limit: int = 200) -> dict:
-    """Re-valide + supprime du pool si invalid/risky."""
+def run_cleanup(mode: str, site: str = "lcr", days: int = 180, limit: int = 200,
+                progress_cb=None, should_stop=None) -> dict:
+    """Re-valide + supprime du pool si invalid/risky.
+    progress_cb(stats, processed, email) appelé après chaque contact (best-effort).
+    should_stop() callable → si retourne True, arrête proprement (stats["stopped"]=True)."""
     from acquisition_backend import _validate_address  # type: ignore
     targets = list_for_cleanup(mode=mode, days=days, limit=limit)
-    stats = {"mode": mode, "total": len(targets), "valid": 0, "removed": 0, "skipped": 0, "errors": 0}
+    stats = {"mode": mode, "total": len(targets), "valid": 0, "removed": 0, "skipped": 0, "errors": 0, "stopped": False}
+
+    def _emit(processed: int, email):
+        if progress_cb:
+            try: progress_cb(stats, processed, email)
+            except Exception: pass
+
+    _emit(0, None)
     if not targets:
         return stats
 
     c = _pool(read_only=False)
     try:
-        for t in targets:
+        for i, t in enumerate(targets, start=1):
+            if should_stop and should_stop():
+                stats["stopped"] = True
+                break
             email = t["email"]; cid = t["id"]
             try:
-                v = _validate_address(email)
-            except Exception as e:  # noqa: BLE001
-                stats["errors"] += 1
-                _log(site, "cleanup_error", email, {"mode": mode, "err": str(e)}, False, str(e))
-                continue
-            if not v.get("ok"):
                 try:
-                    c.execute("DELETE FROM contacts WHERE id = ?", [cid])
-                    stats["removed"] += 1
-                    _log(site, "cleanup_removed", email,
-                         {"mode": mode, "decision": v.get("decision"), "reason": v.get("reason")}, True)
+                    v = _validate_address(email)
+                except Exception as e:  # noqa: BLE001
+                    stats["errors"] += 1
+                    _log(site, "cleanup_error", email, {"mode": mode, "err": str(e)}, False, str(e))
+                    continue
+                if not v.get("ok"):
+                    try:
+                        c.execute("DELETE FROM contacts WHERE id = ?", [cid])
+                        stats["removed"] += 1
+                        _log(site, "cleanup_removed", email,
+                             {"mode": mode, "decision": v.get("decision"), "reason": v.get("reason")}, True)
+                    except Exception as e:  # noqa: BLE001
+                        stats["errors"] += 1
+                        _log(site, "cleanup_error", email, {"err": str(e)}, False, str(e))
+                    continue
+                mnc = v.get("mailnjoy_check")
+                if mnc is None:
+                    stats["skipped"] += 1
+                    continue
+                try:
+                    c.execute(
+                        "UPDATE contacts SET mailnjoy_check = ?, updated_at = ? WHERE id = ?",
+                        [json.dumps(mnc), datetime.now(timezone.utc), cid],
+                    )
+                    stats["valid"] += 1
+                    _log(site, "cleanup_validated", email,
+                         {"mode": mode, "result": mnc.get("result"), "decision": mnc.get("decision")}, True)
                 except Exception as e:  # noqa: BLE001
                     stats["errors"] += 1
                     _log(site, "cleanup_error", email, {"err": str(e)}, False, str(e))
-                continue
-            mnc = v.get("mailnjoy_check")
-            if mnc is None:
-                stats["skipped"] += 1
-                continue
-            try:
-                c.execute(
-                    "UPDATE contacts SET mailnjoy_check = ?, updated_at = ? WHERE id = ?",
-                    [json.dumps(mnc), datetime.now(timezone.utc), cid],
-                )
-                stats["valid"] += 1
-                _log(site, "cleanup_validated", email,
-                     {"mode": mode, "result": mnc.get("result"), "decision": mnc.get("decision")}, True)
-            except Exception as e:  # noqa: BLE001
-                stats["errors"] += 1
-                _log(site, "cleanup_error", email, {"err": str(e)}, False, str(e))
+            finally:
+                _emit(i, email)
     finally:
         c.close()
     _log(site, "cleanup_batch", "-", stats, True)
     return stats
+
+
+def run_cleanup_drain(mode: str, site: str = "lcr", days: int = 180,
+                      chunk_size: int = 100, total_limit=None,
+                      progress_cb=None, should_stop=None) -> dict:
+    """Drain complet : enchaîne des chunks de `chunk_size` jusqu'à épuisement,
+    atteinte de `total_limit`, ou stop demandé. Log final `cleanup_drain`.
+
+    progress_cb(cumulative, chunk_stats, chunk_processed, email) — appelé après
+    chaque contact, avec :
+      - cumulative : agrégats cross-chunks (chunks_done, total, valid, removed, ...)
+      - chunk_stats : stats du chunk en cours (live)
+      - chunk_processed : nb traités dans le chunk courant
+      - email : dernier email traité
+    """
+    cum = {"chunks_done": 0, "total": 0, "valid": 0, "removed": 0,
+           "skipped": 0, "errors": 0, "drained": False, "stopped": False}
+
+    def _chunk_progress(chunk_stats, processed, email):
+        if progress_cb:
+            try: progress_cb(cum, chunk_stats, processed, email)
+            except Exception: pass
+
+    while True:
+        if should_stop and should_stop():
+            cum["stopped"] = True
+            break
+        if total_limit is not None and cum["total"] >= total_limit:
+            break
+        remaining = (total_limit - cum["total"]) if total_limit is not None else chunk_size
+        nb = min(chunk_size, remaining)
+        cs = run_cleanup(mode=mode, site=site, days=days, limit=nb,
+                         progress_cb=_chunk_progress, should_stop=should_stop)
+        cum["chunks_done"] += 1
+        for k in ("total", "valid", "removed", "skipped", "errors"):
+            cum[k] += cs.get(k, 0)
+        if cs.get("stopped"):
+            cum["stopped"] = True
+            break
+        if cs.get("total", 0) < nb:
+            # pool épuisé pour ce mode
+            cum["drained"] = True
+            break
+
+    _log(site, "cleanup_drain", "-", cum, True)
+    return cum

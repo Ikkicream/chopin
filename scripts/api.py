@@ -112,6 +112,12 @@ async def auth_middleware(request: Request, call_next):
     if path in _AUTH_OPEN_PATHS:
         return await call_next(request)
 
+    # Endpoints de test interne loopback-only (dryrun non destructif + test-batch run synchrone)
+    if path.endswith("/cleanup/dryrun") or path.endswith("/cleanup/test-batch"):
+        client_host = (request.client.host if request.client else "")
+        if client_host in ("127.0.0.1", "::1", "localhost"):
+            return await call_next(request)
+
     # Sinon : Bearer session token obligatoire
     bearer = request.headers.get("authorization", "")
     token = bearer[7:] if bearer.startswith("Bearer ") else ""
@@ -4642,6 +4648,23 @@ def api_cleanup_counts(site: str):
     }
 
 
+@app.get("/api/sites/{site}/cleanup/history")
+def api_cleanup_history(site: str, limit: int = 50):
+    """Historique dédié des cycles de nettoyage : ne renvoie QUE les events cleanup_batch.
+    Évite que les events cleanup_validated/cleanup_removed (très nombreux) ne poussent
+    les batches hors de la fenêtre quand on regarde /logs?limit=N."""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import god_mode_backend as gm
+    try:
+        rows = gm.list_logs(site, limit=min(limit, 200), action="cleanup_batch")
+    except TypeError:
+        # backward-compat si list_logs n'a pas encore le param action
+        rows = [l for l in gm.list_logs(site, limit=1000) if l.get("action") == "cleanup_batch"][:limit]
+    return {"logs": rows, "count": len(rows)}
+
+
 @app.get("/api/sites/{site}/cleanup/contacts")
 def api_cleanup_list(site: str, limit: int = 500):
     """Liste paginée du POOL pour la page Cleanup (table)."""
@@ -4650,19 +4673,253 @@ def api_cleanup_list(site: str, limit: int = 500):
     return {"contacts": cb.list_pool(limit=limit)}
 
 
+# État des nettoyages en cours (clé site:mode → dict progress) — évite les doubles lancements.
+# Strictement séquentiel : un seul cycle ACTIF à la fois TOUS sites confondus.
+import threading as _th
+_active_cleanups: dict[str, dict] = {}
+_cleanup_lock = _th.Lock()  # protège les writes sur _active_cleanups
+
+
+def _is_any_cleanup_active() -> bool:
+    """Vrai si AU MOINS un nettoyage tourne (séquentiel global)."""
+    with _cleanup_lock:
+        return len(_active_cleanups) > 0
+
+
+def _set_cleanup_progress(key: str, **patch):
+    """Merge patch dans l'état progress de ce cycle."""
+    with _cleanup_lock:
+        cur = _active_cleanups.get(key, {})
+        cur.update(patch)
+        _active_cleanups[key] = cur
+
+
 @app.post("/api/sites/{site}/cleanup/run")
 async def api_cleanup_run(site: str, request: Request):
-    """Lance un cycle de nettoyage. Body: {mode: 'unverified'|'stale', limit?: int}."""
+    """Lance un cycle en ARRIÈRE-PLAN (thread daemon). Retourne immédiatement.
+    SÉQUENTIEL STRICT : refuse si UN nettoyage est en cours (tous sites/modes confondus).
+
+    Body :
+      - mode: 'unverified' | 'stale' (requis)
+      - drain: bool (default False) — si True, enchaîne des chunks jusqu'à épuisement
+      - chunk_size: int (default 100) — taille d'un chunk (en mode drain comme single)
+      - total_limit: int|null (default null) — en drain, plafond cumulé (null = drain complet)
+      - limit: int — backward-compat ; en mode single = chunk_size, en mode drain ignoré (chunk_size prime)
+    """
     if site not in ("lcr", "mkd"):
         return {"error": "invalid site"}
     body = await request.json()
     mode = (body.get("mode") or "").strip()
     if mode not in ("unverified", "stale"):
         return {"ok": False, "error": "mode requis (unverified | stale)"}
-    limit = int(body.get("limit") or 200)
+    drain = bool(body.get("drain", False))
+    # backward-compat : limit aussi accepté pour mode single
+    chunk_size = int(body.get("chunk_size") or body.get("limit") or 100)
+    raw_total = body.get("total_limit")
+    total_limit = int(raw_total) if raw_total else None
+    key = f"{site}:{mode}"
+
+    # Verrou strict séquentiel : un seul cycle GLOBAL à la fois.
+    with _cleanup_lock:
+        if _active_cleanups:
+            running_key = next(iter(_active_cleanups))
+            return {
+                "ok": False,
+                "running": True,
+                "error": f"Un nettoyage est déjà en cours ({running_key}). Mode séquentiel.",
+                "active_key": running_key,
+                "active": _active_cleanups[running_key],
+            }
+        # Pré-réservation : insertion atomique de l'état initial
+        import time as _tm
+        _active_cleanups[key] = {
+            "site": site, "mode": mode,
+            "drain": drain, "chunk_size": chunk_size, "total_limit": total_limit,
+            "processed": 0, "total": chunk_size,
+            "valid": 0, "removed": 0, "skipped": 0, "errors": 0,
+            "last_email": None,
+            "started_at": _tm.time(),
+            "status": "starting",
+            "stop_requested": False,
+            # Cumul cross-chunks (en mode drain). En mode single, reste à 0/identique au chunk.
+            "cumulative": {"chunks_done": 0, "total": 0, "valid": 0, "removed": 0,
+                           "skipped": 0, "errors": 0, "drained": False, "stopped": False},
+        }
+
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import cleanup_backend as cb
-    return {"ok": True, **cb.run_cleanup(mode=mode, site=site, limit=limit)}
+
+    def _should_stop() -> bool:
+        # Lecture lock-free : un read d'une clé dict est atomique en CPython
+        st = _active_cleanups.get(key)
+        return bool(st and st.get("stop_requested"))
+
+    def _on_progress_single(stats, processed, email):
+        """Mode single : un seul chunk, processed = position dans le chunk."""
+        _set_cleanup_progress(
+            key,
+            total=stats.get("total", chunk_size),
+            processed=processed,
+            valid=stats.get("valid", 0),
+            removed=stats.get("removed", 0),
+            skipped=stats.get("skipped", 0),
+            errors=stats.get("errors", 0),
+            last_email=email,
+            status="running" if processed < stats.get("total", chunk_size) else "finishing",
+        )
+
+    def _on_progress_drain(cum, chunk_stats, chunk_processed, email):
+        """Mode drain : on expose chunk courant + cumulatif."""
+        _set_cleanup_progress(
+            key,
+            total=chunk_stats.get("total", chunk_size),
+            processed=chunk_processed,
+            valid=chunk_stats.get("valid", 0),
+            removed=chunk_stats.get("removed", 0),
+            skipped=chunk_stats.get("skipped", 0),
+            errors=chunk_stats.get("errors", 0),
+            last_email=email,
+            status="running",
+            cumulative=dict(cum),  # copie pour éviter de partager la ref
+        )
+
+    def _runner():
+        try:
+            if drain:
+                cb.run_cleanup_drain(
+                    mode=mode, site=site,
+                    chunk_size=chunk_size,
+                    total_limit=total_limit,
+                    progress_cb=_on_progress_drain,
+                    should_stop=_should_stop,
+                )
+            else:
+                cb.run_cleanup(
+                    mode=mode, site=site, limit=chunk_size,
+                    progress_cb=_on_progress_single,
+                    should_stop=_should_stop,
+                )
+        except Exception as e:
+            print(f"  [cleanup_run] err: {e}")
+        finally:
+            with _cleanup_lock:
+                _active_cleanups.pop(key, None)
+
+    _th.Thread(target=_runner, daemon=True).start()
+    return {
+        "ok": True, "queued": True, "mode": mode, "drain": drain,
+        "chunk_size": chunk_size, "total_limit": total_limit, "key": key,
+    }
+
+
+@app.post("/api/sites/{site}/cleanup/stop")
+def api_cleanup_stop(site: str):
+    """Demande l'arrêt PROPRE du cycle en cours pour ce site.
+    Le thread vérifie le flag entre chaque contact et entre chaque chunk."""
+    with _cleanup_lock:
+        for k in list(_active_cleanups.keys()):
+            if k.startswith(site + ":"):
+                _active_cleanups[k]["stop_requested"] = True
+                _active_cleanups[k]["status"] = "stopping"
+                return {"ok": True, "key": k, "stopping": True}
+    return {"ok": False, "error": "Aucun cycle en cours pour ce site"}
+
+
+@app.get("/api/sites/{site}/cleanup/status")
+def api_cleanup_status(site: str):
+    """État détaillé des nettoyages actifs pour ce site (avec progress)."""
+    with _cleanup_lock:
+        items = [
+            {"mode": k.split(":", 1)[1], **v}
+            for k, v in _active_cleanups.items()
+            if k.startswith(site + ":")
+        ]
+    # Compat ancien front : on garde aussi un champ "active" = liste des modes
+    return {"active": [it["mode"] for it in items], "items": items}
+
+
+@app.get("/api/cleanup/active")
+def api_cleanup_active_global():
+    """État GLOBAL (tous sites) pour la superadmin top bar."""
+    with _cleanup_lock:
+        items = [{"key": k, **v} for k, v in _active_cleanups.items()]
+    return {"count": len(items), "items": items}
+
+
+@app.get("/api/sites/{site}/cleanup/test-batch")
+def api_cleanup_test_batch(site: str, limit: int = 5, mode: str = "unverified",
+                           drain: bool = False, chunk_size: int = 3):
+    """Test d'intégration LOOPBACK-ONLY : exécute synchrone (single ou drain) et compare counts."""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    if mode not in ("unverified", "stale"):
+        return {"ok": False, "error": "mode invalide"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import cleanup_backend as cb, time as _t
+    before = {"unverified": cb.count_unverified(), "stale": cb.count_stale(days=180)}
+    t0 = _t.time()
+    if drain:
+        res = cb.run_cleanup_drain(
+            mode=mode, site=site,
+            chunk_size=chunk_size,
+            total_limit=limit,
+        )
+    else:
+        res = cb.run_cleanup(mode=mode, site=site, limit=limit)
+    after = {"unverified": cb.count_unverified(), "stale": cb.count_stale(days=180)}
+    return {
+        "ok": True, "mode": mode, "drain": drain,
+        "limit": limit, "chunk_size": chunk_size,
+        "elapsed_s": round(_t.time() - t0, 2),
+        "counts_before": before, "counts_after": after,
+        "diff_unverified": before["unverified"] - after["unverified"],
+        "result": res,
+    }
+
+
+@app.get("/api/sites/{site}/cleanup/dryrun")
+def api_cleanup_dryrun(site: str, email: str = ""):
+    """Test unitaire NON-DESTRUCTIF : valide 1 contact et indique ce qui SERAIT fait, sans toucher la DB.
+    Si email vide → prend le premier non vérifié du pool."""
+    if site not in ("lcr", "mkd"):
+        return {"error": "invalid site"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import cleanup_backend as cb
+    from acquisition_backend import _validate_address
+    import duckdb
+    target = (email or "").strip()
+    if not target:
+        # Récup 1 candidat : on passe par la même config (read_only=False) pour éviter
+        # le "different configuration than existing connections" de DuckDB.
+        c = cb._pool(read_only=False)
+        try:
+            row = c.execute(
+                "SELECT email FROM contacts "
+                "WHERE (mailnjoy_check IS NULL OR LENGTH(mailnjoy_check)=0) "
+                "AND (global_blacklisted IS NULL OR global_blacklisted = FALSE) "
+                "ORDER BY created_at NULLS FIRST LIMIT 1"
+            ).fetchone()
+        finally:
+            c.close()
+        if not row:
+            return {"ok": False, "error": "Aucun contact non vérifié dans le pool"}
+        target = row[0]
+    v = _validate_address(target)
+    mn = v.get("mailnjoy_check")
+    would = "skip"
+    if not v.get("ok"):
+        would = "delete"
+    elif mn is not None:
+        would = "update"
+    return {
+        "ok": True,
+        "email": target,
+        "validate_ok": v.get("ok"),
+        "decision": v.get("decision"),
+        "reason": v.get("reason"),
+        "mailnjoy_check": mn,
+        "would_action": would,
+    }
 
 
 @app.post("/api/sites/{site}/imagekit/upload")

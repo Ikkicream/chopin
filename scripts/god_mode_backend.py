@@ -236,13 +236,22 @@ def log_action(site_code: str, username: str, user_id: str, action: str, resourc
     return log_id
 
 
-def list_logs(site_code: str = None, limit: int = 200):
+def list_logs(site_code: str = None, limit: int = 200, action: str = None):
+    """Liste les logs ; si `action` est fourni, filtre exactement par cette action (ex: 'cleanup_batch')."""
     c = _conn()
     try:
+        sql = "SELECT id, site_code, username, action, resource, resource_id, ip, payload, success, error_message, created_at FROM god_mode_logs"
+        clauses = []
+        args = []
         if site_code:
-            rows = c.execute("SELECT id, site_code, username, action, resource, resource_id, ip, payload, success, error_message, created_at FROM god_mode_logs WHERE site_code=? ORDER BY created_at DESC LIMIT ?", [site_code, limit]).fetchall()
-        else:
-            rows = c.execute("SELECT id, site_code, username, action, resource, resource_id, ip, payload, success, error_message, created_at FROM god_mode_logs ORDER BY created_at DESC LIMIT ?", [limit]).fetchall()
+            clauses.append("site_code=?"); args.append(site_code)
+        if action:
+            clauses.append("action=?"); args.append(action)
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        args.append(limit)
+        rows = c.execute(sql, args).fetchall()
     finally:
         c.close()
     return [{"id": r[0], "site_code": r[1], "username": r[2], "action": r[3], "resource": r[4], "resource_id": r[5], "ip": r[6], "payload": json.loads(r[7]) if r[7] else None, "success": r[8], "error": r[9], "created_at": str(r[10])} for r in rows]
