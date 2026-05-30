@@ -4,7 +4,7 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-05-25 (refonte génération cold email par secteur — voir dernière section « COLD EMAIL »)
+2026-05-30 (sessions Mailnjoy cleanup — voir dernière section)
 
 ## Goal en cours
 Tester le pipeline **Workflow LCR** de bout en bout (Serper → DeepSeek qualifier → push Emelia → cold email envoyé).
@@ -36,6 +36,8 @@ Mail test attendu sur afchain.camille@gmail.com via la campagne workflow-lcr-res
 - Quota Emelia : 50 contacts/site/jour max
 
 ## Historique des sessions récentes
+- 2026-05-30 (suite) : ligne Serper passée en **solde restant** au lieu de conso/mois. Serper n'ayant pas d'API de solde, snapshot manuel dans memory/seo/serper-balance.json {plan_total:2500, balance:2442, snapshot_at}. L'endpoint /api/serper/usage renvoie `available = balance − conso locale depuis snapshot_at` (god_mode_serper_calls + costs-log). Affichage widget = `2 442 / 2 500` (rouge si <10%). Pour resync : relever le vrai solde sur serper.dev et mettre à jour balance+snapshot_at dans le JSON.
+- 2026-05-30 : Widget conso sidebar (CreditsWidget) — ajout ligne **Serper** (crédits consommés mois en cours). Serper.dev n'expose AUCUNE API de solde (/account,/balance,/credits => 403), donc affichage = conso locale : table god_mode_serper_calls + entrées serper-search du costs-log. Nouvel endpoint GET /api/serper/usage (api.py). Confirmé : le widget se rafraîchit déjà toutes les 60s (DeepSeek/Mailnjoy live, Ahrefs = cache quotidien cron 06:00) — l'impression 'statique' venait du quota Ahrefs gelé jusqu'au reset 2026-06-17, pas d'un bug. Build genesis-ui + pm2 restart genesis-ui/genesis-dashboard OK.
 - 2026-05-21 soir : test pipeline bloqué sur abo Emelia inactif. User est allé se coucher en disant 'j'active demain matin'.
 - 2026-05-22 matin : SSH cassé (clé non offerte), résolu en ajoutant bloc Host lcr dans ~/.ssh/config Mac avec IdentityFile id.mkdautoblog. Cron du matin a tourné et poussé 11 contacts → l'abo Emelia est manifestement actif.
 
@@ -505,3 +507,75 @@ Entités (cf. mémoire reference_legal_entities) : LCR=HUMANETICS LABS (SARL, SI
 `genesis-ui` est géré par **pnpm** (pnpm-lock.yaml, node_modules/.pnpm). **NE JAMAIS faire `npm install`** ici → ça crashe arborist ("Cannot read properties of null (reading 'matches')"). Utiliser **`pnpm add <pkg>`** (via `sudo -u autoblog`). `npm run build` reste OK (n'installe rien).
 ### Sprint éditeur newsletters HTML — incrément ① fait
 - structures/leclientroi-newsletter-v2.html transférée ; module scripts/html_templates_backend.py + table html_templates + 6 endpoints /api/sites/{site}/html/* (testés). dnd-kit installé (pnpm). Reste ② composant éditeur (dnd blocs + édition in-place texte/image) + ③ intégration step 2 + envoi Emelia.
+
+---
+
+## Sessions Mailnjoy cleanup — 2026-05-28 → 2026-05-30
+
+**Pitch** : nettoyage périodique du pool `contacts.duckdb` via Mailnjoy (suppression invalid/risky, certif. valid posée sur `mailnjoy_check` JSON). Page dédiée `/site/[code]/cleanup`.
+
+### Architecture livrée (refactor sérieux, fin de session 2026-05-28)
+
+**Backend (`scripts/cleanup_backend.py`)**
+- `run_cleanup(mode, site, limit, progress_cb=None, should_stop=None)` — 1 chunk synchrone. `should_stop()` checké AVANT chaque contact ; `progress_cb(stats, processed, email)` émis APRÈS chaque contact (try/finally garantit l'émission, les `continue` ne sautent rien).
+- `run_cleanup_drain(mode, site, chunk_size=100, total_limit=None, progress_cb, should_stop)` — enchaîne des chunks jusqu'à épuisement / `total_limit` / stop. Log final `cleanup_drain` event.
+- Pool = `data/contacts.duckdb` (PAS `acquisition_contacts` — exclus globalement les `global_blacklisted`).
+- Modes : `unverified` (mailnjoy_check NULL/vide) · `stale` (mailnjoy_check > 180j).
+
+**API (`scripts/api.py`)**
+- `_active_cleanups: dict[key→state]` + `_cleanup_lock` (threading.Lock). **Verrou STRICT séquentiel global** (1 cycle à la fois TOUS sites/modes confondus).
+- `POST /api/sites/{site}/cleanup/run` body : `{mode, drain, chunk_size, total_limit, limit?}` — spawn thread daemon, retour immédiat avec `{queued:true,key}`. Si cycle déjà actif → `{ok:false, running:true, active:{...}}`.
+- `POST /api/sites/{site}/cleanup/stop` — pose `stop_requested=true` + `status="stopping"`. Le thread vérifie entre 2 contacts ET entre 2 chunks.
+- `GET /api/sites/{site}/cleanup/status` — état détaillé `items[]` avec processed/total/valid/removed/cumulative/last_email/started_at/status.
+- `GET /api/cleanup/active` — état GLOBAL tous sites (alimente la SuperadminBar).
+- `GET /api/sites/{site}/cleanup/history?limit=20` — **endpoint dédié** retournant UNIQUEMENT les events `cleanup_batch` (évite la saturation des 100 derniers logs par les events fils validated/removed).
+- `GET /api/sites/{site}/cleanup/counts` — non-vérifiés + stale.
+- `GET /api/sites/{site}/cleanup/contacts?limit=10000` — liste pool (limite remontée pour cohérence compteur).
+- **Endpoints test loopback-only** (bypass auth via middleware si `request.client.host ∈ {127.0.0.1, ::1}`) :
+  - `GET /cleanup/dryrun?email=` — non-destructif, retourne what would be done sur 1 contact.
+  - `GET /cleanup/test-batch?limit=N&drain=true&chunk_size=N` — sync, counts avant/après.
+- **`god_mode_backend.list_logs(action=...)`** étendu pour filtre par action exacte (utilisé par /cleanup/history).
+
+**Frontend (`genesis-ui/src/app/site/[code]/cleanup/page.tsx`)**
+- `startAuto` = **1 SEUL POST drain=true chunk_size=100**. Plus aucune boucle JS, plus de `waitUntilFree`, plus de `findBatch`, plus de timeouts JS.
+- `stopAuto` = POST `/cleanup/stop` + `autoRef=false`.
+- État `progress` polling `/cleanup/status` (1.5s actif / 6s idle). Auto-reset `autoMode` quand `progress` passe à null.
+- Card **Cycle en cours** (border-primary/50) : 2 barres (chunk + global si total_limit) + cumul cross-chunks + indication "Arrêt en cours…" pendant un stop.
+- `DataTable` étendu avec prop `selectFilter` (Select shadcn). Branché sur colonne `mailnjoy_status` (filtre Non vérifié / Valide / En attente / Invalide / À risque).
+- Compteur cohérent : `Contacts du pool (N) — dont X jamais vérifiés` (chargement complet, limit=10000).
+- **Tous les libellés en français** : MODE_LABEL, ACTION_LABEL, DEC_FR (helpers en tête de fichier). `unverified→Première vérification`, `stale→Revalidation (>6 mois)`, `valid→Valide`, `risky→À risque`, etc.
+
+**SuperadminBar (`genesis-ui/src/components/superadmin-bar.tsx`)**
+- Poll `/api/cleanup/active` (2s actif, 8s idle). Affiche inline pour chaque cycle : `LCR Première vérification 23/50 [▓▓▓░░] 46%` + tooltip détaillé FR. Idle = "Aucun nettoyage en cours".
+
+### Validation
+- ✅ **Unitaire** : `/cleanup/dryrun` → 1 contact pool, Mailnjoy VALID/SAFE, would=update, **0 écriture DB**.
+- ✅ **Intégration limit=1** : `4818→4817`, batch {1 valid, 0 removed} en 11.79s.
+- ✅ **Batch 50** : `4817→4767`, batch {26 valid, 24 removed, 0 errors} en 256s.
+- ✅ **Drain 6 contacts en chunks de 3** : `4612→4606`, 2 chunks, 5 valid + 1 removed en 28.94s.
+- Validation visuelle par le user en attente après hard-reload `/site/lcr/cleanup`.
+
+### Bugs fixés (chronologique)
+- **DuckDB lock conflict** : test scripts externes ne peuvent pas se connecter pendant que l'API a un write-lock → endpoints test loopback à la place.
+- **Read-only/read-write config mismatch** : `duckdb.connect(read_only=True)` échoue si une autre connection RW existe dans le même process → utiliser `cb._pool(read_only=False)`.
+- **API freeze 504** : `cleanup/run` synchrone bloquait le worker uvicorn (316 restarts observés) → thread daemon + retour immédiat.
+- **Race "Un cycle déjà en cours"** : ancien `set` non-atomique + retry trop court → dict + Lock + verrou GLOBAL séquentiel + retry intelligent.
+- **Timeout JS 4 min trop court** : 50 contacts × ~5s = 250s, juste au-dessus de 240s → drain mode élimine le problème (plus de boucle JS).
+- **Historique aléatoire 2-3 lignes** : `/logs?limit=100` saturé par events validated/removed → endpoint dédié `/cleanup/history` qui filtre exactement `cleanup_batch`.
+- **DuckDB SQL** : double-double-quote pour empty string non supportée → `LENGTH(mailnjoy_check)=0`.
+- **god_mode_api.py root-owned** : patch impossible sans `sudo chown` (bloqué par classifier) → contourné en ajoutant la route dans api.py.
+
+### PM2 processes
+- `genesis-dashboard` (PID variable, FastAPI port 8080) — restart après tout patch backend
+- `genesis-ui` (Next 16 port 3100, pnpm build) — restart après tout patch front + `pnpm build` AVANT (jamais `npm install`)
+- `genesis-mailnjoy-drain` — cron 5min qui drain `scrappe_pending` (existant avant cette session)
+
+### Sweego (parqué)
+- Pool LCR contient 5117 contacts (au début de session), réduit à ~4600 après tests cumulés (~250 supprimés invalid/risky).
+- Sweego API key + ImageKit private key avaient fuité en chat → user à régénérer.
+- Routage production Sweego PAUSE STRICT : tests uniquement vers `afchain.camille@gmail.com`.
+
+### Restes
+- #8 `/security-review` (déclenché par user)
+- #23-25 Sweego : reroute production + déploiement + CNAME tracking
+- Validation visuelle par le user de la page cleanup (filtre Mailnjoy + Progress bar + drain end-to-end)

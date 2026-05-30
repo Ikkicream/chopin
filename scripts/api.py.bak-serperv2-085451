@@ -3631,90 +3631,55 @@ def get_ahrefs_usage():
 
 @app.get("/api/serper/usage")
 def get_serper_usage():
-    """Crédits Serper.
+    """Crédits Serper consommés sur le mois en cours.
 
     Serper.dev n'expose AUCUNE API de solde restant (endpoints /account, /balance,
-    /credits => 403). On part donc d'un snapshot manuel du solde
-    (memory/seo/serper-balance.json : {plan_total, balance, snapshot_at}) et on
-    décrémente avec la conso locale loggée DEPUIS le snapshot.
+    /credits => 403 ; le champ `credits` de la réponse search = crédits consommés par
+    l'appel, pas le restant). On affiche donc la conso locale du mois.
 
-    Conso locale = table god_mode_serper_calls (scraper) + entrées model=serper-search
-    du costs-log (chemins distincts, pas de double comptage).
+    Sources (chemins de code distincts, pas de double comptage) :
+      - table god_mode_serper_calls (scraper god-mode, source principale)
+      - entrées model=serper-search du costs-log (appels serper_client standalone)
     """
     try:
         now = datetime.now(timezone.utc)
         month = now.strftime("%Y-%m")
+        used = 0
 
-        cfg_path = BASE_DIR / "memory" / "seo" / "serper-balance.json"
-        cfg = {}
-        if cfg_path.exists():
-            try:
-                cfg = json.loads(cfg_path.read_text())
-            except Exception:
-                cfg = {}
-        plan_total  = cfg.get("plan_total")
-        balance     = cfg.get("balance")
-        snapshot_at = cfg.get("snapshot_at")  # ISO UTC
+        # 1) Table structurée alimentée par le scraper
+        try:
+            import duckdb
+            c = duckdb.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+            row = c.execute(
+                "SELECT COALESCE(SUM(credits), 0) FROM god_mode_serper_calls "
+                "WHERE strftime(created_at, '%Y-%m') = ?", [month]).fetchone()
+            used += int(row[0] or 0)
+            c.close()
+        except Exception:
+            pass
 
-        def _sum_credits(since_iso):
-            """Somme des crédits Serper consommés. Si since_iso=None => mois courant."""
-            total = 0
-            # 1) Table god_mode_serper_calls
-            try:
-                import duckdb
-                c = duckdb.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
-                if since_iso:
-                    snap_naive = since_iso[:19].replace("T", " ")
-                    r = c.execute(
-                        "SELECT COALESCE(SUM(credits), 0) FROM god_mode_serper_calls "
-                        "WHERE created_at >= ?::TIMESTAMP", [snap_naive]).fetchone()
-                else:
-                    r = c.execute(
-                        "SELECT COALESCE(SUM(credits), 0) FROM god_mode_serper_calls "
-                        "WHERE strftime(created_at, '%Y-%m') = ?", [month]).fetchone()
-                total += int(r[0] or 0)
-                c.close()
-            except Exception:
-                pass
-            # 2) costs-log (appels serper_client standalone)
-            try:
-                if COSTS_FILE.exists():
-                    data = json.loads(COSTS_FILE.read_text())
-                    entries = data if isinstance(data, list) else data.get("entries", [])
-                    for e in entries:
-                        if str(e.get("model", "")) != "serper-search":
+        # 2) Entrées serper du costs-log (appels standalone)
+        try:
+            if COSTS_FILE.exists():
+                data = json.loads(COSTS_FILE.read_text())
+                entries = data if isinstance(data, list) else data.get("entries", [])
+                for e in entries:
+                    if str(e.get("model", "")) != "serper-search":
+                        continue
+                    if not str(e.get("date", "")).startswith(month):
+                        continue
+                    note = str(e.get("note", ""))
+                    if "credits=" in note:
+                        try:
+                            used += int(note.split("credits=")[1].split()[0])
                             continue
-                        if since_iso:
-                            ts = str(e.get("timestamp", "") or e.get("date", ""))
-                            if ts[:19] < since_iso[:19]:
-                                continue
-                        else:
-                            if not str(e.get("date", "")).startswith(month):
-                                continue
-                        note = str(e.get("note", ""))
-                        if "credits=" in note:
-                            try:
-                                total += int(note.split("credits=")[1].split()[0])
-                                continue
-                            except Exception:
-                                pass
-                        total += round((e.get("cost_usd", 0) or 0) / 0.001)
-            except Exception:
-                pass
-            return total
+                        except Exception:
+                            pass
+                    used += round((e.get("cost_usd", 0) or 0) / 0.001)
+        except Exception:
+            pass
 
-        out = {
-            "used_month": _sum_credits(None),
-            "month": month,
-            "fetched_at": now.isoformat(),
-        }
-        if plan_total is not None:
-            out["plan_total"] = plan_total
-        if balance is not None and snapshot_at:
-            consumed_since = _sum_credits(snapshot_at)
-            out["consumed_since_snapshot"] = consumed_since
-            out["available"] = max(0, int(balance) - consumed_since)
-        return out
+        return {"used_month": used, "month": month, "fetched_at": now.isoformat()}
     except Exception as e:
         return {"error": str(e)}
 
