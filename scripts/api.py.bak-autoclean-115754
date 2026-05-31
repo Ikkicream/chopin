@@ -87,7 +87,7 @@ _AUTH_OPEN_PATHS = {
     "/api/auth/login", "/api/auth/me", "/api/auth/mfa/login",
     "/api/auth/mfa/setup-start", "/api/auth/mfa/setup-confirm",
 }
-_ADMIN_PREFIXES = ("/api/auth/users", "/api/auth/logs", "/api/enrichment/run")
+_ADMIN_PREFIXES = ("/api/auth/users", "/api/auth/logs")
 
 
 @app.middleware("http")
@@ -4461,8 +4461,7 @@ def api_enrichment_stats():
 @app.post("/api/enrichment/run")
 async def api_enrichment_run(request: Request):
     """Lance l'enrichissement data.gouv en tâche de fond (incrémental : anti-join,
-    ne traite que les contacts pas encore enrichis ; cache + rate-limit + backoff).
-    Réservé au rôle admin (cf. _ADMIN_PREFIXES) — c'est un job système."""
+    ne traite que les contacts pas encore enrichis ; cache + rate-limit + backoff)."""
     data = {}
     if request.headers.get("content-type", "").startswith("application/json"):
         try:
@@ -4472,21 +4471,16 @@ async def api_enrichment_run(request: Request):
     if _datagouv_running():
         return {"ok": False, "message": "Un enrichissement est déjà en cours."}
     cmd = ["python3", "scripts/datagouv_enrich.py"]
-    # Reco #2 : cast défensif — un `limit` non numérique est ignoré (pas de 500).
-    raw_limit = data.get("limit")
-    if raw_limit:
-        try:
-            cmd += ["--limit", str(int(raw_limit))]
-        except (TypeError, ValueError):
-            pass
+    limit = data.get("limit")
+    if limit:
+        cmd += ["--limit", str(int(limit))]
     if data.get("rebuild"):
         cmd.append("--rebuild")
-    # Reco #3 : on ferme notre copie du fd après le Popen (l'enfant a hérité du sien).
-    log_f = open(str(BASE_DIR / "logs/datagouv_enrich.log"), "w")
-    try:
-        subprocess.Popen(cmd, cwd=str(BASE_DIR), stdout=log_f, stderr=subprocess.STDOUT)
-    finally:
-        log_f.close()
+    subprocess.Popen(
+        cmd, cwd=str(BASE_DIR),
+        stdout=open(str(BASE_DIR / "logs/datagouv_enrich.log"), "w"),
+        stderr=subprocess.STDOUT,
+    )
     return {"ok": True, "message": "Enrichissement lancé en tâche de fond."}
 
 
@@ -4836,16 +4830,29 @@ def _set_cleanup_progress(key: str, **patch):
         _active_cleanups[key] = cur
 
 
-def _launch_cleanup(site: str, mode: str, drain: bool = False, chunk_size: int = 100,
-                    total_limit=None, source: str = "manual") -> dict:
-    """Lance un cycle de nettoyage en ARRIÈRE-PLAN (thread daemon). Retourne immédiatement.
-    SÉQUENTIEL STRICT : refuse si UN nettoyage est déjà en cours (tous sites/modes).
-    Réutilisable : appelé par l'endpoint /cleanup/run (source='manual') ET par le hook de
-    fin de scrape (source='auto-scrape'). `source` est tracé dans les logs cleanup_batch."""
+@app.post("/api/sites/{site}/cleanup/run")
+async def api_cleanup_run(site: str, request: Request):
+    """Lance un cycle en ARRIÈRE-PLAN (thread daemon). Retourne immédiatement.
+    SÉQUENTIEL STRICT : refuse si UN nettoyage est en cours (tous sites/modes confondus).
+
+    Body :
+      - mode: 'unverified' | 'stale' (requis)
+      - drain: bool (default False) — si True, enchaîne des chunks jusqu'à épuisement
+      - chunk_size: int (default 100) — taille d'un chunk (en mode drain comme single)
+      - total_limit: int|null (default null) — en drain, plafond cumulé (null = drain complet)
+      - limit: int — backward-compat ; en mode single = chunk_size, en mode drain ignoré (chunk_size prime)
+    """
     if site not in ("lcr", "mkd"):
-        return {"ok": False, "error": "invalid site"}
+        return {"error": "invalid site"}
+    body = await request.json()
+    mode = (body.get("mode") or "").strip()
     if mode not in ("unverified", "stale"):
         return {"ok": False, "error": "mode requis (unverified | stale)"}
+    drain = bool(body.get("drain", False))
+    # backward-compat : limit aussi accepté pour mode single
+    chunk_size = int(body.get("chunk_size") or body.get("limit") or 100)
+    raw_total = body.get("total_limit")
+    total_limit = int(raw_total) if raw_total else None
     key = f"{site}:{mode}"
 
     # Verrou strict séquentiel : un seul cycle GLOBAL à la fois.
@@ -4862,7 +4869,7 @@ def _launch_cleanup(site: str, mode: str, drain: bool = False, chunk_size: int =
         # Pré-réservation : insertion atomique de l'état initial
         import time as _tm
         _active_cleanups[key] = {
-            "site": site, "mode": mode, "source": source,
+            "site": site, "mode": mode,
             "drain": drain, "chunk_size": chunk_size, "total_limit": total_limit,
             "processed": 0, "total": chunk_size,
             "valid": 0, "removed": 0, "skipped": 0, "errors": 0,
@@ -4870,6 +4877,7 @@ def _launch_cleanup(site: str, mode: str, drain: bool = False, chunk_size: int =
             "started_at": _tm.time(),
             "status": "starting",
             "stop_requested": False,
+            # Cumul cross-chunks (en mode drain). En mode single, reste à 0/identique au chunk.
             "cumulative": {"chunks_done": 0, "total": 0, "valid": 0, "removed": 0,
                            "skipped": 0, "errors": 0, "drained": False, "stopped": False},
         }
@@ -4878,37 +4886,54 @@ def _launch_cleanup(site: str, mode: str, drain: bool = False, chunk_size: int =
     import cleanup_backend as cb
 
     def _should_stop() -> bool:
+        # Lecture lock-free : un read d'une clé dict est atomique en CPython
         st = _active_cleanups.get(key)
         return bool(st and st.get("stop_requested"))
 
     def _on_progress_single(stats, processed, email):
+        """Mode single : un seul chunk, processed = position dans le chunk."""
         _set_cleanup_progress(
-            key, total=stats.get("total", chunk_size), processed=processed,
-            valid=stats.get("valid", 0), removed=stats.get("removed", 0),
-            skipped=stats.get("skipped", 0), errors=stats.get("errors", 0),
+            key,
+            total=stats.get("total", chunk_size),
+            processed=processed,
+            valid=stats.get("valid", 0),
+            removed=stats.get("removed", 0),
+            skipped=stats.get("skipped", 0),
+            errors=stats.get("errors", 0),
             last_email=email,
             status="running" if processed < stats.get("total", chunk_size) else "finishing",
         )
 
     def _on_progress_drain(cum, chunk_stats, chunk_processed, email):
+        """Mode drain : on expose chunk courant + cumulatif."""
         _set_cleanup_progress(
-            key, total=chunk_stats.get("total", chunk_size), processed=chunk_processed,
-            valid=chunk_stats.get("valid", 0), removed=chunk_stats.get("removed", 0),
-            skipped=chunk_stats.get("skipped", 0), errors=chunk_stats.get("errors", 0),
-            last_email=email, status="running", cumulative=dict(cum),
+            key,
+            total=chunk_stats.get("total", chunk_size),
+            processed=chunk_processed,
+            valid=chunk_stats.get("valid", 0),
+            removed=chunk_stats.get("removed", 0),
+            skipped=chunk_stats.get("skipped", 0),
+            errors=chunk_stats.get("errors", 0),
+            last_email=email,
+            status="running",
+            cumulative=dict(cum),  # copie pour éviter de partager la ref
         )
 
     def _runner():
         try:
             if drain:
                 cb.run_cleanup_drain(
-                    mode=mode, site=site, chunk_size=chunk_size, total_limit=total_limit,
-                    progress_cb=_on_progress_drain, should_stop=_should_stop, source=source,
+                    mode=mode, site=site,
+                    chunk_size=chunk_size,
+                    total_limit=total_limit,
+                    progress_cb=_on_progress_drain,
+                    should_stop=_should_stop,
                 )
             else:
                 cb.run_cleanup(
                     mode=mode, site=site, limit=chunk_size,
-                    progress_cb=_on_progress_single, should_stop=_should_stop, source=source,
+                    progress_cb=_on_progress_single,
+                    should_stop=_should_stop,
                 )
         except Exception as e:
             print(f"  [cleanup_run] err: {e}")
@@ -4918,33 +4943,9 @@ def _launch_cleanup(site: str, mode: str, drain: bool = False, chunk_size: int =
 
     _th.Thread(target=_runner, daemon=True).start()
     return {
-        "ok": True, "queued": True, "mode": mode, "drain": drain, "source": source,
+        "ok": True, "queued": True, "mode": mode, "drain": drain,
         "chunk_size": chunk_size, "total_limit": total_limit, "key": key,
     }
-
-
-@app.post("/api/sites/{site}/cleanup/run")
-async def api_cleanup_run(site: str, request: Request):
-    """Lance un cycle en ARRIÈRE-PLAN (thread daemon). Retourne immédiatement.
-    SÉQUENTIEL STRICT : refuse si UN nettoyage est en cours (tous sites/modes confondus).
-
-    Body :
-      - mode: 'unverified' | 'stale' (requis)
-      - drain: bool (default False) — si True, enchaîne des chunks jusqu'à épuisement
-      - chunk_size: int (default 100) — taille d'un chunk (en mode drain comme single)
-      - total_limit: int|null (default null) — en drain, plafond cumulé (null = drain complet)
-      - limit: int — backward-compat ; en mode single = chunk_size, en mode drain ignoré
-    """
-    if site not in ("lcr", "mkd"):
-        return {"error": "invalid site"}
-    body = await request.json()
-    mode = (body.get("mode") or "").strip()
-    drain = bool(body.get("drain", False))
-    chunk_size = int(body.get("chunk_size") or body.get("limit") or 100)
-    raw_total = body.get("total_limit")
-    total_limit = int(raw_total) if raw_total else None
-    return _launch_cleanup(site, mode, drain=drain, chunk_size=chunk_size,
-                           total_limit=total_limit, source="manual")
 
 
 @app.post("/api/sites/{site}/cleanup/stop")

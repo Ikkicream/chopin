@@ -275,51 +275,23 @@ async def scrape(site: str, request: Request, user=Depends(require_admin)):
     # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
     if not sector or not sector.strip():
         raise HTTPException(status_code=400, detail="sector required")
-    # Sémantique corrigée 2026-05-31 :
-    #  - max_per_city : contacts GARDÉS visés par ville (1-50). Accepte aussi l'ancien `max_results`.
-    #  - global_cap : plafond global de contacts gardés sur tout le scrape (garde-fou crédits Serper).
-    max_per_city = max(1, min(int(body.get("max_per_city", body.get("max_results", 10))), 50))
-    global_cap = max(1, min(int(body.get("global_cap", 1000)), 5000))
+    max_results = min(int(body.get("max_results", settings["scrape_quota"])), settings["scrape_quota"])
 
     gm.log_action(site, user["username"], user["user_id"], "start_scrape",
                   resource="sector", resource_id=sector,
-                  payload={"sector": sector, "cities": cities, "cities_count": len(cities or []),
-                           "max_per_city": max_per_city, "global_cap": global_cap}, ip=_ip(request))
+                  payload={"sector": sector, "cities": cities, "max_results": max_results}, ip=_ip(request))
 
     captured_user = {"username": user["username"], "user_id": user["user_id"]}
 
     def run():
         try:
-            gm_agents.scrape_sector(site, sector, cities=cities, max_per_city=max_per_city,
-                                    global_cap=global_cap, username=captured_user["username"])
+            gm_agents.scrape_sector(site, sector, cities=cities, max_results=max_results, username=captured_user["username"])
         except Exception as e:
             gm.log_action(site, captured_user["username"], captured_user["user_id"], "scrape_error",
                           resource="sector", resource_id=sector, payload={"error": str(e)}, success=False, error=str(e))
-            return
-        # ── Nettoyage AUTOMATIQUE en fin de scrape ──────────────────────────────
-        # Le scrape vient d'alimenter le pool : on enchaîne le drain de nettoyage
-        # (mode unverified) sans intervention manuelle. Verrou séquentiel strict :
-        # si un nettoyage tourne déjà, _launch_cleanup refuse proprement (le drain
-        # en cours absorbera de toute façon les nouveaux contacts). source='auto-scrape'
-        # → tracé et affiché comme "Automatique" dans /site/<code>/cleanup.
-        try:
-            import sys as _sys
-            _api = _sys.modules.get("scripts.api") or _sys.modules.get("api")
-            res = _api._launch_cleanup(site, "unverified", drain=True, chunk_size=100,
-                                       source="auto-scrape") if _api else {"ok": False, "error": "api module introuvable"}
-            gm.log_action(site, "system", "auto-cleanup", "auto_cleanup_triggered",
-                          resource="sector", resource_id=sector,
-                          payload={"launched": bool(res.get("ok")), "note": res.get("error"), "source": "auto-scrape"},
-                          success=bool(res.get("ok")))
-        except Exception as _ce:
-            gm.log_action(site, "system", "auto-cleanup", "auto_cleanup_error",
-                          resource="sector", resource_id=sector,
-                          payload={"error": str(_ce)}, success=False, error=str(_ce))
 
     threading.Thread(target=run, daemon=True).start()
-    return {"started": True, "site": site, "sector": sector,
-            "max_per_city": max_per_city, "global_cap": global_cap,
-            "cities_count": len(cities or [])}
+    return {"started": True, "site": site, "sector": sector, "max_results": max_results}
 
 
 # ── Campaigns ─────────────────────────────────────────────────────────────────

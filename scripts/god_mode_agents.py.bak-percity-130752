@@ -61,17 +61,13 @@ SECTOR_QUERIES = {
 
 
 # ── Serper API ────────────────────────────────────────────────────────────────
-def serper_places(query: str, location: str = "France", num: int = 10, site_code: str = None,
-                  page: int = 1) -> list[dict]:
+def serper_places(query: str, location: str = "France", num: int = 10, site_code: str = None) -> list[dict]:
     if not SERPER_KEY:
         return []
     try:
-        payload = {"q": query, "gl": "fr", "hl": "fr", "location": location, "num": min(num, 10)}
-        if page and page > 1:
-            payload["page"] = page
         r = requests.post(SERPER_PLACES_URL,
                           headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
-                          json=payload,
+                          json={"q": query, "gl": "fr", "hl": "fr", "location": location, "num": min(num, 10)},
                           timeout=15)
         r.raise_for_status()
         data = r.json()
@@ -183,18 +179,12 @@ def score_prospect(prospect: dict) -> int:
 
 
 # ── Pipeline scrape ───────────────────────────────────────────────────────────
-def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
-                  max_per_city: int = 10, global_cap: int = 1500, max_pages: int = 4,
+def scrape_sector(site_code: str, sector: str, cities: list[str] = None, max_results: int = 100,
                   username: str = "system") -> dict:
-    """Scrape Serper Places pour un secteur sur une LISTE de villes.
-
-    Sémantique corrigée 2026-05-31 (le `max_results` global était un piège) :
-      - `max_per_city` = nb de contacts GARDÉS (validés + insérés) visé PAR VILLE.
-        On pagine Serper (jusqu'à `max_pages` pages/requête) pour tenter de l'atteindre.
-      - `global_cap` = plafond GLOBAL de contacts gardés sur TOUT le scrape (garde-fou crédits).
-      - On boucle sur TOUTES les villes fournies (plus d'arrêt global prématuré).
-    Retourne {scraped(=commerces examinés), valid, rejected, errors, kept_total, cities_done}.
+    """Scrape Serper places pour un secteur, valide emails, insert dans `scrappe`.
+    Retourne {scraped, valid, rejected, errors}.
     """
+    # 2026-05-22 : secteur libre — plus de check strict, juste skip si vide
     if not sector or not sector.strip():
         gm.log_action(site_code, username, "system", "scrape",
                       resource="sector", resource_id=sector or "",
@@ -210,138 +200,121 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
 
     cities = cities or random.sample(gm.TOP_50_INSEE, min(10, len(gm.TOP_50_INSEE)))
     queries = SECTOR_QUERIES.get(sector, [f"{sector} {{city}}"])
-    max_per_city = max(1, int(max_per_city))
-    global_cap = max(1, int(global_cap))
-    max_pages = max(1, int(max_pages))
 
-    examined = 0       # commerces Google examinés (≈ crédits Serper / 10)
-    valid = 0          # gardés (email valide + inséré)
+    scraped = 0
+    valid = 0
     rejected = 0
     errors = 0
-    kept_total = 0     # = valid, mais explicite pour le plafond global
-    cities_done = 0
     seen_emails = set()
 
     for city in cities:
-        if kept_total >= global_cap:
+        if scraped >= max_results:
             break
-        cities_done += 1
-        kept_city = 0
         for q_template in queries:
-            if kept_city >= max_per_city or kept_total >= global_cap:
+            if scraped >= max_results:
                 break
             q = q_template.format(city=city)
-            for page in range(1, max_pages + 1):
-                if kept_city >= max_per_city or kept_total >= global_cap:
+            places = serper_places(q, location=f"{city}, France", num=10, site_code=site_code)
+            time.sleep(0.5)
+            for place in places:
+                if scraped >= max_results:
                     break
-                places = serper_places(q, location=f"{city}, France", num=10,
-                                       site_code=site_code, page=page)
-                time.sleep(0.5)
-                if not places:
-                    break  # plus de résultats pour cette requête → ville suivante/requête suivante
-                for place in places:
-                    if kept_city >= max_per_city or kept_total >= global_cap:
-                        break
-                    examined += 1
-                    title = place.get("title", "")
-                    address = place.get("address", "")
-                    phone_raw = place.get("phoneNumber", "")
-                    website = place.get("website", "")
-                    rating = place.get("rating")
+                scraped += 1
+                title = place.get("title", "")
+                address = place.get("address", "")
+                phone_raw = place.get("phoneNumber", "")
+                website = place.get("website", "")
+                rating = place.get("rating")
 
-                    phone = extract_phone(phone_raw) if phone_raw else None
-                    # Email obligatoire — on tente fetch website
-                    email = None
-                    if website:
-                        email = fetch_email_from_site(website)
-                        time.sleep(0.3)
+                phone = extract_phone(phone_raw) if phone_raw else None
+                # Email obligatoire — on tente fetch website
+                email = None
+                if website:
+                    email = fetch_email_from_site(website)
+                    time.sleep(0.3)
 
-                    if not email:
-                        rejected += 1
-                        continue
-                    if email in seen_emails:
-                        continue
-                    seen_emails.add(email)
+                if not email:
+                    rejected += 1
+                    continue
+                if email in seen_emails:
+                    continue
+                seen_emails.add(email)
 
-                    # Idempotence : skip si déjà checké Mailnjoy < 30j ou déjà en pending
-                    if gm.email_recently_validated(email, days=30):
-                        rejected += 1
-                        continue
-                    if gm.email_in_pending(email):
-                        rejected += 1
-                        continue
+                # Idempotence : skip si déjà checké Mailnjoy < 30j ou déjà en pending
+                if gm.email_recently_validated(email, days=30):
+                    rejected += 1
+                    continue
+                if gm.email_in_pending(email):
+                    rejected += 1
+                    continue
 
-                    # === Validator email (6 étages spec EMAIL_VALIDATION_SCORING.md) ===
-                    prospect_for_validation = {
-                        "company_name": title,
-                        "phone":         phone,
-                        "sector":        sector,
-                        "city":          city,
-                        "website":       website,
-                        "source":        "serper_places",
-                    }
-                    vres = validate_and_score(email, prospect_for_validation)
-                    if vres["decision"] == "drop":
-                        rejected += 1
-                        continue
-                    email_status = "manual_review" if vres["decision"] == "queue" else "mailnjoy_pending"
+                # === Validator email (6 étages spec EMAIL_VALIDATION_SCORING.md) ===
+                # Drop AVANT insertion DB si l'email échoue les hard rejects.
+                prospect_for_validation = {
+                    "company_name": title,
+                    "phone":         phone,
+                    "sector":        sector,
+                    "city":          city,
+                    "website":       website,
+                    "source":        "serper_places",
+                }
+                vres = validate_and_score(email, prospect_for_validation)
+                if vres["decision"] == "drop":
+                    rejected += 1
+                    continue
+                # queue → status manual_review (revue humaine), push → mailnjoy_pending (sera mis à mailnjoy_valid par le drain)
+                email_status = "manual_review" if vres["decision"] == "queue" else "mailnjoy_pending"
 
-                    prospect = {
-                        "company_name":              title,
-                        "contact_name":              "",
-                        "email":                     vres["email"],
-                        "phone":                     phone,
-                        "sector":                    sector,
-                        "city":                      city,
-                        "postal_code":               None,
-                        "website":                   website,
-                        "source":                    "serper_places",
-                        "search_query":              q,
-                        "status":                    email_status,
-                        "raw_data":                  {"address": address, "rating": rating, "place_id": place.get("placeId")},
-                        "email_score":               vres["score"],
-                        "email_validation_reasons":  vres["reasons"],
-                    }
-                    prospect["score"] = score_prospect(prospect)
+                prospect = {
+                    "company_name":              title,
+                    "contact_name":              "",
+                    "email":                     vres["email"],
+                    "phone":                     phone,
+                    "sector":                    sector,
+                    "city":                      city,
+                    "postal_code":               None,
+                    "website":                   website,
+                    "source":                    "serper_places",
+                    "search_query":              q,
+                    "status":                    email_status,
+                    "raw_data":                  {"address": address, "rating": rating, "place_id": place.get("placeId")},
+                    "email_score":               vres["score"],
+                    "email_validation_reasons":  vres["reasons"],
+                }
+                prospect["score"] = score_prospect(prospect)
+                try:
+                    gm.add_prospect_pending(site_code, prospect)
+                    valid += 1
+
+                    # DUAL-WRITE pool 2026-05-22 : insert aussi dans contacts.duckdb
                     try:
-                        gm.add_prospect_pending(site_code, prospect)
-                        valid += 1
-                        kept_city += 1
-                        kept_total += 1
-
-                        # DUAL-WRITE pool 2026-05-22 : insert aussi dans contacts.duckdb
-                        try:
-                            import contacts_pool_backend as _cpb
-                            _pool_cid = _cpb.create_in_pool({
-                                "email":      vres["email"],
-                                "societe":    title,
-                                "tel":        phone,
-                                "website":    website,
-                                "city":       city,
-                                "sectors":    [sector] if sector else None,
-                                "email_score":              vres["score"],
-                                "email_validation_reasons": vres["reasons"],
-                            }, primary_source="serper")
-                            if _pool_cid:
-                                _cpb.upsert_site_history(_pool_cid, site_code,
-                                    state="cold_email",
-                                    source="serper",
-                                    by="scrape_sector")
-                        except Exception as _pool_err:
-                            print(f"  [scrape][pool dual-write] {_pool_err}")
-                    except Exception as e:
-                        errors += 1
-                        print(f"[scrape] insert error: {e}")
+                        import contacts_pool_backend as _cpb
+                        _pool_cid = _cpb.create_in_pool({
+                            "email":      vres["email"],
+                            "societe":    title,
+                            "tel":        phone,
+                            "website":    website,
+                            "city":       city,
+                            "sectors":    [sector] if sector else None,
+                            "email_score":              vres["score"],
+                            "email_validation_reasons": vres["reasons"],
+                        }, primary_source="serper")
+                        if _pool_cid:
+                            _cpb.upsert_site_history(_pool_cid, site_code,
+                                state="cold_email",
+                                source="serper",
+                                by="scrape_sector")
+                    except Exception as _pool_err:
+                        print(f"  [scrape][pool dual-write] {_pool_err}")
+                except Exception as e:
+                    errors += 1
+                    print(f"[scrape] insert error: {e}")
 
     gm.log_action(site_code, username, "system", "scrape",
                   resource="sector", resource_id=sector,
-                  payload={"sector": sector, "cities_done": cities_done, "cities_total": len(cities),
-                           "cities": cities[:5], "scraped": examined, "valid": valid,
-                           "rejected": rejected, "errors": errors,
-                           "max_per_city": max_per_city, "global_cap": global_cap})
-    return {"sector": sector, "scraped": examined, "valid": valid, "rejected": rejected,
-            "errors": errors, "kept_total": kept_total, "cities_done": cities_done,
-            "cities_total": len(cities)}
+                  payload={"sector": sector, "cities": cities[:5], "scraped": scraped,
+                           "valid": valid, "rejected": rejected, "errors": errors})
+    return {"sector": sector, "scraped": scraped, "valid": valid, "rejected": rejected, "errors": errors}
 
 
 if __name__ == "__main__":

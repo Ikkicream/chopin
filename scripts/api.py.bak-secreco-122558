@@ -87,7 +87,7 @@ _AUTH_OPEN_PATHS = {
     "/api/auth/login", "/api/auth/me", "/api/auth/mfa/login",
     "/api/auth/mfa/setup-start", "/api/auth/mfa/setup-confirm",
 }
-_ADMIN_PREFIXES = ("/api/auth/users", "/api/auth/logs", "/api/enrichment/run")
+_ADMIN_PREFIXES = ("/api/auth/users", "/api/auth/logs")
 
 
 @app.middleware("http")
@@ -4461,8 +4461,7 @@ def api_enrichment_stats():
 @app.post("/api/enrichment/run")
 async def api_enrichment_run(request: Request):
     """Lance l'enrichissement data.gouv en tâche de fond (incrémental : anti-join,
-    ne traite que les contacts pas encore enrichis ; cache + rate-limit + backoff).
-    Réservé au rôle admin (cf. _ADMIN_PREFIXES) — c'est un job système."""
+    ne traite que les contacts pas encore enrichis ; cache + rate-limit + backoff)."""
     data = {}
     if request.headers.get("content-type", "").startswith("application/json"):
         try:
@@ -4472,21 +4471,16 @@ async def api_enrichment_run(request: Request):
     if _datagouv_running():
         return {"ok": False, "message": "Un enrichissement est déjà en cours."}
     cmd = ["python3", "scripts/datagouv_enrich.py"]
-    # Reco #2 : cast défensif — un `limit` non numérique est ignoré (pas de 500).
-    raw_limit = data.get("limit")
-    if raw_limit:
-        try:
-            cmd += ["--limit", str(int(raw_limit))]
-        except (TypeError, ValueError):
-            pass
+    limit = data.get("limit")
+    if limit:
+        cmd += ["--limit", str(int(limit))]
     if data.get("rebuild"):
         cmd.append("--rebuild")
-    # Reco #3 : on ferme notre copie du fd après le Popen (l'enfant a hérité du sien).
-    log_f = open(str(BASE_DIR / "logs/datagouv_enrich.log"), "w")
-    try:
-        subprocess.Popen(cmd, cwd=str(BASE_DIR), stdout=log_f, stderr=subprocess.STDOUT)
-    finally:
-        log_f.close()
+    subprocess.Popen(
+        cmd, cwd=str(BASE_DIR),
+        stdout=open(str(BASE_DIR / "logs/datagouv_enrich.log"), "w"),
+        stderr=subprocess.STDOUT,
+    )
     return {"ok": True, "message": "Enrichissement lancé en tâche de fond."}
 
 
