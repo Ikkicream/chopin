@@ -482,51 +482,6 @@ def stats_for_site(site_code: str) -> dict:
     return {"total": total, "by_state": by_state, "by_source": by_source}
 
 
-def enrichment_stats() -> dict:
-    """Stats globales d'enrichissement data.gouv (table contact_enrichment).
-
-    Univers enrichissable = contacts avec une `societe`. La table contient 1 row
-    par contact traité ; `remaining` = contacts pas encore traités (anti-join).
-    `excluded`=TRUE => exclusion DURE (filtrée au push) ; les non-matchés
-    (siret NULL, excluded=FALSE) restent contactables.
-    """
-    c = _conn(read_only=True)
-    try:
-        total_societe = c.execute(
-            "SELECT COUNT(*) FROM contacts WHERE societe IS NOT NULL AND societe <> ''"
-        ).fetchone()[0]
-        r = c.execute("""
-            SELECT
-              COUNT(*) FILTER (WHERE excluded = FALSE AND siret IS NOT NULL),
-              COUNT(*) FILTER (WHERE excluded = FALSE AND siret IS NULL),
-              COUNT(*) FILTER (WHERE excluded = TRUE),
-              COUNT(*),
-              COUNT(*) FILTER (WHERE est_rge),
-              COUNT(*) FILTER (WHERE est_qualiopi),
-              COUNT(*) FILTER (WHERE est_ess),
-              MAX(enriched_at)
-            FROM contact_enrichment
-        """).fetchone()
-        reasons = c.execute(
-            "SELECT exclusion_reason, COUNT(*) FROM contact_enrichment "
-            "WHERE excluded GROUP BY 1 ORDER BY 2 DESC"
-        ).fetchall()
-    finally:
-        c.close()
-    in_table = r[3] or 0
-    return {
-        "total_societe": total_societe,
-        "in_table": in_table,
-        "enriched": r[0] or 0,
-        "unmatched": r[1] or 0,
-        "hard_excluded": r[2] or 0,
-        "remaining": max(0, total_societe - in_table),
-        "signals": {"rge": r[4] or 0, "qualiopi": r[5] or 0, "ess": r[6] or 0},
-        "hard_exclusion_reasons": {row[0]: row[1] for row in reasons},
-        "last_enriched_at": str(r[7]) if r[7] else None,
-    }
-
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Pioche pour campagne (cf. specs/contacts-model.md §3.5)
 # ──────────────────────────────────────────────────────────────────────────────

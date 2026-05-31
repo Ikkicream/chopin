@@ -43,46 +43,6 @@ _EXTRA_COLS: dict[str, str] = {
 }
 _MIGRATED = False
 
-# DDL de la table satellite d'enrichissement data.gouv — DOIT rester identique à
-# ENRICHMENT_DDL dans scripts/datagouv_enrich.py (CREATE TABLE IF NOT EXISTS, donc
-# le 1er des deux à s'exécuter crée le bon schéma).
-_ENRICHMENT_DDL = """
-CREATE TABLE IF NOT EXISTS contact_enrichment (
-    contact_id               VARCHAR PRIMARY KEY,
-    siret                    VARCHAR,
-    siren                    VARCHAR,
-    denomination             VARCHAR,
-    nom_commercial           VARCHAR,
-    sigle                    VARCHAR,
-    code_naf                 VARCHAR,
-    section_naf              VARCHAR,
-    categorie_entreprise     VARCHAR,
-    tranche_effectif_code    VARCHAR,
-    tranche_effectif_libelle VARCHAR,
-    code_postal              VARCHAR,
-    commune                  VARCHAR,
-    code_insee               VARCHAR,
-    dept_code                VARCHAR,
-    region_code              VARCHAR,
-    latitude                 DOUBLE,
-    longitude                DOUBLE,
-    etat_administratif       VARCHAR,
-    date_creation            DATE,
-    date_fermeture           DATE,
-    statut_diffusion         VARCHAR,
-    est_rge                  BOOLEAN,
-    est_qualiopi             BOOLEAN,
-    est_ess                  BOOLEAN,
-    est_bio                  BOOLEAN,
-    est_societe_mission      BOOLEAN,
-    match_quality            VARCHAR,
-    excluded                 BOOLEAN,
-    exclusion_reason         VARCHAR,
-    enriched_at              TIMESTAMP,
-    raw                      JSON
-);
-"""
-
 
 def _ensure_schema() -> None:
     """Ajoute les colonnes manquantes à `contacts`. Idempotent, 1×/process."""
@@ -96,11 +56,6 @@ def _ensure_schema() -> None:
             for col, typ in _EXTRA_COLS.items():
                 if col not in existing:
                     c.execute(f"ALTER TABLE contacts ADD COLUMN {col} {typ}")
-            # Table satellite d'enrichissement data.gouv (1:1 contacts), alimentée
-            # par scripts/datagouv_enrich.py. DDL identique à ENRICHMENT_DDL du
-            # script — on la garantit ici pour que le LEFT JOIN de pick_for_campaign
-            # ne casse jamais sur une DB fraîche, avant le 1er enrichissement.
-            c.execute(_ENRICHMENT_DDL)
         finally:
             c.close()
         _MIGRATED = True
@@ -482,51 +437,6 @@ def stats_for_site(site_code: str) -> dict:
     return {"total": total, "by_state": by_state, "by_source": by_source}
 
 
-def enrichment_stats() -> dict:
-    """Stats globales d'enrichissement data.gouv (table contact_enrichment).
-
-    Univers enrichissable = contacts avec une `societe`. La table contient 1 row
-    par contact traité ; `remaining` = contacts pas encore traités (anti-join).
-    `excluded`=TRUE => exclusion DURE (filtrée au push) ; les non-matchés
-    (siret NULL, excluded=FALSE) restent contactables.
-    """
-    c = _conn(read_only=True)
-    try:
-        total_societe = c.execute(
-            "SELECT COUNT(*) FROM contacts WHERE societe IS NOT NULL AND societe <> ''"
-        ).fetchone()[0]
-        r = c.execute("""
-            SELECT
-              COUNT(*) FILTER (WHERE excluded = FALSE AND siret IS NOT NULL),
-              COUNT(*) FILTER (WHERE excluded = FALSE AND siret IS NULL),
-              COUNT(*) FILTER (WHERE excluded = TRUE),
-              COUNT(*),
-              COUNT(*) FILTER (WHERE est_rge),
-              COUNT(*) FILTER (WHERE est_qualiopi),
-              COUNT(*) FILTER (WHERE est_ess),
-              MAX(enriched_at)
-            FROM contact_enrichment
-        """).fetchone()
-        reasons = c.execute(
-            "SELECT exclusion_reason, COUNT(*) FROM contact_enrichment "
-            "WHERE excluded GROUP BY 1 ORDER BY 2 DESC"
-        ).fetchall()
-    finally:
-        c.close()
-    in_table = r[3] or 0
-    return {
-        "total_societe": total_societe,
-        "in_table": in_table,
-        "enriched": r[0] or 0,
-        "unmatched": r[1] or 0,
-        "hard_excluded": r[2] or 0,
-        "remaining": max(0, total_societe - in_table),
-        "signals": {"rge": r[4] or 0, "qualiopi": r[5] or 0, "ess": r[6] or 0},
-        "hard_exclusion_reasons": {row[0]: row[1] for row in reasons},
-        "last_enriched_at": str(r[7]) if r[7] else None,
-    }
-
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Pioche pour campagne (cf. specs/contacts-model.md §3.5)
 # ──────────────────────────────────────────────────────────────────────────────
@@ -562,15 +472,9 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
         FROM contacts c
         LEFT JOIN contact_site_history csh
             ON c.id = csh.contact_id AND csh.site_code = ?
-        LEFT JOIN contact_enrichment e
-            ON e.contact_id = c.id
         WHERE
             c.global_blacklisted = FALSE
             AND c.sectors::VARCHAR LIKE ?
-            -- enrichissement data.gouv : on écarte les entités enrichies ET exclues
-            -- (fermées, administrations, diffusion partielle). Les non-enrichis (e.* NULL)
-            -- passent normalement : on ne bloque pas le flux faute d'enrichissement.
-            AND COALESCE(e.excluded, FALSE) = FALSE
             AND (csh.state IS NULL OR csh.state = 'cold_email')
             AND (
                 csh.last_contacted_by_site_at IS NULL
@@ -614,12 +518,9 @@ def count_available_for_sector(site_code: str, sector: str) -> int:
         FROM contacts c
         LEFT JOIN contact_site_history csh
             ON c.id = csh.contact_id AND csh.site_code = ?
-        LEFT JOIN contact_enrichment e
-            ON e.contact_id = c.id
         WHERE
             c.global_blacklisted = FALSE
             AND c.sectors::VARCHAR LIKE ?
-            AND COALESCE(e.excluded, FALSE) = FALSE
             AND (csh.state IS NULL OR csh.state = 'cold_email')
             AND (
                 csh.last_contacted_by_site_at IS NULL
