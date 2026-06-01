@@ -56,22 +56,7 @@ def read_status(site: str) -> dict:
 PER_CITY = 15          # objectif de contacts gardés par ville
 MAX_PAGES = 4          # pagination Serper max par requête
 CREDIT_FLOOR = 60      # on stoppe quand le solde Serper estimé descend sous ce seuil
-ZERO_STREAK_STOP = 5   # n villes consécutives à 0 commerce examiné ⇒ stall (arrêt sécurité)
-
-# Grandes villes = 1 seule commune INSEE dans la donnée géo → on les éclate en
-# arrondissements pour scraper réellement toute la ville (Serper localise bien par arr.).
-ARRONDISSEMENTS = {"Paris": 20, "Lyon": 9, "Marseille": 16}
-
-
-def _expand_arrondissements(cities: list[str]) -> list[str]:
-    out: list[str] = []
-    for c in cities:
-        n = ARRONDISSEMENTS.get(c)
-        if n:
-            out.extend(f"{c} 1er" if i == 1 else f"{c} {i}e" for i in range(1, n + 1))
-        else:
-            out.append(c)
-    return out
+ZERO_STREAK_STOP = 3   # n villes consécutives à 0 commerce examiné ⇒ on suppose un blocage
 
 
 def _env(key: str) -> str:
@@ -130,7 +115,6 @@ def run_autoscrape(site: str, sectors, dept: str,
         sectors = [sectors]
     sectors = [s.strip() for s in (sectors or []) if s and s.strip()]
     cities = [c.get("name") for c in list_cities(dept, None, min_pop=10000) if c.get("name")]
-    cities = _expand_arrondissements(cities)   # Paris/Lyon/Marseille → arrondissements
 
     cum = {
         "site": site, "dept": dept, "sectors": sectors,
@@ -191,26 +175,13 @@ def run_autoscrape(site: str, sectors, dept: str,
                                        "max_per_city": per_city})
             except Exception:
                 pass
-            # Heartbeat intra-ville : maj statut (examiné/gardé live + ville/secteur en cours)
-            # à chaque page Serper, pour ne jamais paraître figé sur une ville longue.
-            _base_ex, _base_va = cum["examined"], cum["valid"]
-            def _hb(c, sec, ex, va):
-                cum["current_city"] = c
-                cum["current_detail"] = f"{sec} · {ex} examinés"
-                cum["examined"] = _base_ex + ex
-                cum["valid"] = _base_va + va
-                cum["kept_total"] = cum["valid"]
-                emit()
             try:
                 r = agents.scrape_sector(site, sector, cities=[city],
                                          max_per_city=per_city, global_cap=per_city,
-                                         max_pages=max_pages, username="autoscrape",
-                                         heartbeat_cb=_hb)
+                                         max_pages=max_pages, username="autoscrape")
             except Exception as e:
                 cum["errors"] += 1
                 r = {"scraped": 0, "valid": 0, "rejected": 0, "errors": 1}
-            cum["examined"] = _base_ex
-            cum["valid"] = _base_va
             cum["examined"] += r.get("scraped", 0)
             cum["valid"] += r.get("valid", 0)
             cum["rejected"] += r.get("rejected", 0)
@@ -225,24 +196,16 @@ def run_autoscrape(site: str, sectors, dept: str,
         cum["kept_total"] = cum["valid"]
         emit()
 
-        # Détection réactive d'un STALL (plusieurs villes vides d'affilée). NE déclenche
-        # un "blocked_credits" QUE si le solde est aussi bas — sinon c'est juste un
-        # passage à vide (erreurs DB transitoires / requêtes sans résultat) et on
-        # marque "stalled" sans crier au blocage crédit (cf. faux positif du 2026-06-01).
+        # Détection réactive d'un blocage (Serper renvoie vide en boucle)
         zero_streak = zero_streak + 1 if city_examined == 0 else 0
         if zero_streak >= ZERO_STREAK_STOP:
-            low_credits = avail is not None and avail <= credit_floor * 3
-            cum["blocked"] = bool(low_credits)
-            cum["status"] = "blocked_credits" if low_credits else "stalled"
-            cum["message"] = (
-                f"Crédits Serper bas (~{avail}) + {zero_streak} villes vides — arrêt."
-                if low_credits else
-                f"{zero_streak} villes sans résultat d'affilée — arrêt par sécurité (crédits OK ~{avail})."
-            )
+            cum["blocked"] = True
+            cum["status"] = "blocked_credits"
+            cum["message"] = f"{zero_streak} villes sans résultat d'affilée — probable blocage Serper."
             notify_telegram(
-                f"⚠️ *Autoscrape {site.upper()}* stoppé ({cum['status']}) — "
-                f"{zero_streak} villes vides.\nDept {dept} · {', '.join(sectors)} · "
-                f"{cum['valid']} contacts gardés · crédits ~{avail}."
+                f"⚠️ *Autoscrape {site.upper()}* stoppé — Serper ne renvoie plus rien "
+                f"({zero_streak} villes vides, probable épuisement crédits).\n"
+                f"Dept {dept} · {', '.join(sectors)} · {cum['valid']} contacts gardés."
             )
             break
 

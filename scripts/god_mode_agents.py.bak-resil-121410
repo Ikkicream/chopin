@@ -185,7 +185,7 @@ def score_prospect(prospect: dict) -> int:
 # ── Pipeline scrape ───────────────────────────────────────────────────────────
 def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                   max_per_city: int = 10, global_cap: int = 1500, max_pages: int = 4,
-                  username: str = "system", heartbeat_cb=None) -> dict:
+                  username: str = "system") -> dict:
     """Scrape Serper Places pour un secteur sur une LISTE de villes.
 
     Sémantique corrigée 2026-05-31 (le `max_results` global était un piège) :
@@ -237,12 +237,6 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                 places = serper_places(q, location=f"{city}, France", num=10,
                                        site_code=site_code, page=page)
                 time.sleep(0.5)
-                # Heartbeat intra-ville (à chaque page Serper) : maj statut live + évite le faux "figé"
-                if heartbeat_cb:
-                    try:
-                        heartbeat_cb(city, sector, examined, valid)
-                    except Exception:
-                        pass
                 if not places:
                     break  # plus de résultats pour cette requête → ville suivante/requête suivante
                 for place in places:
@@ -269,51 +263,47 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                         continue
                     seen_emails.add(email)
 
-                    # Dedup + validation + insert : TOLÉRANT AUX ERREURS DB. Un conflit
-                    # DuckDB transitoire (verrou cross-process avec l'API) saute CE commerce
-                    # au lieu de crasher toute la ville (cf. autoscrape). Avec un petit retry.
+                    # Idempotence : skip si déjà checké Mailnjoy < 30j ou déjà en pending
+                    if gm.email_recently_validated(email, days=30):
+                        rejected += 1
+                        continue
+                    if gm.email_in_pending(email):
+                        rejected += 1
+                        continue
+
+                    # === Validator email (6 étages spec EMAIL_VALIDATION_SCORING.md) ===
+                    prospect_for_validation = {
+                        "company_name": title,
+                        "phone":         phone,
+                        "sector":        sector,
+                        "city":          city,
+                        "website":       website,
+                        "source":        "serper_places",
+                    }
+                    vres = validate_and_score(email, prospect_for_validation)
+                    if vres["decision"] == "drop":
+                        rejected += 1
+                        continue
+                    email_status = "manual_review" if vres["decision"] == "queue" else "mailnjoy_pending"
+
+                    prospect = {
+                        "company_name":              title,
+                        "contact_name":              "",
+                        "email":                     vres["email"],
+                        "phone":                     phone,
+                        "sector":                    sector,
+                        "city":                      city,
+                        "postal_code":               None,
+                        "website":                   website,
+                        "source":                    "serper_places",
+                        "search_query":              q,
+                        "status":                    email_status,
+                        "raw_data":                  {"address": address, "rating": rating, "place_id": place.get("placeId")},
+                        "email_score":               vres["score"],
+                        "email_validation_reasons":  vres["reasons"],
+                    }
+                    prospect["score"] = score_prospect(prospect)
                     try:
-                        try:
-                            _dup = gm.email_recently_validated(email, days=30) or gm.email_in_pending(email)
-                        except Exception:
-                            time.sleep(0.5)
-                            _dup = gm.email_recently_validated(email, days=30) or gm.email_in_pending(email)
-                        if _dup:
-                            rejected += 1
-                            continue
-
-                        # === Validator email (6 étages spec EMAIL_VALIDATION_SCORING.md) ===
-                        prospect_for_validation = {
-                            "company_name": title,
-                            "phone":         phone,
-                            "sector":        sector,
-                            "city":          city,
-                            "website":       website,
-                            "source":        "serper_places",
-                        }
-                        vres = validate_and_score(email, prospect_for_validation)
-                        if vres["decision"] == "drop":
-                            rejected += 1
-                            continue
-                        email_status = "manual_review" if vres["decision"] == "queue" else "mailnjoy_pending"
-
-                        prospect = {
-                            "company_name":              title,
-                            "contact_name":              "",
-                            "email":                     vres["email"],
-                            "phone":                     phone,
-                            "sector":                    sector,
-                            "city":                      city,
-                            "postal_code":               None,
-                            "website":                   website,
-                            "source":                    "serper_places",
-                            "search_query":              q,
-                            "status":                    email_status,
-                            "raw_data":                  {"address": address, "rating": rating, "place_id": place.get("placeId")},
-                            "email_score":               vres["score"],
-                            "email_validation_reasons":  vres["reasons"],
-                        }
-                        prospect["score"] = score_prospect(prospect)
                         gm.add_prospect_pending(site_code, prospect)
                         valid += 1
                         kept_city += 1
@@ -341,8 +331,7 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                             print(f"  [scrape][pool dual-write] {_pool_err}")
                     except Exception as e:
                         errors += 1
-                        print(f"[scrape] place error (skip): {e}")
-                        continue
+                        print(f"[scrape] insert error: {e}")
 
     gm.log_action(site_code, username, "system", "scrape",
                   resource="sector", resource_id=sector,

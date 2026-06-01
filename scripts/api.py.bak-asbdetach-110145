@@ -4961,13 +4961,15 @@ def api_cleanup_stop(site: str):
 
 
 # ── Autoscrape continu d'un département (cf. scripts/autoscrape_backend.py) ────
-# Tourne en PROCESS DÉTACHÉ (pas un thread de l'API) : isole DuckDB (pas de conflit
-# de connexions avec les requêtes), survit aux redémarrages de l'API, statut dans
-# un fichier (memory/autoscrape/<site>-status.json). Stop via flag fichier.
+_active_autoscrape: dict = {}
+_autoscrape_lock = _th.Lock()
+
 
 @app.post("/api/sites/{site}/autoscrape/start")
 async def api_autoscrape_start(site: str, request: Request):
-    """Lance un autoscrape (dept + secteur(s)) en process détaché. Réservé admin."""
+    """Lance un autoscrape (dept + secteur(s)) en tâche de fond. Réservé admin.
+    Scrape ville par ville en continu jusqu'à épuisement / blocage crédits / stop.
+    Aucun paramètre manuel : le département borne la cible, les crédits bornent la fin."""
     sess = getattr(request.state, "session", None)
     if not sess or sess.get("role") not in ("admin", "superadmin"):
         return {"ok": False, "error": "Rôle admin requis."}
@@ -4980,63 +4982,59 @@ async def api_autoscrape_start(site: str, request: Request):
     if not sectors or not dept:
         return {"ok": False, "error": "secteur(s) et département requis"}
 
+    import time as _tm
+    with _autoscrape_lock:
+        if _active_autoscrape.get("status") in ("running", "starting", "stopping"):
+            return {"ok": False, "running": True, "error": "Un autoscrape est déjà en cours.",
+                    "active": {k: v for k, v in _active_autoscrape.items() if k != "stop_requested"}}
+        _active_autoscrape.clear()
+        _active_autoscrape.update({
+            "site": site, "dept": dept, "sectors": sectors,
+            "status": "starting", "stop_requested": False,
+            "cities_total": 0, "cities_done": 0, "current_city": None,
+            "examined": 0, "valid": 0, "rejected": 0, "errors": 0, "kept_total": 0,
+            "serper_available": None, "blocked": False, "stopped": False,
+            "started_at": _tm.time(), "message": None,
+        })
+
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import autoscrape_backend as asb
-    import time as _tm
 
-    cur = asb.read_status(site)
-    if cur.get("status") in ("running", "starting", "stopping") and (_tm.time() - cur.get("updated_at", 0) < 300):
-        return {"ok": False, "running": True, "error": "Un autoscrape est déjà en cours.", "active": cur}
+    def _should_stop():
+        return bool(_active_autoscrape.get("stop_requested"))
 
-    asb.write_status(site, {
-        "site": site, "dept": dept, "sectors": sectors, "status": "starting",
-        "cities_total": 0, "cities_done": 0, "current_city": None,
-        "examined": 0, "valid": 0, "rejected": 0, "errors": 0, "kept_total": 0,
-        "serper_available": None, "blocked": False, "stopped": False,
-        "started_at": _tm.time(), "message": None,
-    })
-    try:
-        if asb.stop_path(site).exists():
-            asb.stop_path(site).unlink()
-    except Exception:
-        pass
+    def _progress(state):
+        state["stop_requested"] = _active_autoscrape.get("stop_requested", False)
+        _active_autoscrape.update(state)
 
-    cmd = ["python3", "scripts/autoscrape_backend.py", "--site", site, "--dept", dept, "--sectors", ",".join(sectors)]
-    log_f = open(str(BASE_DIR / "logs" / f"autoscrape-{site}.log"), "w")
-    try:
-        subprocess.Popen(cmd, cwd=str(BASE_DIR), start_new_session=True,
-                         stdout=log_f, stderr=subprocess.STDOUT)
-    finally:
-        log_f.close()
+    def _runner():
+        try:
+            asb.run_autoscrape(site, sectors, dept, progress_cb=_progress, should_stop=_should_stop)
+        except Exception as e:
+            _active_autoscrape.update({"status": "error", "message": str(e)})
+
+    _th.Thread(target=_runner, daemon=True).start()
     return {"ok": True, "started": True, "site": site, "dept": dept, "sectors": sectors}
 
 
 @app.get("/api/sites/{site}/autoscrape/status")
 def api_autoscrape_status(site: str):
-    """État de l'autoscrape (lu depuis le fichier de statut). Marque 'interrupted'
-    si 'running' sans heartbeat depuis > 5 min (process mort)."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import autoscrape_backend as asb
-    import time as _tm
-    st = asb.read_status(site)
-    if st.get("status") in ("running", "starting", "stopping") and (_tm.time() - st.get("updated_at", 0) > 300):
-        st = dict(st)
-        st["status"] = "interrupted"
-        st["message"] = "Process interrompu (plus de heartbeat depuis > 5 min)."
-    return st
+    """État de l'autoscrape courant/dernier pour ce site."""
+    st = {k: v for k, v in _active_autoscrape.items() if k != "stop_requested"}
+    if st.get("site") and st.get("site") != site:
+        return {"status": "idle"}
+    return st or {"status": "idle"}
 
 
 @app.post("/api/sites/{site}/autoscrape/stop")
 def api_autoscrape_stop(site: str):
-    """Demande l'arrêt propre : pose un flag fichier que le process détaché vérifie."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import autoscrape_backend as asb
-    try:
-        asb.stop_path(site).parent.mkdir(parents=True, exist_ok=True)
-        asb.stop_path(site).write_text("stop")
-        return {"ok": True, "stopping": True}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+    """Demande l'arrêt propre de l'autoscrape en cours."""
+    with _autoscrape_lock:
+        if _active_autoscrape.get("status") in ("running", "starting"):
+            _active_autoscrape["stop_requested"] = True
+            _active_autoscrape["status"] = "stopping"
+            return {"ok": True, "stopping": True}
+    return {"ok": False, "error": "Aucun autoscrape en cours"}
 
 
 @app.get("/api/sites/{site}/cleanup/status")

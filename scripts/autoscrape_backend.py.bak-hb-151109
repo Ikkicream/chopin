@@ -191,26 +191,13 @@ def run_autoscrape(site: str, sectors, dept: str,
                                        "max_per_city": per_city})
             except Exception:
                 pass
-            # Heartbeat intra-ville : maj statut (examiné/gardé live + ville/secteur en cours)
-            # à chaque page Serper, pour ne jamais paraître figé sur une ville longue.
-            _base_ex, _base_va = cum["examined"], cum["valid"]
-            def _hb(c, sec, ex, va):
-                cum["current_city"] = c
-                cum["current_detail"] = f"{sec} · {ex} examinés"
-                cum["examined"] = _base_ex + ex
-                cum["valid"] = _base_va + va
-                cum["kept_total"] = cum["valid"]
-                emit()
             try:
                 r = agents.scrape_sector(site, sector, cities=[city],
                                          max_per_city=per_city, global_cap=per_city,
-                                         max_pages=max_pages, username="autoscrape",
-                                         heartbeat_cb=_hb)
+                                         max_pages=max_pages, username="autoscrape")
             except Exception as e:
                 cum["errors"] += 1
                 r = {"scraped": 0, "valid": 0, "rejected": 0, "errors": 1}
-            cum["examined"] = _base_ex
-            cum["valid"] = _base_va
             cum["examined"] += r.get("scraped", 0)
             cum["valid"] += r.get("valid", 0)
             cum["rejected"] += r.get("rejected", 0)

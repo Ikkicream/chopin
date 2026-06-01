@@ -185,7 +185,7 @@ def score_prospect(prospect: dict) -> int:
 # ── Pipeline scrape ───────────────────────────────────────────────────────────
 def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                   max_per_city: int = 10, global_cap: int = 1500, max_pages: int = 4,
-                  username: str = "system", heartbeat_cb=None) -> dict:
+                  username: str = "system") -> dict:
     """Scrape Serper Places pour un secteur sur une LISTE de villes.
 
     Sémantique corrigée 2026-05-31 (le `max_results` global était un piège) :
@@ -237,12 +237,6 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                 places = serper_places(q, location=f"{city}, France", num=10,
                                        site_code=site_code, page=page)
                 time.sleep(0.5)
-                # Heartbeat intra-ville (à chaque page Serper) : maj statut live + évite le faux "figé"
-                if heartbeat_cb:
-                    try:
-                        heartbeat_cb(city, sector, examined, valid)
-                    except Exception:
-                        pass
                 if not places:
                     break  # plus de résultats pour cette requête → ville suivante/requête suivante
                 for place in places:
