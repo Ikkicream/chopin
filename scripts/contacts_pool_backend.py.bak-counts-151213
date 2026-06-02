@@ -464,24 +464,17 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
 
 
 def stats_for_site(site_code: str) -> dict:
-    """Stats du site. On NE compte QUE les lignes d'historique rattachées à un contact
-    réellement existant (JOIN), par EMAIL distinct : sinon les historiques orphelins
-    (contacts supprimés par le nettoyage Mailnjoy) gonflent le « Tous » affiché."""
     c = _conn(read_only=True)
     try:
         total = c.execute(
-            "SELECT COUNT(DISTINCT c.email) FROM contact_site_history csh "
-            "JOIN contacts c ON c.id = csh.contact_id WHERE csh.site_code = ?",
-            [site_code]
+            "SELECT COUNT(*) FROM contact_site_history WHERE site_code = ?", [site_code]
         ).fetchone()[0]
         by_state = dict(c.execute(
-            "SELECT csh.state, COUNT(DISTINCT c.email) FROM contact_site_history csh "
-            "JOIN contacts c ON c.id = csh.contact_id WHERE csh.site_code = ? GROUP BY csh.state",
+            "SELECT state, COUNT(*) FROM contact_site_history WHERE site_code = ? GROUP BY state",
             [site_code]
         ).fetchall())
         by_source = dict(c.execute(
-            "SELECT csh.source, COUNT(DISTINCT c.email) FROM contact_site_history csh "
-            "JOIN contacts c ON c.id = csh.contact_id WHERE csh.site_code = ? GROUP BY csh.source",
+            "SELECT source, COUNT(*) FROM contact_site_history WHERE site_code = ? GROUP BY source",
             [site_code]
         ).fetchall())
     finally:

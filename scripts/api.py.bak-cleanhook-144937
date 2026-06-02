@@ -4985,7 +4985,7 @@ async def api_autoscrape_start(site: str, request: Request):
     import time as _tm
 
     cur = asb.read_status(site)
-    if cur.get("status") in ("running", "starting", "stopping", "cleaning") and (_tm.time() - cur.get("updated_at", 0) < 300):
+    if cur.get("status") in ("running", "starting", "stopping") and (_tm.time() - cur.get("updated_at", 0) < 300):
         return {"ok": False, "running": True, "error": "Un autoscrape est déjà en cours.", "active": cur}
 
     asb.write_status(site, {
@@ -5019,7 +5019,7 @@ def api_autoscrape_status(site: str):
     import autoscrape_backend as asb
     import time as _tm
     st = asb.read_status(site)
-    if st.get("status") in ("running", "starting", "stopping", "cleaning") and (_tm.time() - st.get("updated_at", 0) > 300):
+    if st.get("status") in ("running", "starting", "stopping") and (_tm.time() - st.get("updated_at", 0) > 300):
         st = dict(st)
         st["status"] = "interrupted"
         st["message"] = "Process interrompu (plus de heartbeat depuis > 5 min)."

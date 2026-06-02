@@ -178,9 +178,6 @@ def run_cleanup(mode: str, site: str = "lcr", days: int = 180, limit: int = 200,
                     continue
                 if not v.get("ok"):
                     try:
-                        # Cascade : on supprime aussi l'historique pour ne pas laisser
-                        # d'orphelins (qui gonflaient le « Tous » de l'UI).
-                        c.execute("DELETE FROM contact_site_history WHERE contact_id = ?", [cid])
                         c.execute("DELETE FROM contacts WHERE id = ?", [cid])
                         stats["removed"] += 1
                         _log(site, "cleanup_removed", email,
