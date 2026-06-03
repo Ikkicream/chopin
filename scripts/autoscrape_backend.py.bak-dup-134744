@@ -135,7 +135,7 @@ def run_autoscrape(site: str, sectors, dept: str,
     cum = {
         "site": site, "dept": dept, "sectors": sectors,
         "cities_total": len(cities), "cities_done": 0, "current_city": None,
-        "examined": 0, "valid": 0, "rejected": 0, "duplicates": 0, "errors": 0, "kept_total": 0,
+        "examined": 0, "valid": 0, "rejected": 0, "errors": 0, "kept_total": 0,
         "serper_available": serper_available(),
         "status": "running", "blocked": False, "stopped": False,
         "started_at": time.time(), "message": None,
@@ -214,7 +214,6 @@ def run_autoscrape(site: str, sectors, dept: str,
             cum["examined"] += r.get("scraped", 0)
             cum["valid"] += r.get("valid", 0)
             cum["rejected"] += r.get("rejected", 0)
-            cum["duplicates"] += r.get("duplicates", 0)
             cum["errors"] += r.get("errors", 0)
             cum["kept_total"] = cum["valid"]
             city_examined += r.get("scraped", 0)

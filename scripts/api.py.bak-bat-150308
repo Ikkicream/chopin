@@ -5217,35 +5217,6 @@ def api_campaign_stats_by_day(campaign_id: str):
     return {"ok": True, "campaign_id": campaign_id, "by_day": list(by_day.values()), "totals": totals}
 
 
-@app.post("/api/sites/{site}/templates/{sector}/{kind}/send-test")
-async def api_template_send_test(site: str, sector: str, kind: str, request: Request):
-    """BAT : envoie l'email de test de la séquence du secteur à une adresse saisie.
-    Réutilise la campagne Emelia du secteur (steps = templates verrouillés) + /emails/test."""
-    body = await request.json()
-    email = (body.get("email") or "").strip()
-    if not email or "@" not in email:
-        return {"ok": False, "error": "Adresse email destinataire invalide."}
-    step = {"first": 0, "relance1": 1, "relance2": 2}.get(kind, 0)
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import workflow_emelia_push as wep
-    try:
-        cid = wep.ensure_campaign_for_auto(site, sector)
-    except Exception as e:
-        return {"ok": False, "error": f"Campagne Emelia: {e}"}
-    if not cid:
-        return {"ok": False, "error": "Campagne Emelia indisponible (clé manquante ?)."}
-    key = wep._get_key(site)
-    try:
-        r = requests.post("https://api.emelia.io/emails/test",
-                          json={"campaignId": cid, "email": email, "step": step},
-                          headers={"Authorization": key, "Content-Type": "application/json"}, timeout=15)
-        if r.status_code not in (200, 201):
-            return {"ok": False, "error": f"Emelia HTTP {r.status_code}", "detail": r.text[:160]}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-    return {"ok": True, "message": f"BAT envoyé à {email}"}
-
-
 @app.get("/api/sites/{site}/cleanup/status")
 def api_cleanup_status(site: str):
     """État détaillé des nettoyages actifs pour ce site (avec progress)."""

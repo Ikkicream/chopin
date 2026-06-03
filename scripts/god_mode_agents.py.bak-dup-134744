@@ -218,7 +218,6 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
     valid = 0          # gardés (email valide + inséré)
     rejected = 0
     errors = 0
-    duplicates = 0     # déjà connus (email déjà en pool/file/validé) → ignorés, JAMAIS dupliqués
     kept_total = 0     # = valid, mais explicite pour le plafond global
     cities_done = 0
     seen_emails = set()
@@ -267,7 +266,6 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                         rejected += 1
                         continue
                     if email in seen_emails:
-                        duplicates += 1
                         continue
                     seen_emails.add(email)
 
@@ -281,7 +279,7 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                             time.sleep(0.5)
                             _dup = gm.email_recently_validated(email, days=30) or gm.email_in_pending(email)
                         if _dup:
-                            duplicates += 1
+                            rejected += 1
                             continue
 
                         # === Validator email (6 étages spec EMAIL_VALIDATION_SCORING.md) ===
@@ -350,11 +348,11 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                   resource="sector", resource_id=sector,
                   payload={"sector": sector, "cities_done": cities_done, "cities_total": len(cities),
                            "cities": cities[:5], "scraped": examined, "valid": valid,
-                           "rejected": rejected, "duplicates": duplicates, "errors": errors,
+                           "rejected": rejected, "errors": errors,
                            "max_per_city": max_per_city, "global_cap": global_cap})
     return {"sector": sector, "scraped": examined, "valid": valid, "rejected": rejected,
-            "duplicates": duplicates, "errors": errors, "kept_total": kept_total,
-            "cities_done": cities_done, "cities_total": len(cities)}
+            "errors": errors, "kept_total": kept_total, "cities_done": cities_done,
+            "cities_total": len(cities)}
 
 
 if __name__ == "__main__":
