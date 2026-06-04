@@ -71,19 +71,21 @@ def _headers(api_key: str) -> dict:
 
 
 def greeting_first_name(prenom: str | None) -> str:
-    """Valeur à envoyer dans le champ Emelia `firstName`, pensée pour des templates
-    dont la salutation est `Bonjour{{firstName}},` (sans espace avant la variable).
+    """Valeur à envoyer dans le champ Emelia `firstName` : la SALUTATION COMPLÈTE.
+    Les templates utilisent `{{firstName}},` (sans « Bonjour » littéral devant).
 
-    - prénom présent  -> ' Philippe'  (espace inclus)  => rendu « Bonjour Philippe, »
-    - prénom absent    -> ''                              => rendu « Bonjour, »
+    - prénom présent -> 'Bonjour Philippe'  => rendu « Bonjour Philippe, »
+    - prénom absent  -> 'Bonjour'           => rendu « Bonjour, »
 
-    Évite le « Bonjour , » cassé quand le contact n'a pas de prénom (cas majoritaire
-    sur les contacts scrapés à email générique). On normalise aussi la casse (1er token,
-    Title-case) pour ne pas envoyer « Bonjour PHILIPPE, »."""
+    Pourquoi la salutation complète ? Emelia TRIM les espaces de bord du champ
+    (vérifié le 2026-06-04 : ' Camille' stocké 'Camille'), donc impossible de mettre
+    l'espace dans la valeur. L'espace interne de 'Bonjour Philippe' survit, lui.
+    Évite « Bonjour , » et « , autre chose » pour les ~74% de contacts sans prénom.
+    Casse normalisée (1er token, Title-case) pour éviter « Bonjour PHILIPPE »."""
     p = (prenom or "").strip()
     if not p:
-        return ""
-    return " " + p.split()[0].title()
+        return "Bonjour"
+    return "Bonjour " + p.split()[0].title()
 
 
 def _campaign_name(site: str, sector: str) -> str:

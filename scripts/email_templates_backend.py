@@ -34,16 +34,17 @@ _FN = "{{firstName}}"
 
 
 def normalize_greeting(body_html: str) -> str:
-    """Force la salutation au format `Bonjour{{firstName}},` (sans espace avant la variable),
-    seul format pour lequel le fallback côté push (greeting_first_name) rend proprement
-    « Bonjour Philippe, » avec prénom et « Bonjour, » sans prénom (jamais « Bonjour , » ni
-    « , … »). Idempotent. Appelé à la génération IA ET à l'édition manuelle pour que ni l'un
-    ni l'autre ne réintroduise « Bonjour , ». Sans {{firstName}}, ne touche à rien."""
+    """Force la salutation au format `{{firstName}},` SANS « Bonjour » littéral devant :
+    c'est la valeur poussée (greeting_first_name) qui porte la salutation complète
+    (« Bonjour Philippe » / « Bonjour »), car Emelia trim les espaces de bord du champ
+    firstName (donc impossible d'y cacher l'espace). Rendu : « Bonjour Philippe, » avec
+    prénom, « Bonjour, » sans — jamais « Bonjour , », « , … » ni « Bonjour Bonjour ».
+    Idempotent. Appelé à la génération IA ET à l'édition manuelle. Sans {{firstName}},
+    ne touche à rien."""
     if not body_html or _FN not in body_html:
         return body_html
-    out = body_html.replace("Bonjour " + _FN, "Bonjour" + _FN)  # collapse l'espace
-    if "Bonjour" + _FN not in out:                               # début de phrase « {{firstName}}, … »
-        out = out.replace(_FN, "Bonjour" + _FN, 1)
+    out = body_html.replace("Bonjour " + _FN, _FN)  # « Bonjour {{firstName}} » -> « {{firstName}} »
+    out = out.replace("Bonjour" + _FN, _FN)         # « Bonjour{{firstName}} »  -> « {{firstName}} »
     return out
 
 

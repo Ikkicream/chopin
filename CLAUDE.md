@@ -116,6 +116,7 @@ Disaster recovery : copie locale Mac à `~/.ssh/genesis-master-key` + README. Ba
 - **Cooldowns** respectés automatiquement par `pick_for_campaign()`
 - **Aucun code SQL direct** dans api.py — passer par les backends (acquisition_backend, contacts_pool_backend, etc.)
 - **Tailwind 4** : utiliser les selectors `data-[attribute=value]` (PAS `data-attribute`)
+- **API Emelia** : lire `docs/emelia-api.md` AVANT tout appel Emelia (endpoints verifies ✅/❌, pieges : trim firstName, PATCH settings inexistant, fenetre reelle 8h-17h, GraphQL pour settings/contacts/remove)
 
 ---
 

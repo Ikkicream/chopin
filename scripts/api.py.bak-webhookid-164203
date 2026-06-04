@@ -3260,10 +3260,6 @@ async def api_campaign_pause(campaign_id: str):
     return {"ok": r.status_code == 200, "status": r.status_code}
 
 
-# cache nom de campagne Emelia -> _id (les webhooks Emelia n'envoient que le nom)
-_emelia_camp_id_cache: dict = {}
-
-
 @app.post("/api/emelia/webhook")
 async def api_emelia_webhook(request: Request):
     """Receive Emelia webhook events: opened, clicked, replied, bounced.
@@ -3293,23 +3289,6 @@ async def api_emelia_webhook(request: Request):
             site_detect = "mkd"
         elif cn.startswith("LCR") or "LCR-" in cn or "LECLIENTROI" in cn.replace(" ", ""):
             site_detect = "lcr"
-        # Résout campaign name -> _id (payload Emelia = nom string, jamais l'id).
-        # Sans ça, campaign_id reste vide et /api/campaigns/{id}/stats-by-day ne matche rien.
-        camp_id = campaign.get("_id", "") if isinstance(campaign, dict) else ""
-        if not camp_id and camp_name:
-            camp_id = _emelia_camp_id_cache.get(camp_name, "")
-            if not camp_id:
-                try:
-                    import workflow_emelia_push as _wep
-                    _key = _wep._get_key(site_detect)
-                    if _key:
-                        for _cmp in _wep.list_campaigns(_key):
-                            _nm, _cid = _cmp.get("name") or "", _wep._camp_id(_cmp) or ""
-                            if _nm and _cid:
-                                _emelia_camp_id_cache[_nm] = _cid
-                        camp_id = _emelia_camp_id_cache.get(camp_name, "")
-                except Exception:
-                    pass
         _c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"))
         try:
             emelia_date_str = data.get("date", "")
@@ -3324,7 +3303,7 @@ async def api_emelia_webhook(request: Request):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 [str(_uuid.uuid4()), event_type.upper(), email,
                  contact.get("firstName", ""), contact.get("lastName", ""),
-                 camp_name, camp_id,
+                 camp_name, campaign.get("_id", "") if isinstance(campaign, dict) else "",
                  site_detect, data.get("step", 0), emelia_date, _json.dumps(data, ensure_ascii=False)])
         finally:
             _c.close()
@@ -3731,34 +3710,7 @@ def get_serper_usage():
         }
         if plan_total is not None:
             out["plan_total"] = plan_total
-        # Source de vérité = SOLDE LIVE serper.dev /account (l'endpoint existe, contrairement
-        # à l'ancien commentaire ; c'est ce que la page Scrapper affiche déjà). On l'utilise
-        # pour `available` ET on rafraîchit le snapshot pour qu'autoscrape.serper_available()
-        # ne bloque plus sur une valeur figée.
-        live = None
-        try:
-            sys.path.insert(0, str(BASE_DIR / "scripts"))
-            from god_mode_agents import serper_balance as _sbal
-            _b = _sbal()
-            if _b.get("ok") and _b.get("balance") is not None:
-                live = int(_b["balance"])
-                if _b.get("rateLimit"):
-                    out["plan_total"] = _b["rateLimit"]
-        except Exception:
-            live = None
-        if live is not None:
-            out["available"] = live
-            out["balance_live"] = live
-            try:
-                cfg_path.write_text(json.dumps({
-                    "plan_total": out.get("plan_total", plan_total),
-                    "balance": live,
-                    "snapshot_at": now.isoformat(),
-                    "note": "Auto-rafraichi depuis le solde live serper.dev /account.",
-                }, ensure_ascii=False, indent=2))
-            except Exception:
-                pass
-        elif balance is not None and snapshot_at:
+        if balance is not None and snapshot_at:
             consumed_since = _sum_credits(snapshot_at)
             out["consumed_since_snapshot"] = consumed_since
             out["available"] = max(0, int(balance) - consumed_since)
@@ -4546,18 +4498,6 @@ def api_pool_depletion(site: str, threshold: int = 10):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from god_mode_backend import SECTORS_GOD_MODE as SECTORS
     return {"depleted": check_pool_depletion(site, SECTORS, threshold=threshold)}
-
-
-@app.get("/api/sites/{site}/pool/sector-availability")
-def api_pool_sector_availability(site: str):
-    """Dispo de pioche par secteur canonique (mêmes filtres que pick_for_campaign).
-    Alimente la Vision : compteurs réels par secteur, triés décroissant."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from contacts_pool_backend import count_available_for_sector
-    from god_mode_backend import SECTORS_GOD_MODE as SECTORS
-    rows = [{"sector": s_, "available": count_available_for_sector(site, s_)} for s_ in SECTORS]
-    rows.sort(key=lambda r: r["available"], reverse=True)
-    return {"sectors": rows, "total_available": sum(r["available"] for r in rows)}
 
 
 @app.get("/api/sites/{site}/pool/pick")
