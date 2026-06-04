@@ -30,6 +30,23 @@ def _conn():
     return duckdb.connect(str(GOD_DB))
 
 
+_FN = "{{firstName}}"
+
+
+def normalize_greeting(body_html: str) -> str:
+    """Force la salutation au format `Bonjour{{firstName}},` (sans espace avant la variable),
+    seul format pour lequel le fallback côté push (greeting_first_name) rend proprement
+    « Bonjour Philippe, » avec prénom et « Bonjour, » sans prénom (jamais « Bonjour , » ni
+    « , … »). Idempotent. Appelé à la génération IA ET à l'édition manuelle pour que ni l'un
+    ni l'autre ne réintroduise « Bonjour , ». Sans {{firstName}}, ne touche à rien."""
+    if not body_html or _FN not in body_html:
+        return body_html
+    out = body_html.replace("Bonjour " + _FN, "Bonjour" + _FN)  # collapse l'espace
+    if "Bonjour" + _FN not in out:                               # début de phrase « {{firstName}}, … »
+        out = out.replace(_FN, "Bonjour" + _FN, 1)
+    return out
+
+
 def _ensure_table() -> None:
     c = _conn()
     try:
@@ -146,7 +163,7 @@ def generate(site: str, sector: str) -> dict:
             continue
         em = emails[i]
         errs = verrors.get(i + 1, [])
-        _upsert(site, sector, kind, em.get("subject", ""), em.get("body_html", ""),
+        _upsert(site, sector, kind, em.get("subject", ""), normalize_greeting(em.get("body_html", "")),
                 not errs, errs, by="ai", locked=False)
     return {"ok": True, "sector": sector, "skipped_locked": skipped, "emails": get_sector(site, sector)}
 
@@ -156,8 +173,9 @@ def update(site: str, sector: str, kind: str, subject: str, body_html: str, by: 
     from email_generator import validate_email
     if kind not in KINDS:
         return {"ok": False, "error": f"kind invalide ({kind})"}
-    errs = validate_email(subject or "", body_html or "")
-    _upsert(site, sector, kind, subject or "", body_html or "", not errs, errs, by=by, locked=False)
+    body_html = normalize_greeting(body_html or "")
+    errs = validate_email(subject or "", body_html)
+    _upsert(site, sector, kind, subject or "", body_html, not errs, errs, by=by, locked=False)
     return {"ok": True, "valid": not errs, "validation_errors": errs, "email": _get_one(site, sector, kind)}
 
 

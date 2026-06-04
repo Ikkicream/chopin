@@ -70,6 +70,22 @@ def _headers(api_key: str) -> dict:
     return {"Authorization": api_key, "Content-Type": "application/json"}
 
 
+def greeting_first_name(prenom: str | None) -> str:
+    """Valeur à envoyer dans le champ Emelia `firstName`, pensée pour des templates
+    dont la salutation est `Bonjour{{firstName}},` (sans espace avant la variable).
+
+    - prénom présent  -> ' Philippe'  (espace inclus)  => rendu « Bonjour Philippe, »
+    - prénom absent    -> ''                              => rendu « Bonjour, »
+
+    Évite le « Bonjour , » cassé quand le contact n'a pas de prénom (cas majoritaire
+    sur les contacts scrapés à email générique). On normalise aussi la casse (1er token,
+    Title-case) pour ne pas envoyer « Bonjour PHILIPPE, »."""
+    p = (prenom or "").strip()
+    if not p:
+        return ""
+    return " " + p.split()[0].title()
+
+
 def _campaign_name(site: str, sector: str) -> str:
     return f"workflow-{site}-{sector}"
 
@@ -332,7 +348,7 @@ def push_prospect(site: str, prospect_id: str, daily_limit: int = 50) -> dict:
             last_name = parts[1] if len(parts) > 1 else ""
         contact = {
             "email": email,
-            "firstName": first_name,
+            "firstName": greeting_first_name(first_name),
             "lastName": last_name,
             "field1": company or "",
             "field2": city or "",
@@ -481,7 +497,7 @@ def push_batch_to_campaign(site: str, campaign_id: str, sector: str, n: int,
             continue
         contact = {
             "email":     email,
-            "firstName": ct.get("prenom") or "",
+            "firstName": greeting_first_name(ct.get("prenom")),
             "lastName":  ct.get("nom") or "",
             "field1":    ct.get("societe") or "",
             "field2":    ct.get("city") or "",
