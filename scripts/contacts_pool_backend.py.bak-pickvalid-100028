@@ -631,9 +631,6 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
             -- (fermées, administrations, diffusion partielle). Les non-enrichis (e.* NULL)
             -- passent normalement : on ne bloque pas le flux faute d'enrichissement.
             AND COALESCE(e.excluded, FALSE) = FALSE
-            -- N'ENVOYER QU'AUX EMAILS NETTOYÉS : Mailnjoy décision 'valid' uniquement
-            -- (exclut error/risky/pending et les jamais-vérifiés NULL).
-            AND json_extract_string(c.mailnjoy_check, '$.decision') = 'valid'
             AND (csh.state IS NULL OR csh.state = 'cold_email')
             AND (
                 csh.last_contacted_by_site_at IS NULL
@@ -683,9 +680,6 @@ def count_available_for_sector(site_code: str, sector: str) -> int:
             c.global_blacklisted = FALSE
             AND c.sectors::VARCHAR LIKE ?
             AND COALESCE(e.excluded, FALSE) = FALSE
-            -- N'ENVOYER QU'AUX EMAILS NETTOYÉS : Mailnjoy décision 'valid' uniquement
-            -- (exclut error/risky/pending et les jamais-vérifiés NULL).
-            AND json_extract_string(c.mailnjoy_check, '$.decision') = 'valid'
             AND (csh.state IS NULL OR csh.state = 'cold_email')
             AND (
                 csh.last_contacted_by_site_at IS NULL
