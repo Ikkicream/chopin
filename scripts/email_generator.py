@@ -239,6 +239,7 @@ EXIGENCES DE QUALITÉ (style cold email qui obtient des réponses) :
 - E1 commence par un ICE BREAKER ancré sur le secteur / la fonction du destinataire
   (PAS « Bonjour, nous proposons… »), enchaîne sur une QUESTION OUVERTE, puis la valeur, puis le CTA.
 - Ton parlé, phrases courtes, contractions. Bannis « je me permets », « n'hésitez pas », le jargon.
+- INTERDIT les formules cliché d'IA : « c'est mission impossible », « Curieux de voir comment ? », « ROI x50 », « j'espère que vous allez bien ». Sois SPÉCIFIQUE et concret (un chiffre, un détail du métier), comme un humain qui connaît vraiment le secteur.
 - E2 : une preuve sociale CHIFFRÉE et concrète. E3 : breakup qui donne la permission de dire non.
 
 CONTRAINTES DE FORMAT :

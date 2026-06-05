@@ -10,7 +10,6 @@ NB : ce module COEXISTE avec acquisition_backend.py legacy le temps de migrer.
 from __future__ import annotations
 
 import json
-import time
 import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -91,7 +90,7 @@ def _ensure_schema() -> None:
     if _MIGRATED:
         return
     try:
-        c = _connect_with_retry(read_only=False)
+        c = duckdb.connect(str(POOL_DB))
         try:
             existing = {r[1] for r in c.execute("PRAGMA table_info(contacts)").fetchall()}
             for col, typ in _EXTRA_COLS.items():
@@ -110,27 +109,9 @@ def _ensure_schema() -> None:
         pass
 
 
-def _connect_with_retry(read_only: bool = False, attempts: int = 8, sleep_s: float = 0.35):
-    """DuckDB = 1 writer : pendant un autoscrape/cleanup, un connect concurrent lève
-    « Could not set lock ». On réessaie brièvement (≈ jusqu'à 2.8 s) au lieu d'échouer
-    sec — ce qui évite les « Chargement… » sur Vision/Acquisition pendant un scrape."""
-    last = None
-    for i in range(attempts):
-        try:
-            return duckdb.connect(str(POOL_DB), read_only=read_only)
-        except Exception as e:  # noqa: BLE001
-            last = e
-            msg = str(e).lower()
-            if ("lock" in msg or "conflicting" in msg) and i < attempts - 1:
-                time.sleep(sleep_s)
-                continue
-            raise
-    raise last  # type: ignore
-
-
 def _conn(read_only: bool = False) -> duckdb.DuckDBPyConnection:
     _ensure_schema()
-    return _connect_with_retry(read_only=read_only)
+    return duckdb.connect(str(POOL_DB), read_only=read_only)
 
 
 def _now() -> datetime:
@@ -482,31 +463,6 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
     return out
 
 
-def filter_values_for_site(site_code: str) -> dict:
-    """Valeurs distinctes (secteur, source) AVEC compteurs pour les filtres Acquisition.
-    Scopé aux contacts du funnel de ce site (JOIN contact_site_history)."""
-    c = _conn(read_only=True)
-    try:
-        secs = c.execute(
-            "SELECT TRIM(sv.value) AS sec, COUNT(*) AS n "
-            "FROM contacts c JOIN contact_site_history csh ON c.id = csh.contact_id, "
-            "     UNNEST(CAST(c.sectors AS VARCHAR[])) AS sv(value) "
-            "WHERE csh.site_code = ? AND c.sectors IS NOT NULL "
-            "GROUP BY 1 HAVING TRIM(sv.value) <> '' ORDER BY n DESC",
-            [site_code]).fetchall()
-        srcs = c.execute(
-            "SELECT COALESCE(NULLIF(TRIM(csh.source), ''), '?') AS src, COUNT(*) AS n "
-            "FROM contacts c JOIN contact_site_history csh ON c.id = csh.contact_id "
-            "WHERE csh.site_code = ? GROUP BY 1 ORDER BY n DESC",
-            [site_code]).fetchall()
-    finally:
-        c.close()
-    return {
-        "sectors": [{"value": r[0], "count": int(r[1])} for r in secs],
-        "sources": [{"value": r[0], "count": int(r[1])} for r in srcs],
-    }
-
-
 def stats_for_site(site_code: str) -> dict:
     """Stats du site. On NE compte QUE les lignes d'historique rattachées à un contact
     réellement existant (JOIN), par EMAIL distinct : sinon les historiques orphelins
@@ -562,14 +518,6 @@ def enrichment_stats() -> dict:
             "SELECT exclusion_reason, COUNT(*) FROM contact_enrichment "
             "WHERE excluded GROUP BY 1 ORDER BY 2 DESC"
         ).fetchall()
-        mj = c.execute(
-            "SELECT "
-            "COUNT(*) FILTER (WHERE mailnjoy_check IS NULL OR LENGTH(mailnjoy_check)=0), "
-            "COUNT(*) FILTER (WHERE json_extract_string(mailnjoy_check,'$.decision')='valid'), "
-            "COUNT(*) FILTER (WHERE mailnjoy_check IS NOT NULL AND LENGTH(mailnjoy_check)>0 "
-            "  AND COALESCE(json_extract_string(mailnjoy_check,'$.decision'),'')<>'valid') "
-            "FROM contacts WHERE global_blacklisted=FALSE"
-        ).fetchone()
     finally:
         c.close()
     in_table = r[3] or 0
@@ -583,7 +531,6 @@ def enrichment_stats() -> dict:
         "signals": {"rge": r[4] or 0, "qualiopi": r[5] or 0, "ess": r[6] or 0},
         "hard_exclusion_reasons": {row[0]: row[1] for row in reasons},
         "last_enriched_at": str(r[7]) if r[7] else None,
-        "mailnjoy": {"missing": mj[0] or 0, "valid": mj[1] or 0, "other": mj[2] or 0},
     }
 
 

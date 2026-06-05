@@ -56,7 +56,6 @@ def read_status(site: str) -> dict:
 PER_CITY = 15          # objectif de contacts gardés par ville
 MAX_PAGES = 4          # pagination Serper max par requête
 CREDIT_FLOOR = 60      # on stoppe quand le solde Serper estimé descend sous ce seuil
-MAX_RUN_SECONDS = 5400  # garde-temps DUR (90 min) : un autoscrape ne doit jamais verrouiller le pool des heures
 ZERO_STREAK_STOP = 5   # n villes consécutives à 0 commerce examiné ⇒ stall (arrêt sécurité)
 
 # Grandes villes = 1 seule commune INSEE dans la donnée géo → on les éclate en
@@ -118,7 +117,6 @@ def serper_available() -> int | None:
 def run_autoscrape(site: str, sectors, dept: str,
                    per_city: int = PER_CITY, credit_floor: int = CREDIT_FLOOR,
                    max_pages: int = MAX_PAGES,
-                   target_valid: int | None = None, max_seconds: int = MAX_RUN_SECONDS,
                    progress_cb=None, should_stop=None) -> dict:
     """Scrape toutes les villes (pop≥10k) du `dept` pour chaque secteur, en continu,
     jusqu'à blocage crédit / stop / épuisement."""
@@ -140,7 +138,6 @@ def run_autoscrape(site: str, sectors, dept: str,
         "examined": 0, "valid": 0, "rejected": 0, "duplicates": 0, "errors": 0, "kept_total": 0,
         "serper_available": serper_available(),
         "status": "running", "blocked": False, "stopped": False,
-        "target_valid": target_valid,
         "started_at": time.time(), "message": None,
     }
 
@@ -229,21 +226,6 @@ def run_autoscrape(site: str, sectors, dept: str,
         cum["kept_total"] = cum["valid"]
         emit()
 
-        # Arrêt sur VOLUME CIBLE atteint (validés) — empêche un autoscrape sans fin.
-        if target_valid and cum["valid"] >= target_valid:
-            cum["status"] = "target_reached"
-            cum["message"] = f"Volume cible atteint : {cum['valid']}/{target_valid} validés."
-            break
-        # GARDE-TEMPS dur — empêche de verrouiller le pool pendant des heures.
-        if time.time() - cum["started_at"] >= max_seconds:
-            cum["status"] = "timeout"
-            cum["message"] = f"Garde-temps {int(max_seconds/60)} min atteint — arrêt ({cum['valid']} validés)."
-            notify_telegram(
-                f"⏱️ *Autoscrape {site.upper()}* arrêté (garde-temps {int(max_seconds/60)}min) — "
-                f"dept {dept} · {cum['valid']} gardés."
-            )
-            break
-
         # Détection réactive d'un STALL (plusieurs villes vides d'affilée). NE déclenche
         # un "blocked_credits" QUE si le solde est aussi bas — sinon c'est juste un
         # passage à vide (erreurs DB transitoires / requêtes sans résultat) et on
@@ -324,7 +306,6 @@ def main() -> int:
     ap.add_argument("--site", required=True)
     ap.add_argument("--dept", required=True)
     ap.add_argument("--sectors", required=True, help="secteurs séparés par des virgules")
-    ap.add_argument("--target-valid", type=int, default=None, help="stop quand N contacts validés")
     args = ap.parse_args()
     sectors = [s.strip() for s in args.sectors.split(",") if s.strip()]
 
@@ -343,7 +324,6 @@ def main() -> int:
 
     try:
         run_autoscrape(args.site, sectors, args.dept,
-                       target_valid=args.target_valid,
                        progress_cb=progress_cb, should_stop=should_stop)
     except Exception as e:
         cur = read_status(args.site)

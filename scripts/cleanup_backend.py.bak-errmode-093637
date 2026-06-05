@@ -124,16 +124,6 @@ def list_for_cleanup(mode: str, days: int = 180, limit: int = 200) -> list[dict]
                 "LIMIT ?", [limit]
             ).fetchall()
             return [{"id": r[0], "email": r[1]} for r in rows]
-        if mode == "error":
-            # Check Mailnjoy avec décision != valid (souvent erreur transitoire) -> re-valide.
-            rows = c.execute(
-                "SELECT id, email FROM contacts "
-                "WHERE mailnjoy_check IS NOT NULL AND LENGTH(mailnjoy_check) > 0 "
-                "AND COALESCE(json_extract_string(mailnjoy_check, '$.decision'), '') <> 'valid' "
-                "AND (global_blacklisted IS NULL OR global_blacklisted = FALSE) "
-                "LIMIT ?", [limit]
-            ).fetchall()
-            return [{"id": r[0], "email": r[1]} for r in rows]
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         rows = c.execute(
             "SELECT id, email, mailnjoy_check FROM contacts "

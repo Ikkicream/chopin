@@ -4432,14 +4432,6 @@ def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
     }
 
 
-@app.get("/api/sites/{site}/pool/filter-values")
-def api_pool_filter_values(site: str):
-    """Valeurs distinctes (secteur, source) + compteurs pour les filtres Acquisition."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from contacts_pool_backend import filter_values_for_site
-    return filter_values_for_site(site)
-
-
 @app.get("/api/sites/{site}/pool/contacts/{contact_id}")
 def api_pool_contact_detail(site: str, contact_id: str):
     """Detail d'un contact + historique cross-site."""
@@ -4673,65 +4665,6 @@ async def api_templates_unlock(site: str, sector: str, kind: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import email_templates_backend as etb
     return etb.set_lock(site, sector, kind, False)
-
-
-_HUMANIZE_SYS = ("Tu es Juliette, commerciale chez Le Client ROI. Tu RÉÉCRIS des cold emails B2B "
-                 "pour qu'ils sonnent 100% humains et naturels — jamais 'écrit par une IA'. "
-                 "Tu réponds UNIQUEMENT avec le corps HTML de l'email, sans aucun texte autour, "
-                 "sans bloc markdown.")
-
-_HUMANIZE_PROMPT = (
-    "Réécris ce cold email pour qu'il sonne NATUREL et HUMAIN (comme écrit par une vraie "
-    "commerciale), surtout PAS générique / template / IA.\n\n"
-    "RÈGLES STRICTES (à respecter à la lettre) :\n"
-    "- Le 1er paragraphe d'ouverture reste EXACTEMENT : <p>{{firstName}},</p> "
-    "(la variable porte déjà la salutation).\n"
-    "- Conserve TOUS les liens existants à l'identique (href inchangés), en particulier le "
-    "lien de prise de RDV (tidycal/calendly) et {{UNSUBSCRIBE_LINK}}.\n"
-    "- Conserve le bloc signature (la <table> avec les coordonnées) tel quel.\n"
-    "- Garde la variable {{field1}} si elle est présente (= nom de l'entreprise).\n"
-    "- Bannis les clichés : « c'est mission impossible », « Curieux de voir comment ? », "
-    "« ROI x50 », « je me permets », « n'hésitez pas », « j'espère que vous allez bien ».\n"
-    "- VOUVOIEMENT obligatoire (vous), jamais le tutoiement (B2B).\n"
-    "- Phrases courtes, contractions, du concret et du spécifique. ~130 mots de prose max. UN seul CTA.\n"
-    "- Réponds UNIQUEMENT le corps en HTML (<p>…</p>, <a>, <strong>, la table signature). Rien d'autre.\n\n"
-    "EMAIL À RÉÉCRIRE :\n__BODY__"
-)
-
-
-@app.post("/api/sites/{site}/templates/{sector}/{kind}/humanize")
-async def api_template_humanize(site: str, sector: str, kind: str, request: Request):
-    """Réécrit le corps d'un email via DeepSeek pour le rendre plus humain. Ne sauvegarde
-    PAS : renvoie {ok, subject, body_html} que le front met dans le brouillon."""
-    body = await request.json()
-    subject = (body.get("subject") or "").strip()
-    body_html = (body.get("body_html") or "").strip()
-    if not body_html:
-        return {"ok": False, "error": "body_html requis"}
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from email_generator import validate_email
-    from email_templates_backend import normalize_greeting
-    from llm_call import call_llm
-    prompt = _HUMANIZE_PROMPT.replace("__BODY__", body_html)
-    try:
-        out = call_llm(prompt, max_tokens=1500, temperature=0.85, system=_HUMANIZE_SYS,
-                       module="cold_email", action=f"humanize-{sector}-{kind}", site=site)
-    except Exception as e:
-        return {"ok": False, "error": f"DeepSeek: {e}"}
-    out = (out or "").strip()
-    if out.startswith("```"):
-        out = out.strip("`")
-        if out[:4].lower() == "html":
-            out = out[4:]
-        out = out.strip()
-    out = normalize_greeting(out)
-    # Garde-fous : ne jamais perdre la désinscription ni casser le HTML.
-    if "{{UNSUBSCRIBE_LINK}}" in body_html and "{{UNSUBSCRIBE_LINK}}" not in out:
-        return {"ok": False, "error": "La réécriture a supprimé le lien de désinscription — annulé."}
-    if "<p" not in out:
-        return {"ok": False, "error": "Réécriture invalide (pas de HTML) — annulé."}
-    errs = validate_email(subject, out)
-    return {"ok": True, "subject": subject, "body_html": out, "validation_errors": errs}
 
 
 # ============================================================================

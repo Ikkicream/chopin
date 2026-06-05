@@ -562,14 +562,6 @@ def enrichment_stats() -> dict:
             "SELECT exclusion_reason, COUNT(*) FROM contact_enrichment "
             "WHERE excluded GROUP BY 1 ORDER BY 2 DESC"
         ).fetchall()
-        mj = c.execute(
-            "SELECT "
-            "COUNT(*) FILTER (WHERE mailnjoy_check IS NULL OR LENGTH(mailnjoy_check)=0), "
-            "COUNT(*) FILTER (WHERE json_extract_string(mailnjoy_check,'$.decision')='valid'), "
-            "COUNT(*) FILTER (WHERE mailnjoy_check IS NOT NULL AND LENGTH(mailnjoy_check)>0 "
-            "  AND COALESCE(json_extract_string(mailnjoy_check,'$.decision'),'')<>'valid') "
-            "FROM contacts WHERE global_blacklisted=FALSE"
-        ).fetchone()
     finally:
         c.close()
     in_table = r[3] or 0
@@ -583,7 +575,6 @@ def enrichment_stats() -> dict:
         "signals": {"rge": r[4] or 0, "qualiopi": r[5] or 0, "ess": r[6] or 0},
         "hard_exclusion_reasons": {row[0]: row[1] for row in reasons},
         "last_enriched_at": str(r[7]) if r[7] else None,
-        "mailnjoy": {"missing": mj[0] or 0, "valid": mj[1] or 0, "other": mj[2] or 0},
     }
 
 
