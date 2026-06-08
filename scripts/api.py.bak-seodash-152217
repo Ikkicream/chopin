@@ -1103,14 +1103,6 @@ def get_site_dashboard(site: str):
 
 # ── /api/seo ──────────────────────────────────────────────────────────────────
 
-@app.get("/api/sites/{site}/seo/dashboard")
-def api_seo_dashboard(site: str):
-    """KPI SEO + recos (GSC + Ahrefs + Stratège Trafic) pour la page /seo."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import traffic_strategist as ts
-    return ts.dashboard(site)
-
-
 @app.get("/api/seo")
 def get_seo():
     env = load_env()
