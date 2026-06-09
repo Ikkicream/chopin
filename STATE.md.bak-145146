@@ -4,34 +4,7 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-09 soir (transformation agentique — étape 2 : evaluate + état PM2 réel + content_agent agentique)
-
-## 🔝 REPRISE 2026-06-09 (soir) — Boucle complète + content_agent migré
-
-**FAIT cette session (après-midi/soir) :**
-- **`agent_core.evaluate()`** : feedback nocturne, mesure delta réel par action (gsc_position:{kw} → traffic_strategist-like ; fallback gsc_clicks_total ; fallback ga4_sessions_total). Verdict `validated`/`failed`/`neutral` (seuils ±0.5pt pour position, ±5% pour métriques agrégées). Idempotent (LEFT JOIN sur action_id). Filtres : actions `done`, âge ∈ [7d, 30d]. CLI : `python3 scripts/agent_core.py --mode evaluate --site lcr`. Test fixture passé : 1 outcome écrit (delta +1292 sessions, validated).
-- **Cron PM2 evaluate** : `genesis-agent-evaluate-lcr` (`0 2 * * *`) + `genesis-agent-evaluate-mkd` (`5 2 * * *`), `--no-autorestart`, dump persisté.
-- **3 agents MORTS supprimés** : `pm2 delete genesis-briefing genesis-crm-sync genesis-campaign-status` + save. `orchestrator.py` n'existe plus → décision tranchée (suppression, pas restauration).
-- **`scripts/gen_agents_state.py`** : snapshot `pm2 jlist` → `memory/agents-pm2-state.json` (atomic). Exclut services longs (dashboard/ui/mailnjoy-drain). Filtre par suffixe `-lcr`/`-mkd` (sinon global). 11 agents listés.
-- **Endpoint `/api/agents/{site}/state`** dans `scripts/api.py` (juste avant `/planner`) : lit le snapshot, refresh inline si >5min, retourne `{generated_at, host, age_s, agents}` filtrés site+globaux. Testé : lcr et mkd voient 9 agents chacun (2 spécifiques + 7 globaux).
-- **`content_agent.py --agentic`** : nouveau mode pilotage `agent_core.run_cycle` (observe gsc/ga4/ahrefs, recall, decide via DeepSeek, act via `_agentic_writer(item, snapshot, site, env, dry_run)`). Mode classique préservé. Test dry-run lcr : la boucle a raisonné explicitement « action précédente sans outcome → noop ce cycle », 1 noop écrit dans agent_actions avec reasoning intelligent. **La boucle agentique est OPÉRATIONNELLE de bout en bout.**
-
-**RESTE (prochaine session, dans l'ordre) :**
-1. **Page UI /agents** : consommer `/api/agents/{site}/state` (au lieu de `/api/agents/{site}`) — card "État PM2 réel" avec nom/cron/statut/dernier run/badge couleur. Backend prêt.
-2. Brancher le cron PM2 `genesis-content-lcr` sur le mode `--agentic` (actuellement encore mode legacy) une fois la publication réparée. **Avant** ça : régler les bugs publish (lcr 500, mkd 401 — décision en attente).
-3. Migrer les autres agents (seo-strategist, editorial-manager, etc.) sur `agent_core` — pattern à copier depuis `content_agent.run_agentic`.
-4. Enrichir `skills/content-writer.md` (et autres) avec un préambule explicite "tu dois renvoyer un plan {action_type, target}" pour aider `decide()`.
-
-**DÉCISIONS EN ATTENTE (user) :**
-- **MKD publish 401** : WordPress répond `incorrect_password` → l'App Password est révoqué/invalide. **Action manuelle requise** : aller dans WP admin → Utilisateur camille.afchain@protonmail.com → Application Passwords → en générer un nouveau, puis remplacer `WP_APP_PASSWORD` dans `.env` (sans guillemets autour). Puis `pm2 restart genesis-dashboard`.
-- ~~LCR publish 500~~ **RÉPARÉ** : le schéma emdash a évolué — `data.{excerpt,description,tags}` rejetés (`ec_posts has no column named description`). Fix dans `publish_lcr` : `data={title,content}` + `seo={title,description}` au top-level (validé create 201 + publish 200 sur draft de test).
-
-**LIMITES connues :** GSC via le compte de service = encore **403** (grant propriété pas pris ; les données GSC passent par MCP Ahrefs / seed). GA4 OK.
-
-**RÈGLE gravée :** MAJ `AGENTS.md` + `ARCHITECTURE.md` à CHAQUE fin de session touchant aux agents → lancer `sudo -u autoblog python3 scripts/gen_agents_doc.py`.
-
----
-
+2026-05-30 (sessions Mailnjoy cleanup — voir dernière section)
 
 ## Goal en cours
 Tester le pipeline **Workflow LCR** de bout en bout (Serper → DeepSeek qualifier → push Emelia → cold email envoyé).

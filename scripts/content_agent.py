@@ -353,20 +353,19 @@ def publish_lcr(title: str, slug: str, content_md: str, keyword: str, env: dict)
 
     blocks = md_to_portable_text(content_md)
 
+    # Schéma emdash actuel : data = {title, content} ; seo au top-level
+    # avec champs {title, description}. excerpt/tags/keywords ne sont plus stockés
+    # par le CMS — retirés du payload pour éviter "ec_posts has no column ...".
     payload = {
         "slug":   slug,
         "status": "draft",
         "data": {
-            "title":       title,
-            "excerpt":     excerpt,
-            "description": excerpt,
-            "content":     blocks,
-            "tags":        [keyword, "sms", "marketing"],
-            "seo": {
-                "metaTitle":       title[:60],
-                "metaDescription": excerpt[:155],
-                "keywords":        keyword,
-            },
+            "title":   title,
+            "content": blocks,
+        },
+        "seo": {
+            "title":       title[:60],
+            "description": excerpt[:155],
         },
     }
 
@@ -523,12 +522,69 @@ def run(site: str, dry_run: bool = True, force_keyword: str = None):
     return {"site": site, "title": title, "url": url, "keyword": keyword}
 
 
+# ── Mode agentique (boucle agent_core) ──────────────────────────────────────
+# Au lieu du choose_topic() heuristique, on délègue la décision à
+# agent_core.run_cycle qui : observe GSC/GA4, recall les actions passées
+# (skills/content-writer.md comme policy), demande à DeepSeek un plan
+# {action_type:'write_article', target:'<mot-clé>'}, puis appelle writer_fn ici
+# pour exécuter generate + publish. Chaque action est tracée dans agent_actions
+# → evaluable plus tard par agent_core.evaluate().
+
+def _agentic_writer(item: dict, snapshot: dict, *, site: str, env: dict, dry_run: bool):
+    """Exécute un item du plan agentique : write_article sur le keyword cible."""
+    if item.get("action_type") != "write_article":
+        print(f"  [agentic] action_type non géré: {item.get('action_type')!r} — skip")
+        return
+    keyword = item.get("target") or (item.get("tags") or {}).get("keyword")
+    if not keyword:
+        raise ValueError("plan sans target/keyword")
+    topic = {"keyword": keyword, "volume": 0, "kd": 0, "source": "agentic",
+             "slug_hint": keyword.lower().replace(" ", "-")[:60]}
+    slug = re.sub(r"[^a-z0-9-]", "", topic["slug_hint"].replace("'", ""))
+    if dry_run:
+        print(f"  [agentic] DRY-RUN keyword={keyword!r} slug={slug}")
+        item["dry_run"] = True
+        return
+    article = generate_article(topic, site, env)
+    title = article["title"]
+    url = publish_lcr(title, slug, article["content_md"], keyword, env) if site == "lcr" \
+        else publish_mkd(title, slug, article["content_md"], keyword, env)
+    try:
+        sys.path.insert(0, str(BASE_DIR))
+        from scripts.cost_tracker import track
+        track(action=f"article-{site}-{slug[:30]}", module="content",
+              model="deepseek-chat", input_tok=article["input_tok"],
+              output_tok=article["output_tok"],
+              note=f"{site.upper()} · {keyword} · {url}")
+    except Exception as e:  # noqa: BLE001
+        print(f"  ⚠ cost_tracker: {e}")
+    log_published(site, title, slug, url, keyword, "agentic")
+    item["url"], item["title"], item["slug"] = url, title, slug
+
+
+def run_agentic(site: str, dry_run: bool = True) -> dict:
+    """Variante agentique : pilotée par agent_core (observe→recall→decide→act)."""
+    from functools import partial
+    env = load_env()
+    print(f"[content_agent agentic] Site: {site.upper()} — "
+          f"{'DRY-RUN' if dry_run else 'LIVE'}")
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from agent_core import run_cycle
+    writer = partial(_agentic_writer, site=site, env=env, dry_run=dry_run)
+    result = run_cycle(agent="content-writer", site=site,
+                       sources=("gsc", "ga4", "ahrefs"), writer_fn=writer)
+    print(json.dumps(result, ensure_ascii=False, default=str))
+    return result
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--site",    choices=["lcr", "mkd", "both"], default="lcr")
     parser.add_argument("--dry-run", action="store_true", default=True)
     parser.add_argument("--live",    action="store_true")
     parser.add_argument("--keyword", help="Forcer un mot-clé spécifique")
+    parser.add_argument("--agentic", action="store_true",
+                        help="Passe par la boucle agent_core (observe/recall/decide/act)")
     args = parser.parse_args()
 
     dry = not args.live
@@ -545,4 +601,7 @@ if __name__ == "__main__":
         if not is_enabled(s, "articles"):
             print(f"[content_agent] {s}: module 'articles' désactivé → skip")
             continue
-        run(s, dry_run=dry, force_keyword=args.keyword)
+        if args.agentic:
+            run_agentic(s, dry_run=dry)
+        else:
+            run(s, dry_run=dry, force_keyword=args.keyword)

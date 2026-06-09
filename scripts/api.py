@@ -2178,6 +2178,31 @@ async def api_agent_update_cron(site: str, agent_id: str, request: Request):
     _save_agent_crons(crons)
     return {"ok": True, "cron": crons[site][agent_id]}
 
+@app.get("/api/agents/{site}/state")
+async def api_agents_state(site: str):
+    """Vrai état PM2 des agents (memory/agents-pm2-state.json, refresh si stale)."""
+    f = BASE_DIR / "memory" / "agents-pm2-state.json"
+    stale_after_s = 300
+    needs_refresh = (not f.exists()
+                     or (time.time() - f.stat().st_mtime) > stale_after_s)
+    if needs_refresh:
+        try:
+            subprocess.run(
+                ["python3", str(BASE_DIR / "scripts" / "gen_agents_state.py")],
+                capture_output=True, timeout=20, check=False)
+        except Exception:  # noqa: BLE001
+            pass  # fallback : on lit le fichier existant s'il y en a un
+    if not f.exists():
+        return {"site": site, "agents": [], "stale": True,
+                "error": "snapshot pm2 indisponible"}
+    data = json.loads(f.read_text(encoding="utf-8"))
+    agents = [a for a in data.get("agents", [])
+              if a.get("site") in (None, site)]
+    age_s = int(time.time() - f.stat().st_mtime)
+    return {"site": site, "generated_at": data.get("generated_at"),
+            "host": data.get("host"), "age_s": age_s, "agents": agents}
+
+
 @app.get("/api/agents/{site}/planner")
 async def api_agents_planner(site: str):
     """Return a weekly execution plan in logical order."""
