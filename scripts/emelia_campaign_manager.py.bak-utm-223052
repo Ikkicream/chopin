@@ -186,20 +186,6 @@ def list_campaigns():
 
 
 # Default email templates
-def _tag_steps_cold(steps, sector):
-    """Pose utm_source=coldemail&utm_medium=email&utm_campaign=<secteur> sur les liens
-    possédés dans chaque corps d'email (cf. utm_tagging). Best-effort."""
-    try:
-        from utm_tagging import tag_links
-    except Exception:
-        return steps
-    for st in steps:
-        for v in st.get("versions", []):
-            if v.get("message"):
-                v["message"] = tag_links(v["message"], "coldemail", "email", sector or "")
-    return steps
-
-
 def get_default_steps(sector, company_type="entreprise", site="lcr"):
     """Génère la séquence 3 emails pour un secteur.
 
@@ -218,7 +204,7 @@ def get_default_steps(sector, company_type="entreprise", site="lcr"):
                 {"amount": 3, "unit": "DAYS"},
                 {"amount": 7, "unit": "DAYS"},
             ]
-            return _tag_steps_cold([
+            return [
                 {"delay": delays[i], "versions": [{
                     "subject":  by_kind[k].get("subject") or "",
                     "disabled": False,
@@ -227,7 +213,7 @@ def get_default_steps(sector, company_type="entreprise", site="lcr"):
                     "attachments": [],
                 }]}
                 for i, k in enumerate(order)
-            ], sector)
+            ]
     except Exception as e:
         print(f"  [steps] DB templates indispo, fallback générique ({e})")
 
@@ -253,11 +239,11 @@ def get_default_steps(sector, company_type="entreprise", site="lcr"):
 
     tmpl = templates.get(sector, templates["default"])
 
-    return _tag_steps_cold([
+    return [
         {"delay": {"amount": 0, "unit": "MINUTES"}, "versions": [{"subject": tmpl["subject1"], "disabled": False, "message": tmpl["body1"], "rawHtml": True, "attachments": []}]},
         {"delay": {"amount": 3, "unit": "DAYS"}, "versions": [{"subject": tmpl["subject2"], "disabled": False, "message": tmpl["body2"], "rawHtml": True, "attachments": []}]},
         {"delay": {"amount": 7, "unit": "DAYS"}, "versions": [{"subject": tmpl["subject3"], "disabled": False, "message": tmpl["body3"], "rawHtml": True, "attachments": []}]},
-    ], sector)
+    ]
 
 
 def build_newsletter_steps(html, subject):

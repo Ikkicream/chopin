@@ -76,11 +76,6 @@ def send_campaign(campaign_id: str, subject: str, html_str: str,
         return {"ok": False, "error": "aucun destinataire valide"}
     if not subject or not subject.strip():
         return {"ok": False, "error": "sujet requis"}
-    try:
-        from utm_tagging import tag_links
-        html_str = tag_links(html_str, "newsletter", "email", campaign_id or "newsletter")
-    except Exception:
-        pass
     body = {
         "channel": "email",
         "provider": "sweego",
