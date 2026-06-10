@@ -4,7 +4,46 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-09 soir (transformation agentique — étape 2 : evaluate + état PM2 réel + content_agent agentique)
+2026-06-09 nuit (transformation agentique étape 3 : humanizer agent + UI /agents + cleanup emdash schema + slugifier NFD)
+
+## 🔝 REPRISE 2026-06-09 (nuit) — Boucle complète + humanizer + UI
+
+**FAIT cette session (après-midi/soir/nuit) — gros chantier :**
+
+### Boucle agentique (étape 2)
+- `agent_core.evaluate()` + cron PM2 quotidien 02:00 (lcr) / 02:05 (mkd)
+- 3 crons morts supprimés (briefing/crm-sync/campaign-status)
+- `gen_agents_state.py` + endpoint `/api/agents/{site}/state`
+- `content_agent.py --agentic` (boucle `agent_core.run_cycle`)
+
+### Cleanup pipeline emdash (étape 3)
+- Fix `publish_lcr` schema emdash : `data={title,content}` + `seo` top-level
+- Fix `md_to_portable_text` : skip H1 du body (emdash affiche `data.title`), parse `**…**`/`*…*` en marks `strong`/`em`, ignore les `---`, splitte `Label : « citation »` en label-gras + blockquote, passe citations pures `« … »` en blockquote
+- `ARTICLE_PROMPT` ré-écrit pour interdire à la source : préfixes `H2:`/`H3:`, labels `## Introduction`/`## Conclusion`, `---` dans le corps. Force `*Exemple : ...*` en italique.
+- Slugifier `_slugify()` centralisé avec normalisation NFD (plus de `fidéliser → fidliser`)
+
+### Test live de bout en bout
+- Article LCR publié : https://blog.leclientroi.com/posts/comment-fideliser-vos-clients-avec-des-sms-personnalises (HTTP 200, slug propre avec accents, gras/blockquotes/italiques OK)
+- Pilote humanizer sur 1 article backlog Arvow validé (agents-immobilier, 19k→11k chars, blacklist purgée, structure préservée)
+
+### Agent humanizer (skill + cron PM2)
+- Skill : `skills/humanizer.md` (prompt cmux-drop) + `skills/humanizer-tone.md` (préambule ton marketing-coach injecté en tête du user prompt)
+- `scripts/humanize_article.py` : CLI standalone (peut traiter 1 article manuellement) — temp 0.85, filets déterministes (frontmatter forcé, `2025→2026` dans le corps)
+- `scripts/humanizer_agent.py` : agent agentique sur `agent_core` (observe articles backlog par score scaffolding, recall, decide via DeepSeek, act = invoke humanize_article)
+- Cron PM2 `genesis-humanizer` : `0 4 * * *`, `--site shared --live` → 1 article/jour, ~7 mois pour 212 articles backlog
+
+### UI page /agents refondue
+- Genesis-ui : nouvelle Card "État PM2 réel" en tête, lit `/api/agents/{site}/state`, affiche nom/cron lisible/statut/dernier run/exit code + badge "agent_core" si `--agentic` dans args
+- Ancienne table renommée "Catalogue conceptuel (legacy)" — conservée pour transition, mais source de vérité = vraie PM2
+
+**RESTE (prochaine session) :**
+1. **MKD publish 401** : action user (régénérer App Password WP, voir DÉCISIONS EN ATTENTE)
+2. **Migrer les autres agents** sur `agent_core` (seo-strategist, editorial-manager, internal-linking…) sur le pattern `content_agent.run_agentic`
+3. **Première vraie évaluation** : le 16/06 02:00 UTC, `evaluate()` mesurera le delta GA4 sur l'article SMS personnalisés du 9 juin (J+7 minimum)
+4. **Premier batch humanizer** : nuit du 09→10 juin 04:00, 1 article du backlog (top score actuel : `2025-11-21-automatisation-sms-marketing-workflows-et-scenarios-pour-2025.md` score 13)
+5. **Slug v4 résiduels SQLite** : les slugs `-v2/-v3/-v4` sont soft-deleted dans `ec_posts` mais l'UNIQUE constraint les retient. Si on veut les libérer, intervention manuelle DB (refusée par claude classifier, à faire main).
+
+**DÉCISIONS EN ATTENTE (user) :**
 
 ## 🔝 REPRISE 2026-06-09 (soir) — Boucle complète + content_agent migré
 

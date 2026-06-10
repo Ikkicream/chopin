@@ -20,10 +20,25 @@ import json
 import re
 import sys
 import time
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
+
+
+def _slugify(text: str, max_len: int = 60) -> str:
+    """Slugifie un texte FR : NFD → strip diacritiques → ascii minuscule + tirets.
+    Évite les pertes silencieuses d'accents (`fidéliser` ne devient plus `fidliser`)."""
+    # Normalisation NFD : décompose 'é' en 'e' + accent combinant U+0301
+    nfd = unicodedata.normalize("NFD", text)
+    # Retire les accents combinants (catégorie Mn = Mark, Nonspacing)
+    no_accents = "".join(c for c in nfd if unicodedata.category(c) != "Mn")
+    s = no_accents.lower()
+    s = re.sub(r"['’`]", "", s)
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    s = s.strip("-")
+    return s[:max_len].rstrip("-")
 
 BASE_DIR   = Path(__file__).parent.parent
 ENV_FILE   = BASE_DIR / ".env"
@@ -197,24 +212,32 @@ MOT-CLÉ CIBLE : "{keyword}"
 SITE : {site_label} ({domain})
 TON : {tone}
 
-STRUCTURE OBLIGATOIRE :
-1. Titre H1 accrocheur avec le mot-clé (60-70 caractères)
-2. Introduction 150 mots avec le mot-clé dans la 1ère phrase
-3. 5-7 sections H2 avec contenu substantiel (200-300 mots chacune)
-4. Sous-sections H3 pertinentes
-5. Listes à puces avec exemples concrets
-6. Données chiffrées et statistiques récentes
-7. CTA final : "{cta}"
-8. Conclusion avec appel à l'action
+STRUCTURE OBLIGATOIRE (Markdown strict) :
+1. Titre principal en syntaxe `# Titre` (60-70 caractères, intègre le mot-clé)
+2. Paragraphe d'accroche directement après le titre — PAS de label « Introduction »,
+   on entre dans le sujet par un fait, un chiffre ou une affirmation
+3. 5-7 sections en `## Titre concret` (200-300 mots chacune)
+4. Sous-sections en `### Titre concret` si utile
+5. Listes à puces (`- `) UNIQUEMENT pour ≥ 4 éléments ; sinon rédige en prose
+6. Données chiffrées avec source quand c'est possible (`Selon X, …`)
+7. CTA final en une phrase : "{cta}"
+8. Section finale avec un titre `##` concret (pas de label « Conclusion » ni « En résumé »)
+
+INTERDIT (corrige avant de répondre) :
+- Aucun préfixe `H2 :`, `H3 :`, `H4 :` dans les titres : seule la syntaxe `##` / `###` compte
+- Aucun titre `## Introduction`, `## Conclusion`, `## En résumé` en label nu
+- Aucune règle horizontale `---` dans le corps (on n'utilise PAS de frontmatter ici)
+- Pour les illustrations d'exemple, mets le label en italique : `*Exemple : ...*` ou
+  intègre l'exemple dans la phrase. Pas de `**Exemple :**` en gras.
+- Pas de phrases entières en gras ; le **gras** sert pour les chiffres-clés et verbes d'action.
 
 CONTRAINTES SEO :
-- Mot-clé principal dans : titre H1, 1er paragraphe, au moins 2 H2, meta description
+- Mot-clé dans : titre, 1er paragraphe, au moins 2 H2, et naturellement dans le corps
 - Densité mot-clé : 1-2%
 - Longueur : 1800-2500 mots
-- Ajouter des mots-clés sémantiquement liés à "{keyword}"
-- Format Markdown
+- Mots-clés sémantiquement liés à "{keyword}" intégrés naturellement
 
-Commence DIRECTEMENT par le titre H1 sans introduction ni explication."""
+Commence DIRECTEMENT par le titre `# …` sans préambule."""
 
 ARTICLE_PROMPT_BACKLOG = """Tu es un expert en {topic_domain} et rédacteur SEO professionnel francophone.
 
@@ -300,8 +323,33 @@ def generate_article(topic: dict, site: str, env: dict) -> dict:
 
 # ── Publication LCR (Emdash) ──────────────────────────────────────────────────
 
+_INLINE_PAT = re.compile(r"(\*\*[^*]+?\*\*|\*[^*]+?\*)")
+# Citations « ... » à styler en blockquote
+_LABEL_QUOTE_RE = re.compile(r"^([A-ZÉÀÔÊÎÛ][^:]{1,50}\s*:\s*)(«.+»)\s*\.?\s*$")
+_PURE_QUOTE_RE = re.compile(r"^\s*«.+»\s*[\.\?!…]?\s*(—\s*[^«»]{1,60})?\s*$")
+
+
+def _parse_inline(text: str) -> list:
+    """Markdown inline → spans PortableText avec marks ['strong']/['em']."""
+    spans, pos = [], 0
+    for m in _INLINE_PAT.finditer(text):
+        if m.start() > pos:
+            spans.append({"_type": "span", "text": text[pos:m.start()], "marks": []})
+        tok = m.group(0)
+        if tok.startswith("**"):
+            spans.append({"_type": "span", "text": tok[2:-2], "marks": ["strong"]})
+        else:
+            spans.append({"_type": "span", "text": tok[1:-1], "marks": ["em"]})
+        pos = m.end()
+    if pos < len(text):
+        spans.append({"_type": "span", "text": text[pos:], "marks": []})
+    return spans or [{"_type": "span", "text": text, "marks": []}]
+
+
 def md_to_portable_text(md: str) -> list:
-    """Convertit Markdown en Portable Text pour Emdash."""
+    """Convertit Markdown en Portable Text pour Emdash.
+    Préserve **bold** et *italic* via marks. Ignore le H1 du corps (emdash affiche
+    déjà data.title comme titre de page → évite le doublon de titre)."""
     blocks = []
     lines = md.strip().split("\n")
     i = 0
@@ -311,29 +359,40 @@ def md_to_portable_text(md: str) -> list:
             i += 1
             continue
         if line.startswith("# "):
-            blocks.append({"_type": "block", "style": "h1",
-                           "children": [{"_type": "span", "text": line[2:].strip()}]})
-        elif line.startswith("## "):
+            i += 1  # skip : emdash affiche déjà data.title
+            continue
+        if re.fullmatch(r"-{3,}", line):
+            i += 1  # règle horizontale markdown → ignorée (pas de divider PortableText)
+            continue
+        if line.startswith("## "):
             blocks.append({"_type": "block", "style": "h2",
-                           "children": [{"_type": "span", "text": line[3:].strip()}]})
+                           "children": _parse_inline(line[3:].strip())})
         elif line.startswith("### "):
             blocks.append({"_type": "block", "style": "h3",
-                           "children": [{"_type": "span", "text": line[4:].strip()}]})
+                           "children": _parse_inline(line[4:].strip())})
         elif line.startswith("- ") or line.startswith("* "):
-            items = []
             while i < len(lines) and (lines[i].strip().startswith("- ") or lines[i].strip().startswith("* ")):
-                items.append(lines[i].strip()[2:])
-                i += 1
-            for item in items:
+                item = lines[i].strip()[2:]
                 blocks.append({"_type": "block", "style": "normal", "listItem": "bullet",
-                               "children": [{"_type": "span", "text": item}]})
+                               "children": _parse_inline(item)})
+                i += 1
             continue
         else:
-            # Paragraphe normal — gérer **bold** et *italic*
-            text = re.sub(r"\*\*(.+?)\*\*", r"\1", line)
-            text = re.sub(r"\*(.+?)\*", r"\1", text)
-            blocks.append({"_type": "block", "style": "normal",
-                           "children": [{"_type": "span", "text": text}]})
+            # Détection citation pour stylage blockquote
+            m_lq = _LABEL_QUOTE_RE.match(line)
+            if m_lq:
+                label = m_lq.group(1).rstrip(": ").strip()
+                quote = m_lq.group(2).strip()
+                blocks.append({"_type": "block", "style": "normal",
+                               "children": [{"_type": "span", "text": label, "marks": ["strong"]}]})
+                blocks.append({"_type": "block", "style": "blockquote",
+                               "children": [{"_type": "span", "text": quote, "marks": []}]})
+            elif _PURE_QUOTE_RE.match(line):
+                blocks.append({"_type": "block", "style": "blockquote",
+                               "children": _parse_inline(line)})
+            else:
+                blocks.append({"_type": "block", "style": "normal",
+                               "children": _parse_inline(line)})
         i += 1
     return blocks
 
@@ -471,8 +530,7 @@ def run(site: str, dry_run: bool = True, force_keyword: str = None):
         return
 
     keyword  = topic["keyword"]
-    slug     = topic.get("slug_hint", keyword.lower().replace(" ", "-")[:60])
-    slug     = re.sub(r"[^a-z0-9-]", "", slug.replace(" ", "-").replace("'", ""))
+    slug     = _slugify(topic.get("slug_hint") or keyword)
     print(f"  Sujet choisi: '{keyword}' (source: {topic['source']}, vol: {topic.get('volume',0)}, KD: {topic.get('kd','?')})")
 
     if dry_run:
@@ -538,9 +596,9 @@ def _agentic_writer(item: dict, snapshot: dict, *, site: str, env: dict, dry_run
     keyword = item.get("target") or (item.get("tags") or {}).get("keyword")
     if not keyword:
         raise ValueError("plan sans target/keyword")
+    slug = _slugify(keyword)
     topic = {"keyword": keyword, "volume": 0, "kd": 0, "source": "agentic",
-             "slug_hint": keyword.lower().replace(" ", "-")[:60]}
-    slug = re.sub(r"[^a-z0-9-]", "", topic["slug_hint"].replace("'", ""))
+             "slug_hint": slug}
     if dry_run:
         print(f"  [agentic] DRY-RUN keyword={keyword!r} slug={slug}")
         item["dry_run"] = True

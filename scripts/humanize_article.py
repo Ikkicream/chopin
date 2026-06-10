@@ -18,6 +18,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_PROMPT = Path("/tmp/cmux-drop-e943bc70-13ba-40fa-8d64-6f6c9a93587a.md")
+DEFAULT_TONE = BASE_DIR / "skills" / "humanizer-tone.md"
 
 BLACKLIST = [
     "n'est pas une option, c'est une nécessité",
@@ -115,6 +116,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("article", type=Path)
     ap.add_argument("--prompt", type=Path, default=DEFAULT_PROMPT)
+    ap.add_argument("--tone", type=Path, default=DEFAULT_TONE,
+                    help="Préambule de ton injecté en tête du user prompt "
+                         "(ne remplace pas la policy, la complète). Vide pour désactiver.")
+    ap.add_argument("--temperature", type=float, default=0.85)
     ap.add_argument("--dry-run", action="store_true",
                     help="Affiche le diagnostic + estime le coût, n'appelle pas le LLM")
     args = ap.parse_args()
@@ -149,8 +154,16 @@ def main():
         return
 
     system_prompt = args.prompt.read_text(encoding="utf-8")
+    tone_text = ""
+    if args.tone and args.tone.exists() and args.tone.stat().st_size > 0:
+        tone_text = args.tone.read_text(encoding="utf-8")
+        print(f"  préambule de ton chargé : {args.tone.name} ({len(tone_text)} chars)")
+    else:
+        print("  préambule de ton désactivé")
+
     user_prompt = (
-        "Voici le fichier markdown à réécrire selon tes instructions. "
+        (f"=== PRÉAMBULE DE TON (consigne complémentaire) ===\n{tone_text}\n\n" if tone_text else "")
+        + "Voici le fichier markdown à réécrire selon tes instructions. "
         "Renvoie UNIQUEMENT le contenu réécrit du fichier, intégralement (frontmatter "
         "compris, identique à l'original), sans préambule, sans bloc ```md autour, "
         "sans commentaire. Le bilan se fera côté terminal, pas dans le fichier.\n\n"
@@ -160,10 +173,10 @@ def main():
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from llm_call import call_llm
 
-    print("  appel DeepSeek (max_tokens=8000, temperature=0.4)...")
+    print(f"  appel DeepSeek (max_tokens=8000, temperature={args.temperature})...")
     rewritten = call_llm(
         prompt=user_prompt, system=system_prompt,
-        max_tokens=8000, temperature=0.4,
+        max_tokens=8000, temperature=args.temperature,
         module="humanizer", action=f"humanize-{args.article.stem[:40]}", site="lcr",
     ).strip()
 
@@ -176,6 +189,19 @@ def main():
         rewritten = rewritten.strip()
 
     print(f"  sortie reçue: {len(rewritten)} chars ({len(rewritten.splitlines())} lignes)")
+
+    # Filets déterministes : le LLM altère parfois le frontmatter (conversion 2025→2026)
+    # alors que le prompt interdit ; et laisse souvent des '2025' dans le corps.
+    # Force le frontmatter original + normalise l'année dans le corps.
+    fm_rw, body_rw = split_frontmatter(rewritten)
+    if fm_rw:
+        if fm_rw != fm:
+            print("  filet déterministe : frontmatter LLM remplacé par l'original")
+            fm_rw = fm
+        body_fixed, n_y = re.subn(r"\b2025\b", "2026", body_rw)
+        if n_y:
+            print(f"  filet déterministe : {n_y}× '2025' → '2026' dans le corps")
+        rewritten = fm_rw + body_fixed
 
     # Phase 3 : auto-contrôle
     errors = check_constraints(rewritten, fm)
