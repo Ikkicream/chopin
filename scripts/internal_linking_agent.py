@@ -131,12 +131,82 @@ def apply_links_to_markdown(article_md, links):
     return modified, applied
 
 
+# ── Mode agentique (boucle agent_core) ──────────────────────────────────────
+# observe GSC/GA4 → recall liens posés précédemment → decide via playbook
+# skills/internal-linking.md (format JSON add_internal_link + anchor + destination)
+# → act = ouvre l'article cible, insère le lien dans le markdown, sauve la queue.
+
+def _agentic_writer(item: dict, snapshot: dict, *, site: str, dry_run: bool):
+    if item.get("action_type") != "add_internal_link":
+        print(f"  [agentic] action_type non géré: {item.get('action_type')!r} — skip")
+        return
+    target = item.get("target")  # URL/title de l'article source qui doit recevoir le lien
+    tags = item.get("tags") or {}
+    anchor = tags.get("anchor_text")
+    dest = tags.get("destination_url")
+    if not (target and anchor and dest):
+        raise ValueError("plan sans target/anchor_text/destination_url")
+    if dry_run:
+        print(f"  [agentic] DRY-RUN link {anchor!r} → {dest} dans {target!r}")
+        item["dry_run"] = True
+        return
+    if not QUEUE_FILE.exists():
+        raise FileNotFoundError("queue éditoriale introuvable")
+    queue = json.loads(QUEUE_FILE.read_text())
+    art = next((a for a in queue
+                if a.get("published_url") == target
+                or a.get("proposal", {}).get("title", "").lower() == target.lower()
+                or a.get("id") == target), None)
+    if not art:
+        raise ValueError(f"article source introuvable : {target!r}")
+    md = art.get("article", {}).get("markdown", "")
+    if not md:
+        raise ValueError(f"article {art['id']} sans markdown")
+    modified, applied = apply_links_to_markdown(md, [{"anchor_text": anchor, "target_url": dest}])
+    if applied == 0:
+        item["skipped"] = "ancre introuvable dans le markdown"
+        return
+    art["article"]["markdown"] = modified
+    art["article"].setdefault("internal_links", []).append(
+        {"anchor_text": anchor, "target_url": dest, "source": "agentic",
+         "applied_at": datetime.now(timezone.utc).isoformat()})
+    art["article"]["internal_links_applied"] = art["article"].get("internal_links_applied", 0) + applied
+    QUEUE_FILE.write_text(json.dumps(queue, indent=2, ensure_ascii=False))
+    item["article_id"] = art["id"]
+    item["applied"] = applied
+
+
+def run_agentic(site: str, dry_run: bool = True) -> dict:
+    from functools import partial
+    print(f"[internal_linking_agent agentic] Site: {site.upper()} — "
+          f"{'DRY-RUN' if dry_run else 'LIVE'}")
+    sys.path.insert(0, str(Path(__file__).parent))
+    from agent_core import run_cycle
+    writer = partial(_agentic_writer, site=site, dry_run=dry_run)
+    result = run_cycle(agent="internal-linking", site=site,
+                       sources=("gsc", "ga4"), writer_fn=writer)
+    print(json.dumps(result, ensure_ascii=False, default=str))
+    return result
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--id", required=True)
+    parser.add_argument("--id")
     parser.add_argument("--mode", default="pre", choices=["pre", "retro"])
+    parser.add_argument("--site", choices=["lcr", "mkd", "both"], default="lcr")
+    parser.add_argument("--agentic", action="store_true")
+    parser.add_argument("--live", action="store_true")
     args = parser.parse_args()
+
+    if args.agentic:
+        sites = ["lcr", "mkd"] if args.site == "both" else [args.site]
+        for s in sites:
+            run_agentic(s, dry_run=not args.live)
+        return
+
+    if not args.id:
+        parser.error("--id requis en mode classique (sinon utiliser --agentic)")
 
     queue = json.loads(QUEUE_FILE.read_text()) if QUEUE_FILE.exists() else []
     art = next((a for a in queue if a["id"] == args.id), None)

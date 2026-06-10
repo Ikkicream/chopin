@@ -188,13 +188,82 @@ def process_site(site):
     print(f"  Telegram notified")
 
 
+# ── Mode agentique (boucle agent_core) ──────────────────────────────────────
+# Au lieu de `process_site()` qui propose via un appel DeepSeek brut, on délègue
+# à agent_core : observe GSC/GA4/Ahrefs → recall actions passées → decide via
+# playbook skills/content-writer.md (format JSON write_article+target=mot-clé)
+# → act = crée une entry status=proposed dans la queue + notif Telegram.
+
+def _agentic_writer(item: dict, snapshot: dict, *, site: str, dry_run: bool):
+    if item.get("action_type") not in ("write_article", "propose_article"):
+        print(f"  [agentic] action_type non géré: {item.get('action_type')!r} — skip")
+        return
+    tags = item.get("tags") or {}
+    keyword = tags.get("keyword") or item.get("target")
+    title = tags.get("draft_title") or item.get("target") or keyword
+    summary = item.get("why") or ""
+    if not keyword or not title:
+        raise ValueError("plan sans keyword/title")
+    if dry_run:
+        print(f"  [agentic] DRY-RUN proposal title={title!r} keyword={keyword!r}")
+        item["dry_run"] = True
+        return
+    queue = load_queue()
+    now = datetime.now(timezone.utc)
+    count = len([a for a in queue if a["site"] == site]) + 1
+    article_id = f"art_{now.strftime('%Y%m%d')}_{site}_{count:03d}"
+    entry = {
+        "id": article_id, "site": site, "status": "proposed",
+        "created_at": now.isoformat(), "updated_at": now.isoformat(),
+        "proposal": {
+            "title": title, "summary": summary, "keyword": keyword,
+            "volume": tags.get("volume", 0), "kd": tags.get("kd", 0),
+            "rationale": item.get("why", ""),
+            "secondary_keywords": tags.get("secondary_keywords", []),
+            "intent": tags.get("intent", ""),
+            "source": "agentic",
+        },
+        "seo_check": None, "article": None, "qc_report": None, "human_notes": None,
+    }
+    queue.append(entry)
+    save_queue(queue)
+    try:
+        notify_telegram(site, entry["proposal"])
+    except Exception as e:  # noqa: BLE001
+        print(f"  ⚠ telegram: {e}")
+    item["article_id"] = article_id
+
+
+def run_agentic(site: str, dry_run: bool = True) -> dict:
+    from functools import partial
+    print(f"[brief_agent agentic] Site: {site.upper()} — "
+          f"{'DRY-RUN' if dry_run else 'LIVE'}")
+    sys.path.insert(0, str(Path(__file__).parent))
+    from agent_core import run_cycle
+    writer = partial(_agentic_writer, site=site, dry_run=dry_run)
+    result = run_cycle(agent="content-writer", site=site,
+                       sources=("gsc", "ga4", "ahrefs"), writer_fn=writer)
+    print(json.dumps(result, ensure_ascii=False, default=str))
+    return result
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--site", choices=["lcr", "mkd", "both"], default="both")
+    parser.add_argument("--agentic", action="store_true",
+                        help="Passe par la boucle agent_core (observe/recall/decide/act)")
+    parser.add_argument("--live", action="store_true",
+                        help="En mode agentique : exécute pour de vrai (sinon dry-run)")
     args = parser.parse_args()
 
     print(f"[brief_agent] {datetime.now(timezone.utc).isoformat()}")
+
+    if args.agentic:
+        sites = ["lcr", "mkd"] if args.site == "both" else [args.site]
+        for s in sites:
+            run_agentic(s, dry_run=not args.live)
+        return
 
     # Respect modules toggle : skip si articles désactivé pour ce site
     try:

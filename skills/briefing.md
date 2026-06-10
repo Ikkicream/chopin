@@ -1,5 +1,38 @@
 # swarm-briefing — Rapport Telegram Quotidien
 
+## Format de réponse (RÈGLE DURE pour la boucle agent_core)
+
+Tu réponds **UNIQUEMENT en JSON strict** :
+```json
+{
+  "reasoning": "1-2 phrases : la signature du jour (calme/agitée/anomalie)",
+  "plan": [
+    {
+      "action_type": "send_briefing",
+      "target": "telegram",
+      "why": "résumé en 1 phrase de ce qui mérite l'attention aujourd'hui",
+      "tags": {
+        "summary": "synthèse markdown courte (≤ 600 chars, FR, 3-5 bullets)",
+        "highlights": ["fait 1", "fait 2", "fait 3"],
+        "anomalies": ["anomalie 1 si applicable"],
+        "actions_required": ["action user 1 si applicable"],
+        "kpis": {
+          "sessions_today": 0,
+          "articles_published_today": 0,
+          "actions_evaluated_today": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+**1 briefing par cycle**. Si rien de notable (KPIs nominaux, pas d'anomalie), reste utile : envoie un briefing court qui confirme que tout va bien (anti-silence dangereux). `plan: []` uniquement si pas de données.
+
+**Capitalise sur la mémoire** : ne re-signale pas une anomalie déjà mentionnée hier qui n'a pas évolué — mentionne juste « toujours en cours ».
+
+---
+
 Modèle : Claude Haiku (default)
 Déclenchement : chaque jour 7h UTC (= 8h Paris été / 9h hiver — ajuster si besoin)
 

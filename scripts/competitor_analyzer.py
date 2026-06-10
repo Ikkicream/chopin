@@ -163,11 +163,76 @@ Réponds en JSON valide :
     print("[competitor] Done!")
 
 
+# ── Mode agentique (boucle agent_core) ──────────────────────────────────────
+# observe GSC/GA4/Ahrefs → recall signaux passés → decide via playbook
+# skills/competitive-intel.md (format JSON intel_signal) → act = persiste le signal
+# dans memory/seo/recommendations.json (compat) + agent_actions.
+
+def _agentic_writer(item: dict, snapshot: dict, *, site: str, dry_run: bool):
+    if item.get("action_type") != "intel_signal":
+        print(f"  [agentic] action_type non géré: {item.get('action_type')!r} — skip")
+        return
+    target = item.get("target")
+    tags = item.get("tags") or {}
+    if not target:
+        raise ValueError("plan sans target (concurrent/URL)")
+    if dry_run:
+        print(f"  [agentic] DRY-RUN signal {tags.get('signal_type')!r} "
+              f"competitor={tags.get('competitor')!r} urgency={tags.get('urgency')!r}")
+        item["dry_run"] = True
+        return
+    import sys as _sys
+    from pathlib import Path as _Path
+    reco_file = _Path(__file__).resolve().parent.parent / "memory" / "seo" / "recommendations.json"
+    all_recos = json.loads(reco_file.read_text()) if reco_file.exists() else {"lcr": [], "mkd": []}
+    now = datetime.now(timezone.utc).isoformat()
+    signal = {
+        "id": f"intel_{site}_{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
+        "site": site, "target": target,
+        "priority": "high" if tags.get("urgency") == "immediate" else "medium",
+        "type": "competitor", "title": f"Veille : {tags.get('competitor', target)}",
+        "action": tags.get("suggested_action", item.get("why", "")),
+        "competitor": tags.get("competitor"), "signal_type": tags.get("signal_type"),
+        "topic": tags.get("topic"), "urgency": tags.get("urgency"),
+        "why": item.get("why", ""),
+        "status": "pending", "created_at": now, "source": "agentic",
+    }
+    all_recos.setdefault(site, []).insert(0, signal)
+    reco_file.write_text(json.dumps(all_recos, indent=2, ensure_ascii=False))
+    item["signal_id"] = signal["id"]
+
+
+def run_agentic(site: str, dry_run: bool = True) -> dict:
+    from functools import partial
+    print(f"[competitor_analyzer agentic] Site: {site.upper()} — "
+          f"{'DRY-RUN' if dry_run else 'LIVE'}")
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from agent_core import run_cycle
+    writer = partial(_agentic_writer, site=site, dry_run=dry_run)
+    result = run_cycle(agent="competitive-intel", site=site,
+                       sources=("gsc", "ga4", "ahrefs"), writer_fn=writer)
+    print(json.dumps(result, ensure_ascii=False, default=str))
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--domain", required=True)
-    parser.add_argument("--site", default="lcr")
+    parser.add_argument("--domain")
+    parser.add_argument("--site", choices=["lcr", "mkd", "both"], default="lcr")
+    parser.add_argument("--agentic", action="store_true")
+    parser.add_argument("--live", action="store_true")
     args = parser.parse_args()
+
+    if args.agentic:
+        sites = ["lcr", "mkd"] if args.site == "both" else [args.site]
+        for s in sites:
+            run_agentic(s, dry_run=not args.live)
+        return
+
+    if not args.domain:
+        parser.error("--domain requis en mode classique (sinon --agentic)")
     analyze_competitor(args.domain, args.site)
 
 

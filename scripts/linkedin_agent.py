@@ -90,7 +90,76 @@ def notify_telegram(site, title, post_text):
         pass
 
 
+# ── Mode agentique (boucle agent_core) ──────────────────────────────────────
+# observe GSC/GA4/Ahrefs + queue éditoriale → recall posts précédents → decide via
+# playbook skills/linkedin-specialist.md (format JSON linkedin_post) → act = écrit
+# le post dans queue[article].linkedin_post.
+
+def _agentic_writer(item: dict, snapshot: dict, *, site: str, dry_run: bool):
+    if item.get("action_type") != "linkedin_post":
+        print(f"  [agentic] action_type non géré: {item.get('action_type')!r} — skip")
+        return
+    target_url = item.get("target")
+    tags = item.get("tags") or {}
+    hook = tags.get("hook") or ""
+    body = tags.get("body") or ""
+    cta = tags.get("cta") or ""
+    if not target_url:
+        raise ValueError("plan sans target (URL article)")
+    post_text = "\n\n".join(t for t in (hook, body, cta) if t).strip()
+    if not post_text:
+        raise ValueError("plan sans hook/body/cta")
+    if dry_run:
+        print(f"  [agentic] DRY-RUN linkedin_post target={target_url!r} chars={len(post_text)}")
+        item["dry_run"] = True
+        return
+    if not QUEUE_FILE.exists():
+        raise FileNotFoundError("queue éditoriale introuvable")
+    queue = json.loads(QUEUE_FILE.read_text())
+    art = next((a for a in queue if a.get("published_url") == target_url
+                or a.get("proposal", {}).get("title", "").lower() in target_url.lower()), None)
+    if not art:
+        raise ValueError(f"article introuvable pour target {target_url!r}")
+    art["linkedin_post"] = {
+        "text": post_text, "generated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "draft", "source": "agentic",
+        "scheduled_at": tags.get("scheduled_at"),
+        "tags": tags.get("tags_linkedin", []),
+    }
+    QUEUE_FILE.write_text(json.dumps(queue, indent=2, ensure_ascii=False))
+    try:
+        notify_telegram(art["site"], art["proposal"]["title"], post_text)
+    except Exception as e:  # noqa: BLE001
+        print(f"  ⚠ telegram: {e}")
+    item["article_id"] = art.get("id")
+
+
+def run_agentic(site: str, dry_run: bool = True) -> dict:
+    from functools import partial
+    print(f"[linkedin_agent agentic] Site: {site.upper()} — "
+          f"{'DRY-RUN' if dry_run else 'LIVE'}")
+    sys.path.insert(0, str(Path(__file__).parent))
+    from agent_core import run_cycle
+    writer = partial(_agentic_writer, site=site, dry_run=dry_run)
+    result = run_cycle(agent="linkedin-specialist", site=site,
+                       sources=("gsc", "ga4"), writer_fn=writer)
+    print(json.dumps(result, ensure_ascii=False, default=str))
+    return result
+
+
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--site", choices=["lcr", "mkd", "both"], default="both")
+    ap.add_argument("--agentic", action="store_true")
+    ap.add_argument("--live", action="store_true")
+    args = ap.parse_args()
+    if args.agentic:
+        sites = ["lcr", "mkd"] if args.site == "both" else [args.site]
+        for s in sites:
+            run_agentic(s, dry_run=not args.live)
+        return
+
     print(f"[linkedin_agent] {datetime.now(timezone.utc).isoformat()}")
 
     if not QUEUE_FILE.exists():

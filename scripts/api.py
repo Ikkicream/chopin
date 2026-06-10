@@ -2046,109 +2046,10 @@ async def api_analyze_competitor(request: Request):
     return {"ok": True, "message": f"Analyse de {domain} lancée"}
 
 
-# ── Agents Registry ───────────────────────────────────────────────────────────
-
-AGENTS_REGISTRY = [
-    {"id": "editorial-manager", "name": "Editorial Manager", "model": "Haiku", "role": "Orchestre le pipeline éditorial complet", "cost_avg": "~0.002€", "status": "actif", "site": "both"},
-    {"id": "seo-strategist", "name": "SEO Strategist", "model": "Haiku + Ahrefs", "role": "Brief SEO : H1/H2/H3, keywords, internal links", "cost_avg": "~0.01€ + 20 crédits", "status": "actif", "site": "both"},
-    {"id": "content-writer", "name": "Content Writer", "model": "DeepSeek", "role": "Rédige les articles selon le brief", "cost_avg": "~0.25€", "status": "actif", "site": "both"},
-    {"id": "internal-linking", "name": "Internal Linking", "model": "Haiku", "role": "Maillage interne entre articles", "cost_avg": "~0.005€", "status": "a_activer", "site": "both"},
-    {"id": "quality-editor", "name": "Quality Editor", "model": "Haiku", "role": "Score /100 sur 5 dimensions", "cost_avg": "~0.005€", "status": "actif", "site": "both"},
-    {"id": "visual-agent", "name": "Visual Agent", "model": "Unsplash API", "role": "Featured image + LinkedIn image", "cost_avg": "0€", "status": "a_activer", "site": "both"},
-    {"id": "linkedin-specialist", "name": "LinkedIn Specialist", "model": "Haiku", "role": "Post LinkedIn J+3 apr\u00e8s publication", "cost_avg": "~0.01\u20ac", "status": "actif", "site": "both"},
-    {"id": "competitive-intel", "name": "Competitive Intelligence", "model": "Haiku", "role": "Veille RSS concurrents + content gaps", "cost_avg": "~0.01€", "status": "actif", "site": "both"},
-    {"id": "seo-strategy", "name": "SEO Strategy", "model": "Haiku + Ahrefs", "role": "Recommandations stratégiques hebdo", "cost_avg": "~0.02€", "status": "actif", "site": "both"},
-    {"id": "briefing", "name": "Daily Briefing", "model": "Haiku", "role": "Rapport quotidien Telegram", "cost_avg": "~0.003€", "status": "actif", "site": "both"},
-]
-
-@app.get("/api/agents")
-async def api_agents():
-    """List all agents with their config."""
-    return {"agents": AGENTS_REGISTRY}
-
-@app.get("/api/agents/{agent_id}/instructions")
-async def api_agent_instructions(agent_id: str):
-    """Get the full instructions (.md) for an agent."""
-    skills_dir = BASE_DIR / "skills"
-    # Try multiple filenames
-    candidates = [f"{agent_id}.md", f"{agent_id}.md"]
-    for name in candidates:
-        f = skills_dir / name
-        if f.exists():
-            return {"id": agent_id, "instructions": f.read_text()}
-    return {"id": agent_id, "instructions": "Instructions non trouv\u00e9es.", "error": True}
-
-
-# ── Agents Per-Site (upgraded) ────────────────────────────────────────────────
-
-AGENT_CRONS_FILE = BASE_DIR / "memory" / "agent-crons.json"
-
-def _load_agent_crons():
-    if AGENT_CRONS_FILE.exists():
-        return json.loads(AGENT_CRONS_FILE.read_text())
-    # Defaults
-    return {
-        "lcr": {
-            "editorial-manager": {"freq": "weekly", "day": "mon", "hour": 6},
-            "seo-strategist": {"freq": "weekly", "day": "mon", "hour": 7},
-            "content-writer": {"freq": "weekly", "day": "wed", "hour": 10},
-            "internal-linking": {"freq": "weekly", "day": "wed", "hour": 11},
-            "quality-editor": {"freq": "per_article", "day": None, "hour": None},
-            "visual-agent": {"freq": "per_article", "day": None, "hour": None},
-            "linkedin-specialist": {"freq": "daily", "day": None, "hour": 10},
-            "competitive-intel": {"freq": "weekly", "day": "mon", "hour": 5},
-        },
-        "mkd": {
-            "editorial-manager": {"freq": "weekly", "day": "mon", "hour": 6},
-            "seo-strategist": {"freq": "weekly", "day": "thu", "hour": 7},
-            "content-writer": {"freq": "weekly", "day": "thu", "hour": 10},
-            "internal-linking": {"freq": "weekly", "day": "thu", "hour": 11},
-            "quality-editor": {"freq": "per_article", "day": None, "hour": None},
-            "visual-agent": {"freq": "per_article", "day": None, "hour": None},
-            "linkedin-specialist": {"freq": "daily", "day": None, "hour": 10},
-            "competitive-intel": {"freq": "weekly", "day": "mon", "hour": 5},
-        },
-    }
-
-def _save_agent_crons(data):
-    AGENT_CRONS_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False))
-
-AGENT_COSTS = {
-    "editorial-manager": 0.002,
-    "seo-strategist": 0.01,
-    "content-writer": 0.25,
-    "internal-linking": 0.005,
-    "quality-editor": 0.005,
-    "visual-agent": 0.0,
-    "linkedin-specialist": 0.01,
-    "competitive-intel": 0.01,
-}
-
-FREQ_MULTIPLIERS = {"daily": 30, "weekly": 4.3, "biweekly": 2.15, "monthly": 1, "per_article": 4.3}
-
-@app.get("/api/agents/{site}")
-async def api_agents_site(site: str):
-    """Get agents config for a specific site with cron + cost."""
-    crons = _load_agent_crons()
-    site_crons = crons.get(site, {})
-
-    agents = []
-    for a in AGENTS_REGISTRY:
-        if a["site"] not in ("both", site):
-            continue
-        cron = site_crons.get(a["id"], {"freq": "weekly"})
-        cost_unit = AGENT_COSTS.get(a["id"], 0)
-        freq = cron.get("freq", "weekly")
-        cost_month = cost_unit * FREQ_MULTIPLIERS.get(freq, 4.3)
-
-        agents.append({
-            **a,
-            "cron": cron,
-            "cost_unit_eur": round(cost_unit * 0.92, 4),
-            "cost_month_eur": round(cost_month * 0.92, 3),
-        })
-
-    return {"site": site, "agents": agents}
+# ── Agents ─ endpoints actifs ────────────
+# Source de vérité : memory/agents-pm2-state.json (gen_agents_state.py).
+# L'ancien AGENTS_REGISTRY hardcodé + agent-crons.json (absent) + /planner ont
+# été retirés le 2026-06-10 (transformation agentique, chantier 6).
 
 @app.get("/api/agents/{site}/{agent_id}/instructions")
 async def api_agent_site_instructions(site: str, agent_id: str):
@@ -2162,21 +2063,6 @@ async def api_agent_site_instructions(site: str, agent_id: str):
     elif generic_file.exists():
         return {"id": agent_id, "site": site, "instructions": generic_file.read_text(), "contextualized": False}
     return {"id": agent_id, "site": site, "instructions": "Instructions non trouv\u00e9es.", "error": True}
-
-@app.post("/api/agents/{site}/{agent_id}/cron")
-async def api_agent_update_cron(site: str, agent_id: str, request: Request):
-    """Update cron schedule for an agent."""
-    data = await request.json()
-    crons = _load_agent_crons()
-    if site not in crons:
-        crons[site] = {}
-    crons[site][agent_id] = {
-        "freq": data.get("freq", "weekly"),
-        "day": data.get("day"),
-        "hour": data.get("hour"),
-    }
-    _save_agent_crons(crons)
-    return {"ok": True, "cron": crons[site][agent_id]}
 
 @app.get("/api/agents/{site}/state")
 async def api_agents_state(site: str):
@@ -2201,38 +2087,6 @@ async def api_agents_state(site: str):
     age_s = int(time.time() - f.stat().st_mtime)
     return {"site": site, "generated_at": data.get("generated_at"),
             "host": data.get("host"), "age_s": age_s, "agents": agents}
-
-
-@app.get("/api/agents/{site}/planner")
-async def api_agents_planner(site: str):
-    """Return a weekly execution plan in logical order."""
-    crons = _load_agent_crons()
-    site_crons = crons.get(site, {})
-
-    DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-    DAY_LABELS = {"mon": "Lundi", "tue": "Mardi", "wed": "Mercredi", "thu": "Jeudi", "fri": "Vendredi", "sat": "Samedi", "sun": "Dimanche"}
-
-    plan = {d: [] for d in DAYS}
-    for agent_id, cron in site_crons.items():
-        agent = next((a for a in AGENTS_REGISTRY if a["id"] == agent_id), None)
-        if not agent:
-            continue
-        freq = cron.get("freq", "weekly")
-        if freq == "daily":
-            for d in DAYS:
-                plan[d].append({"agent": agent["name"], "id": agent_id, "hour": cron.get("hour", 10), "model": agent["model"]})
-        elif freq == "weekly" and cron.get("day"):
-            day = cron["day"]
-            if day in plan:
-                plan[day].append({"agent": agent["name"], "id": agent_id, "hour": cron.get("hour", 10), "model": agent["model"]})
-        elif freq == "per_article":
-            pass  # triggered by pipeline, not scheduled
-
-    # Sort each day by hour
-    for d in plan:
-        plan[d] = sorted(plan[d], key=lambda x: x.get("hour", 0))
-
-    return {"site": site, "plan": {DAY_LABELS.get(d, d): plan[d] for d in DAYS if plan[d]}}
 
 
 # ── Full Onboarding (creates skills + RAG) ────────────────────────────────────

@@ -4,7 +4,43 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-09 nuit (transformation agentique étape 3 : humanizer agent + UI /agents + cleanup emdash schema + slugifier NFD)
+2026-06-10 (transformation agentique étape 4 : pilote seo-strategist + 6 playbooks préamb + text_utils + cleanup legacy /agents)
+
+## 🔝 REPRISE 2026-06-10 — Chantiers 1/2/5/6
+
+**FAIT cette session :**
+- **Chantier 1 (pilote)** : `seo_strategy_agent.py --agentic --live` migré sur `agent_core.run_cycle`. Pattern copié de `content_agent.run_agentic`. Test dry-run validé. Reste 4 agents à migrer (#12 pending : internal_linking, linkedin, competitor, brief).
+- **Chantier 2** : préambule action_type/target ajouté à 6 playbooks → `skills/seo-strategist.md`, `content-writer.md`, `internal-linking.md`, `linkedin-specialist.md`, `competitive-intel.md`, `briefing.md`. Format JSON strict imposé : `{reasoning, plan: [{action_type, target, why, tags}]}`. Chaque playbook ajoute le périmètre (un seul article par cycle pour content-writer, max 6 recos pour seo-strategist, etc.).
+- **Chantier 5** : `scripts/text_utils.py` créé avec `slugify()` (NFD + diacritiques). `content_agent._slugify` réexporté pour compat. À réutiliser dans humanize_article et autres.
+- **Chantier 6** : legacy /agents complètement viré
+  - **Backend `scripts/api.py`** : suppression d'AGENTS_REGISTRY (10 agents hardcodés), AGENT_CRONS_FILE, _load_agent_crons, _save_agent_crons, AGENT_COSTS, FREQ_MULTIPLIERS, endpoints `/api/agents`, `/api/agents/{site}`, `/api/agents/{site}/{agent_id}/cron`, `/api/agents/{site}/planner`, `/api/agents/{agent_id}/instructions` (variante sans site). -7072 chars dans api.py. Gardés : `/api/agents/{site}/state` + `/api/agents/{site}/{agent_id}/instructions`.
+  - **UI `genesis-ui/.../agents/page.tsx`** : page refondue ne consomme plus que `/state` et `/instructions`. Table « Catalogue conceptuel » + Planner supprimés. Card unique « État PM2 réel » + Sheet playbook. Mapping `skillIdFromPm()` pour mettre un bouton « Voir playbook » sur les jobs PM2 pertinents (content/seo/humanizer).
+  - Build OK, restart dashboard + UI OK, page agents répond 200, snapshot état `12 agents PM2` à jour.
+
+**FAIT (suite session 2026-06-10) :**
+- **Chantier 1 complet** : les 4 derniers agents migrés sur `agent_core` (`brief_agent`, `linkedin_agent`, `internal_linking_agent`, `competitor_analyzer`) avec `--agentic --live`. Tous testés dry-run : la boucle observe→recall→decide→act tourne, le LLM raisonne contextuellement (ex `linkedin_agent` : « plan: [] car pas d'article récent à promouvoir »). Total : **6 agents agentiques** (content-lcr/mkd, seo-strategy, internal-linking, linkedin, competitor, brief + humanizer = 7).
+- **Hardening `agent_core._conn()`** : retry-backoff exponentiel sur `Conflicting lock` DuckDB (api.py FastAPI garde un handle long-lived). 6 tentatives, ~30s max. Plus de crash transitoire en parallèle de l'API.
+- **Popup preview articles** (chantier #16) : Dialog sur `/site/[code]/articles` qui rend le markdown via `marked` (GFM) avec style proche du blog public. Bouton « Aperçu » visible sur tous les articles (proposal seul affiché si pas de markdown). Largeur fixée 4xl (~900px).
+- **Imagen 3 (Vertex AI)** branché : compte de service `genesis-indexing@lead-machine-mkd` + facturation + rôle `aiplatform.user`. Script `scripts/imagen_generate.py`. Cible projet `lead-machine-mkd`.
+- **Style photo doc iPhone/Portra 400** validé : nouveau `STYLE_PREFIX` (vraie photo candide, grain authentique, no SaaS aesthetic) + `NEGATIVE_PROMPT` qui kill illustration/3D/texte parasite. Plus de « dessin ».
+- **Diversité géographique/personas** : casting Python (`SystemRandom`) avant l'appel LLM — 23 villes, 15 types de lieu, 10 personas. Fini « young Parisian in café » systématique.
+- **Module Meta ads** (`scripts/meta_ad_generate.py`) : génère copy JSON 7 clés (accroche/solution/primary_text/headline/description/cta/image_brief) selon le system prompt LeClientROI senior copywriter + génère l'image associée. Coût ~0,033 €/ad.
+- **🆕 Agent graphiste autonome** (`scripts/graphiste_agent.py` + `skills/graphiste.md`) :
+  - Architecture séparée : content_agent fait le texte (sans image), graphiste fait l'image en post-traitement
+  - Boucle agent_core : scan emdash posts sans `seo.image` → LLM choisit l'article + rédige le brief image → Imagen 3 photo doc → upload emdash → PUT seo.image
+  - Cron PM2 `genesis-graphiste` (`0 11 * * *`), 1 article/jour. Backlog actuel : 21 articles sans image → 21 jours pour rattraper (ajustable).
+  - Playbook strict : interdit illustration/3D/SaaS aesthetic/jeune Parisienne. Force patron 45-65 dans son commerce, ancrage métier visible, ville française variée.
+  - Test live validé : agent immobilier ~50 ans avec lunettes en RDV client (https://blog.leclientroi.com/_emdash/api/media/file/01KTSGPSSF6KTV6QJZQDS7QJ6F.jpg)
+- **content_agent** : branchement image header retiré (responsabilité passée au graphiste). content_agent publie sans image, graphiste enrichit après.
+
+**RESTE (prochaine session, par priorité) :**
+1. **V2 préambules playbooks** : ajouter la liste **exhaustive** des `action_type` acceptés dans chaque préambule `skills/*.md` (V1 actuelle est permissive → le LLM invente `audit_indexation`, `fix_gsc_permissions`, `fetch_articles` à côté des types attendus). Ne casse rien (les `_agentic_writer` filtrent), mais coupe le bruit.
+2. **MKD publish 401** (action user : régénérer App Password WP)
+3. **Migrer humanize_article + gen_agents_state vers text_utils.slugify** (cosmétique, pas urgent)
+4. **Basculer les crons PM2 en `--agentic --live`** : actuellement seuls `content-lcr` et `humanizer` sont en agentique. Les autres (`seo-strategy`, `linkedin`, `internal-linking`, `competitor`, `brief` si crons existent) restent en mode classique. À basculer une fois la V2 préambules faite, pour ne pas pousser de signaux faux pendant l'itération.
+5. **Évaluation post-cron** : laisser tourner les agents en mode agentique 1-2 semaines, mesurer les outcomes via `evaluate()`, affiner.
+
+**DÉCISIONS EN ATTENTE (user) :**
 
 ## 🔝 REPRISE 2026-06-09 (nuit) — Boucle complète + humanizer + UI
 

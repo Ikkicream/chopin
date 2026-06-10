@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -26,8 +27,20 @@ SKILLS = BASE_DIR / "skills"
 
 
 # ── Store mémoire ───────────────────────────────────────────────────────────────
-def _conn():
-    return duckdb.connect(str(GOD_DB))
+def _conn(retries: int = 6, base_delay: float = 0.5):
+    """Connect avec retry-backoff si god_mode.duckdb est verrouillé par un autre
+    process (typiquement le dashboard FastAPI qui garde un handle long-lived).
+    6 tentatives × backoff exponentiel = ~30s max d'attente cumulative."""
+    last = None
+    for attempt in range(retries):
+        try:
+            return duckdb.connect(str(GOD_DB))
+        except duckdb.IOException as e:  # noqa: PERF203
+            last = e
+            if "Conflicting lock" not in str(e) or attempt == retries - 1:
+                raise
+            time.sleep(base_delay * (2 ** attempt))
+    raise last  # type: ignore[misc]
 
 
 def ensure_schema() -> None:

@@ -27,18 +27,10 @@ from pathlib import Path
 import requests
 
 
-def _slugify(text: str, max_len: int = 60) -> str:
-    """Slugifie un texte FR : NFD → strip diacritiques → ascii minuscule + tirets.
-    Évite les pertes silencieuses d'accents (`fidéliser` ne devient plus `fidliser`)."""
-    # Normalisation NFD : décompose 'é' en 'e' + accent combinant U+0301
-    nfd = unicodedata.normalize("NFD", text)
-    # Retire les accents combinants (catégorie Mn = Mark, Nonspacing)
-    no_accents = "".join(c for c in nfd if unicodedata.category(c) != "Mn")
-    s = no_accents.lower()
-    s = re.sub(r"['’`]", "", s)
-    s = re.sub(r"[^a-z0-9]+", "-", s)
-    s = s.strip("-")
-    return s[:max_len].rstrip("-")
+try:
+    from text_utils import slugify as _slugify  # type: ignore
+except ImportError:
+    from scripts.text_utils import slugify as _slugify  # type: ignore
 
 BASE_DIR   = Path(__file__).parent.parent
 ENV_FILE   = BASE_DIR / ".env"
@@ -397,8 +389,10 @@ def md_to_portable_text(md: str) -> list:
     return blocks
 
 
-def publish_lcr(title: str, slug: str, content_md: str, keyword: str, env: dict) -> str:
-    """Publie un article sur LCR via Emdash API."""
+def publish_lcr(title: str, slug: str, content_md: str, keyword: str, env: dict,
+                image_url: str | None = None) -> str:
+    """Publie un article sur LCR via Emdash API. `image_url` (si fourni) devient
+    l'image OG/featured dans seo.image."""
     token = env["EMDASH_API_TOKEN"]
     headers = {
         "Authorization": f"Bearer {token}",
@@ -413,8 +407,15 @@ def publish_lcr(title: str, slug: str, content_md: str, keyword: str, env: dict)
     blocks = md_to_portable_text(content_md)
 
     # Schéma emdash actuel : data = {title, content} ; seo au top-level
-    # avec champs {title, description}. excerpt/tags/keywords ne sont plus stockés
-    # par le CMS — retirés du payload pour éviter "ec_posts has no column ...".
+    # avec champs {title, description, image}. excerpt/tags/keywords ne sont plus
+    # stockés par le CMS — retirés du payload pour éviter "ec_posts has no column ...".
+    seo: dict = {
+        "title":       title[:60],
+        "description": excerpt[:155],
+    }
+    if image_url:
+        seo["image"] = image_url
+
     payload = {
         "slug":   slug,
         "status": "draft",
@@ -422,10 +423,7 @@ def publish_lcr(title: str, slug: str, content_md: str, keyword: str, env: dict)
             "title":   title,
             "content": blocks,
         },
-        "seo": {
-            "title":       title[:60],
-            "description": excerpt[:155],
-        },
+        "seo": seo,
     }
 
     # Créer
@@ -605,8 +603,13 @@ def _agentic_writer(item: dict, snapshot: dict, *, site: str, env: dict, dry_run
         return
     article = generate_article(topic, site, env)
     title = article["title"]
-    url = publish_lcr(title, slug, article["content_md"], keyword, env) if site == "lcr" \
-        else publish_mkd(title, slug, article["content_md"], keyword, env)
+
+    # Note : la génération d'image header est déléguée à l'agent graphiste
+    # (scripts/graphiste_agent.py), qui tournera en post-traitement via son
+    # propre cron. Ici on publie SANS seo.image — graphiste posera l'image plus tard.
+    url = (publish_lcr(title, slug, article["content_md"], keyword, env)
+           if site == "lcr"
+           else publish_mkd(title, slug, article["content_md"], keyword, env))
     try:
         sys.path.insert(0, str(BASE_DIR))
         from scripts.cost_tracker import track

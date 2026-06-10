@@ -247,13 +247,75 @@ def process_site(site):
     print(f"  Saved + notified")
 
 
+# ── Mode agentique (boucle agent_core) ──────────────────────────────────────
+# Au lieu de `process_site()` heuristique, on délègue à agent_core.run_cycle :
+# observe GSC/GA4/Ahrefs → recall recos passées → decide via DeepSeek (playbook
+# skills/seo-strategist.md → format JSON action_type=seo_reco) → act = persiste
+# dans recommendations.json (compat legacy) + agent_actions (mémoire agentique).
+
+def _agentic_writer(item: dict, snapshot: dict, *, site: str, dry_run: bool):
+    if item.get("action_type") != "seo_reco":
+        print(f"  [agentic] action_type non géré: {item.get('action_type')!r} — skip")
+        return
+    target = item.get("target")
+    if not target:
+        raise ValueError("plan sans target")
+    tags = item.get("tags") or {}
+    if dry_run:
+        print(f"  [agentic] DRY-RUN target={target!r} priority={tags.get('priority')}")
+        item["dry_run"] = True
+        return
+    all_recos = load_recommendations()
+    now = datetime.now(timezone.utc).isoformat()
+    reco = {
+        "id": f"reco_{site}_{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
+        "site": site, "target": target,
+        "priority": tags.get("priority", "medium"),
+        "type": tags.get("type", ""),
+        "title": tags.get("draft_title") or item.get("why", "")[:80],
+        "action": item.get("why", ""),
+        "draft_title": tags.get("draft_title", ""),
+        "draft_meta": tags.get("draft_meta", ""),
+        "impact": tags.get("impact", ""),
+        "effort": tags.get("effort", ""),
+        "success_metric": tags.get("success_metric", ""),
+        "status": "pending", "created_at": now, "source": "agentic",
+    }
+    all_recos.setdefault(site, []).insert(0, reco)
+    save_recommendations(all_recos)
+    item["reco_id"] = reco["id"]
+
+
+def run_agentic(site: str, dry_run: bool = True) -> dict:
+    from functools import partial
+    print(f"[seo_strategy_agent agentic] Site: {site.upper()} — "
+          f"{'DRY-RUN' if dry_run else 'LIVE'}")
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from agent_core import run_cycle
+    writer = partial(_agentic_writer, site=site, dry_run=dry_run)
+    result = run_cycle(agent="seo-strategist", site=site,
+                       sources=("gsc", "ga4", "ahrefs"), writer_fn=writer)
+    print(json.dumps(result, ensure_ascii=False, default=str))
+    return result
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--site", choices=["lcr", "mkd", "both"], default="both")
+    parser.add_argument("--agentic", action="store_true",
+                        help="Passe par la boucle agent_core (observe/recall/decide/act)")
+    parser.add_argument("--live", action="store_true",
+                        help="En mode agentique : exécute pour de vrai (sinon dry-run)")
     args = parser.parse_args()
 
     print(f"[seo_strategy_agent] {datetime.now(timezone.utc).isoformat()}")
+
+    if args.agentic:
+        sites = ["lcr", "mkd"] if args.site == "both" else [args.site]
+        for s in sites:
+            run_agentic(s, dry_run=not args.live)
+        return
 
     # === Surveillance budget Ahrefs (ajouté 2026-05-22) ===
     try:
