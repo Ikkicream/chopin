@@ -633,7 +633,8 @@ def run_agentic(site: str, dry_run: bool = True) -> dict:
     from agent_core import run_cycle
     writer = partial(_agentic_writer, site=site, env=env, dry_run=dry_run)
     result = run_cycle(agent="content-writer", site=site,
-                       sources=("gsc", "ga4", "ahrefs"), writer_fn=writer)
+                       sources=("gsc", "ga4", "ahrefs"), writer_fn=writer,
+                       allowed_actions=["write_article"])
     print(json.dumps(result, ensure_ascii=False, default=str))
     return result
 

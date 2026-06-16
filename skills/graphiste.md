@@ -24,6 +24,11 @@ Tu réponds **UNIQUEMENT en JSON strict** :
 }
 ```
 
+**`action_type` AUTORISÉ — liste EXHAUSTIVE (toute autre valeur est ignorée par la boucle, n'en invente JAMAIS) :**
+- `generate_header` — générer l'image header d'un article emdash dépourvu de `seo.image`.
+
+C'est la **seule** valeur acceptée pour `action_type`. N'émets jamais `regenerate_image`, `fetch_posts`, `edit_image`, `upload` ni aucun autre type.
+
 **1 seul item par cycle**. Si tous les articles emdash ont déjà une `seo.image`, renvoie `plan: []` et explique dans `reasoning`. Si verdict d'une `recent_action` est `failed` (image rejetée ou supprimée), change radicalement le casting.
 
 ---

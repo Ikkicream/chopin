@@ -152,21 +152,75 @@ _SYSTEM = (
     '"tags":{}}]}. Si rien à faire ce cycle, plan=[] et explique pourquoi dans reasoning.'
 )
 
+# Types d'action autorisés par agent (source de vérité = filtres des _agentic_writer).
+# Sert à (1) contraindre le prompt système de decide() — le playbook seul ne suffit pas,
+# DeepSeek invente sinon create_article/update_article/audit… — et (2) filtrer les items
+# hors-enum AVANT qu'ils ne polluent agent_actions. Override via le param allowed_actions.
+ALLOWED_ACTION_TYPES = {
+    "seo-strategist":      ["seo_reco"],
+    "content-writer":      ["write_article", "propose_article"],
+    "internal-linking":    ["add_internal_link"],
+    "linkedin-specialist": ["linkedin_post"],
+    "competitive-intel":   ["intel_signal"],
+    "graphiste":           ["generate_header"],
+    # humanizer : le writer ignore action_type (il agit sur `target`), mais sans contrainte
+    # DeepSeek inventait read_file/Write → erreurs. Un seul type valide : humanize_article.
+    "humanizer":           ["humanize_article"],
+}
 
-def decide(agent: str, site: str, playbook: str, snapshot: dict, recalled: dict) -> dict:
+
+def decide(agent: str, site: str, playbook: str, snapshot: dict, recalled: dict,
+           allowed_actions: list | None = None) -> dict:
     from llm_call import call_llm_json
-    prompt = (
+    allowed = allowed_actions or ALLOWED_ACTION_TYPES.get(agent)
+    system = _SYSTEM
+    if allowed:
+        system = (
+            f"{_SYSTEM}\n\nCONTRAINTE DURE : le champ `action_type` de CHAQUE item du plan "
+            f"DOIT valoir EXACTEMENT l'une de ces valeurs : {allowed}. Toute autre valeur "
+            "est INTERDITE et sera rejetée. N'invente JAMAIS de type (interdit : "
+            "create_article, update_article, write_article hors liste, audit_*, fetch_*, "
+            "research_*, etc.). Encode toujours ton intention via le `tags` d'un type autorisé."
+        )
+    base = (
         f"=== TON PLAYBOOK ===\n{playbook[:6000] or '(aucun playbook)'}\n\n"
         f"=== SNAPSHOT (état observé) ===\n{json.dumps(snapshot, ensure_ascii=False)[:6000]}\n\n"
         f"=== TA MÉMOIRE ===\n{json.dumps(recalled, ensure_ascii=False)[:4000]}\n\n"
         "Décide le plan (JSON strict)."
     )
-    try:
-        out = call_llm_json(prompt, system=_SYSTEM, max_tokens=2500,
-                            module="agent_core", action=f"decide-{agent}", site=site)
-        return out if isinstance(out, dict) else {"reasoning": "", "plan": []}
-    except Exception as e:  # noqa: BLE001
-        return {"reasoning": f"decide KO: {e}", "plan": []}
+
+    def _ask(extra: str = "") -> dict:
+        try:
+            out = call_llm_json(base + extra, system=system, max_tokens=2500,
+                                module="agent_core", action=f"decide-{agent}", site=site)
+            return out if isinstance(out, dict) else {"reasoning": "", "plan": []}
+        except Exception as e:  # noqa: BLE001
+            return {"reasoning": f"decide KO: {e}", "plan": []}
+
+    out = _ask()
+    if not allowed:
+        return out
+
+    def _violations(o: dict) -> list:
+        return [it.get("action_type") for it in (o.get("plan") or [])
+                if isinstance(it, dict) and it.get("action_type") not in allowed]
+
+    # 1 passe de réparation si le modèle a inventé des types.
+    bad = _violations(out)
+    if bad:
+        out = _ask(f"\n\n⚠️ Ta réponse précédente contenait des action_type INTERDITS : "
+                   f"{bad}. Recommence en n'utilisant QUE {allowed}. Réémets le plan complet.")
+
+    # Filet final : on jette les items hors-enum pour ne pas polluer agent_actions.
+    if isinstance(out, dict) and isinstance(out.get("plan"), list):
+        kept = [it for it in out["plan"]
+                if isinstance(it, dict) and it.get("action_type") in allowed]
+        dropped = len(out["plan"]) - len(kept)
+        if dropped:
+            out["reasoning"] = (out.get("reasoning") or "") + \
+                f" [garde-fou: {dropped} item(s) hors-enum filtré(s)]"
+        out["plan"] = kept
+    return out
 
 
 # ── ACT (écrit toujours dans agent_actions) ─────────────────────────────────────
@@ -272,15 +326,18 @@ def evaluate(site: str, agent: str | None = None,
 
 
 # ── LA BOUCLE ────────────────────────────────────────────────────────────────────
-def run_cycle(agent: str, site: str, sources=("gsc",), writer_fn=None) -> dict:
+def run_cycle(agent: str, site: str, sources=("gsc",), writer_fn=None,
+              allowed_actions: list | None = None) -> dict:
     """observe → recall → decide → act. writer_fn(item, snapshot) exécute l'action métier
-    (optionnel) ; dans tous les cas chaque item du plan est écrit dans agent_actions."""
+    (optionnel) ; dans tous les cas chaque item du plan est écrit dans agent_actions.
+    allowed_actions : restreint les action_type pour ce consommateur précis (utile quand
+    plusieurs agents partagent un même playbook, ex content_agent vs brief_agent)."""
     ensure_schema()
     cycle_id = str(uuid.uuid4())
     snap = observe(site, sources)
     mem = recall(agent, site)
     playbook = load_playbook(agent, site)
-    plan = decide(agent, site, playbook, snap, mem)
+    plan = decide(agent, site, playbook, snap, mem, allowed_actions=allowed_actions)
     items = plan.get("plan", []) if isinstance(plan, dict) else []
     reasoning = plan.get("reasoning", "") if isinstance(plan, dict) else ""
     written = 0

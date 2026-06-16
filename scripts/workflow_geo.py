@@ -58,6 +58,32 @@ def list_cities(dept_code: str | None = None, region_code: str | None = None,
     return sorted(cities, key=lambda c: -(c.get("pop") or 0))
 
 
+# Périmètre de scraping = France métropolitaine UNIQUEMENT. On exclut la Corse et les
+# DOM-TOM (demande user 2026-06-16 : LeClientROI cible les commerçants de métropole).
+EXCLUDED_REGION_CODES = {"94", "01", "02", "03", "04", "06"}   # Corse + 5 DOM
+EXCLUDED_DEPT_CODES = {"2A", "2B", "971", "972", "973", "974", "975", "976", "977", "978"}
+
+
+def metropole_regions() -> list[dict]:
+    """Régions hors Corse et DOM-TOM (pour le scrapper)."""
+    return [r for r in _regions() if r.get("code") not in EXCLUDED_REGION_CODES]
+
+
+def metropole_departments(region_code: str | None = None) -> list[dict]:
+    """Départements hors Corse et DOM-TOM (pour le scrapper)."""
+    return [d for d in list_departments(region_code)
+            if d.get("code") not in EXCLUDED_DEPT_CODES
+            and d.get("region_code") not in EXCLUDED_REGION_CODES]
+
+
+def metropole_cities(dept_code: str | None = None, region_code: str | None = None,
+                     min_pop: int = 10000) -> list[dict]:
+    """Villes hors Corse et DOM-TOM (pour le scrapper)."""
+    return [c for c in list_cities(dept_code, region_code, min_pop=min_pop)
+            if c.get("dept") not in EXCLUDED_DEPT_CODES
+            and c.get("region") not in EXCLUDED_REGION_CODES]
+
+
 def count_eligible(dept_codes: list[str] | None = None, region_codes: list[str] | None = None,
                    min_pop: int = 10000) -> int:
     """Compte de villes éligibles selon le périmètre (pour preview UI)."""

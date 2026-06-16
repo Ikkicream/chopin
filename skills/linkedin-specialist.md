@@ -24,6 +24,11 @@ Tu réponds **UNIQUEMENT en JSON strict** :
 }
 ```
 
+**`action_type` AUTORISÉ — liste EXHAUSTIVE (toute autre valeur est ignorée par la boucle, n'en invente JAMAIS) :**
+- `linkedin_post` — rédiger/programmer un post LinkedIn promouvant un article publié.
+
+C'est la **seule** valeur acceptée pour `action_type`. N'émets jamais `schedule_post`, `engage_comments`, `fetch_articles`, `repost` ni aucun autre type.
+
 **1 post par cycle max**. Pas de spam. Si rien à promouvoir ce cycle (pas de nouvel article publié, ou les derniers posts n'ont pas eu d'engagement mesuré), `plan: []`.
 
 **Capitalise sur la mémoire** : si un format/hook a verdict `validated` (engagement supérieur), refais le même angle. Si verdict `failed`, change radicalement de ton.

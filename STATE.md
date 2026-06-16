@@ -4,7 +4,58 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-10 (transformation agentique étape 4 : pilote seo-strategist + 6 playbooks préamb + text_utils + cleanup legacy /agents)
+2026-06-16 (V2 préambules action_type + bascule crons agentiques + humanizer fix + refonte scrapper région-continu)
+
+## 🔝 REPRISE 2026-06-16 (suite) — Refonte du scrapper (autoscrape région-continu)
+
+**Demande user :** le scrapper "automatique" ne l'était pas (s'arrêtait sur estimation crédits + volume cible). Veut : choisir juste secteur + RÉGION, scraper EN CONTINU dans l'ordre des départements tant que Serper ne stoppe pas réellement, retry quotidien au blocage, statut "Région finie" à l'épuisement, libellé région correct, plus de champ volume.
+
+**FAIT (corrige + améliore + testé) :**
+- **`god_mode_agents.serper_places`** : détecte le refus EXPLICITE de Serper (HTTP 429/402/403) → lève `SERPER_BLOCKED_STATUS` au lieu d'avaler en `[]` (avant : un blocage passait pour "ville vide"). Testé live : appel normal → flag reste None, 10 places.
+- **`autoscrape_backend.py` réécrit** : `run_autoscrape(region=…)` enchaîne TOUS les départements de la région (triés par code), toutes villes pop≥10k. **Supprimé** : credit-floor préemptif + volume cible + stall-heuristic. **Seul arrêt** = vrai blocage Serper / stop manuel / épuisement (→ statut `done` "Région X finie"). Reprise : `memory/autoscrape/{site}-region-progress.json` (depts_done). Garde-temps 6 h (anti-zombie). Activité = **1 ligne par run** (plus 1 par ville) : start_scrape + scrape de fin uniques avec scope région.
+- **`daily_retry()` + crons PM2** `genesis-autoscrape-retry-lcr` (06:00) / `-mkd` (06:10) : si région `blocked_serper` et Serper repasse (1 appel test) → reprend en skippant les depts finis.
+- **`api.py`** : `/autoscrape/start` accepte `region` (drop `target_valid`), `/scrape/live-activity` fenêtre de match élargie 10min→12h + expose `scope`/`message`/statut métier.
+- **Frontend `scrapper/page.tsx`** : autoscrape sur RÉGION (dept optionnel), champ Volume cible supprimé, libellé région corrigé (`SelectValue` rendait le code "11" → force `{r.name}`), carte statut montre scope + dépts faits, table activité montre "Région finie"/"⛔ Serper" + périmètre. Build OK, dashboard+UI restart.
+
+**Testé :** géo (Bretagne→22,29,35,56 ; Corse→2A,2B ; IDF→75..95), orchestration mockée (blocage→`blocked_serper`, persistance `depts_done`, reprise skip), serper réel, build UI, crons.
+
+- **Corse + DOM-TOM EXCLUS** (correction user : périmètre = France métropolitaine seule). `workflow_geo.EXCLUDED_REGION_CODES={94,01,02,03,04,06}` + `EXCLUDED_DEPT_CODES={2A,2B,971-978}` + helpers `metropole_regions/departments/cities`. Câblés sur les 3 endpoints `/geo/*` ET l'autoscrape (`_ordered_region_depts`, listing villes). Résultat : 12 régions continentales, 0 ville Corse/DOM. NB : dept "94" (Val-de-Marne, IDF) ≠ région "94" (Corse) — pas de collision.
+
+**RESTE scrapper (optionnel) :** un vrai run live de bout en bout via l'UI (clic user) pour confirmer pool+Mailnjoy ; étendre le retry à d'autres sites si besoin.
+
+
+
+## 🔝 REPRISE 2026-06-16 — V2 préambules action_type (RESTE #1 fait)
+
+**FAIT cette session :**
+- **Constat dry-run** : le préambule V1 (texte dans le playbook) **ne suffit PAS** — DeepSeek inventait systématiquement (2/2 runs) `create_article`/`update_article` pour `seo-strategist` → l'agent ne produisait **aucun `seo_reco` valide** (tout skippé). Donc pas un bruit cosmétique : sortie vide.
+- **Enum exhaustif ajouté** aux 6 playbooks filtrés (`skills/seo-strategist|content-writer|internal-linking|linkedin-specialist|competitive-intel|graphiste.md`) : bloc « `action_type` AUTORISÉ — liste EXHAUSTIVE » juste après le JSON, + redirection explicite des synonymes tentants (ex seo-strategist : « tu ne rédiges pas d'article → `seo_reco` + `tags.type:content_gap` »).
+- **Enforcement central dans `agent_core.decide()`** (la vraie correction, le playbook seul étant trop faible face au raisonnement du modèle) :
+  - `ALLOWED_ACTION_TYPES` (dict par nom d'agent, source de vérité = filtres des `_agentic_writer`).
+  - La liste autorisée est injectée dans le **prompt système** (domine le playbook) comme CONTRAINTE DURE.
+  - Garde-fou : 1 passe de **réparation** si le modèle viole l'enum, puis **filtrage final** des items hors-enum (ne polluent plus `agent_actions`).
+  - Nouveau param `allowed_actions` sur `decide()` **et** `run_cycle()` (rétrocompatible, fallback sur le dict).
+- **Split content-writer** : `content_agent` et `brief_agent` partagent le playbook `content-writer.md`. `content_agent` passe `allowed_actions=["write_article"]`, `brief_agent` `["write_article","propose_article"]` → fini la fuite `propose_article` skippée côté content_agent.
+- **Validation dry-run des 7 agents** : tous émettent désormais UNIQUEMENT des types valides (seo_reco / write_article / add_internal_link / linkedin_post(ou plan:[]) / intel_signal / generate_header). Zéro skip « non géré », garde-fou jamais déclenché (respect dès la 1ʳᵉ passe). `humanizer` volontairement **exclu** du dict (pas de filtre côté writer, comportement libre préservé).
+- **Note** : `skills/briefing.md` (send_briefing/telegram) n'est chargé par AUCUN agent agentique (`genesis-briefing` = `scripts/briefing.py` déterministe ; `brief_agent` lit `content-writer.md`). Son préambule V1 est mort → laissé tel quel, à nettoyer un jour.
+
+**FAIT (suite) — bascule crons agentiques :**
+- **5 crons PM2 créés en `--agentic --live` sur lcr** (les agents n'avaient AUCUN cron avant — le STATE 06-10 surestimait l'existant) : `genesis-brief` (08h L/M/V), `genesis-seo-strategy` (09h L/M/V), `genesis-internal-linking` (12h L/M/V), `genesis-linkedin` (13h L/M/V), `genesis-competitor` (07h Lundi). Pipeline cohérent avec content-lcr (10h) + graphiste (11h). Tous `--no-autorestart`, `pm2 save` fait.
+- **Risque maîtrisé** : en live ces 5 agents n'écrivent que dans des JSON internes (recos/queues) — aucun post LinkedIn réel ni publication externe. La partie outward reste content/graphiste (déjà live lcr).
+- **1ʳᵉ exécution live OK** (exit 0 sur les 5) : actions réelles loggées dans `agent_actions`, toutes enum-propres (seo_reco, intel_signal, write_article, add_internal_link, linkedin plan:[]). L'éval aura de la matière à J+7.
+- `content-mkd` laissé tel quel (publish 401, décision user) ; `ecosystem.config.js` est OBSOLÈTE (3 crons orchestrator morts) → source de vérité = `pm2 save` / dump.pm2.
+
+**RESTE (prochaine session, par priorité) :**
+1. **MKD publish 401** (action user : régénérer App Password WP, voir DÉCISIONS EN ATTENTE plus bas).
+2. ~~**humanizer invente des action_type / plante**~~ **CORRIGÉ 16/06** : la vraie cause du plantage nocturne était `humanize_article.py` qui faisait `exit 1` à chaque run — `check_constraints` échouait car le filet déterministe ne forçait le frontmatter original que si le LLM en produisait un (or DeepSeek le supprime souvent). Fixes : (a) frontmatter original réinjecté TOUJOURS, (b) strip déterministe des `---` en corps au lieu de rejeter, (c) `DEFAULT_PROMPT` repointé de `/tmp/cmux-drop-*.md` (éphémère) vers `skills/humanizer.md` (identique, stable), (d) `humanizer → ["humanize_article"]` ajouté à `ALLOWED_ACTION_TYPES`. Validé live (exit 0, frontmatter intact, `.bak` créé). **Résidu** : la mémoire de l'agent garde 8 erreurs périmées → il reste en `plan:[]` par prudence ; se résorbe en ~qq jours (noops chassent les erreurs de la fenêtre recall=10) ou via purge manuelle des lignes `agent_actions agent=humanizer status=error` (refusée par le classifier ce jour, à autoriser si on veut accélérer).
+3. **🆕 internal-linking & linkedin manquent la liste d'articles dans leur snapshot** (sources=gsc,ga4 seulement) → internal-linking détourne `add_internal_link` en « fetch », linkedin reste en `plan:[]`. Ajouter une source `articles` à `observe()` pour ces 2 agents pour qu'ils agissent vraiment.
+4. **🆕 Pollution test agent_actions (16/06)** : `create_article`/`update_article`/`propose_article` en `done` issus de mes dry-runs d'avant le fix. Inoffensif (eval les skippe) mais à purger si on veut une table propre (delete manuel DB).
+5. **Évaluation post-cron** : laisser tourner 1-2 semaines, vérifier que `evaluate()` passe de `evaluated:0` à des outcomes réels, affiner les seuils.
+6. **Migrer humanize_article + gen_agents_state vers text_utils.slugify** (cosmétique).
+
+**DÉCISIONS EN ATTENTE (user) :** MKD publish 401 (régénérer App Password WP — détail dans la section REPRISE 2026-06-09 soir).
+
+## 🔝 REPRISE 2026-06-10 — Chantiers 1/2/5/6
 
 ## 🔝 REPRISE 2026-06-10 — Chantiers 1/2/5/6
 

@@ -23,6 +23,12 @@ Tu réponds **UNIQUEMENT en JSON strict** :
 }
 ```
 
+**`action_type` AUTORISÉS — liste EXHAUSTIVE (toute autre valeur est ignorée par la boucle, n'en invente JAMAIS) :**
+- `write_article` — rédiger et publier un article complet ce cycle (cas par défaut).
+- `propose_article` — proposer un sujet au backlog sans le rédiger (flux briefing uniquement).
+
+Ce sont les **seules** valeurs acceptées pour `action_type`. N'émets jamais `research_topic`, `fetch_articles`, `update_article`, `outline` ni aucun autre type.
+
 **Un seul article par cycle** (`plan` a 0 ou 1 item). Si rien à écrire (sujets prévus en cours sans outcome, ou pas d'opportunité claire), renvoie `plan: []` et explique pourquoi dans `reasoning` — ce n'est PAS un échec, c'est la bonne décision quand tu n'as pas d'information nouvelle.
 
 **Capitalise sur la mémoire** : si une `recent_actions` a verdict `validated` (l'article a généré du trafic), choisis un sujet similaire. Si verdict `failed` (trafic stagnant), pivote vers un autre angle ou format. Si aucun outcome encore (J+7 minimum requis), évite de publier en rafale.

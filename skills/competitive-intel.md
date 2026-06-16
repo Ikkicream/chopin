@@ -23,6 +23,11 @@ Tu réponds **UNIQUEMENT en JSON strict** :
 }
 ```
 
+**`action_type` AUTORISÉ — liste EXHAUSTIVE (toute autre valeur est ignorée par la boucle, n'en invente JAMAIS) :**
+- `intel_signal` — consigner un signal concurrentiel observé (gap, menace, opportunité).
+
+C'est la **seule** valeur acceptée pour `action_type`. N'émets jamais `analyze_competitor`, `fetch_backlinks`, `audit`, `crawl` ni aucun autre type : tout ce que tu observes se consigne en `intel_signal` via le bon `tags.signal_type`.
+
 **Max 8 signaux par cycle**. Tri par `urgency` décroissante. Si veille calme (rien de nouveau), `plan: []` est la bonne réponse — pas besoin d'inventer.
 
 **Capitalise sur la mémoire** : si tu as déjà signalé le même `competitor + topic` récemment sans action côté Genesis, ne re-signale pas. Si verdict `validated` (Genesis a réagi efficacement), continue à monitorer ce concurrent.

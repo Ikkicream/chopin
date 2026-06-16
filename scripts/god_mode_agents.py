@@ -61,8 +61,15 @@ SECTOR_QUERIES = {
 
 
 # ── Serper API ────────────────────────────────────────────────────────────────
+# Signalé à True (= code HTTP) quand Serper REFUSE explicitement l'appel : rate-limit
+# (429) ou quota/paiement épuisé (402/403). L'autoscrape lit ce flag pour distinguer
+# « Serper nous a stoppés » (→ pause + retry quotidien) d'une simple ville sans résultat.
+SERPER_BLOCKED_STATUS = None
+
+
 def serper_places(query: str, location: str = "France", num: int = 10, site_code: str = None,
                   page: int = 1) -> list[dict]:
+    global SERPER_BLOCKED_STATUS
     if not SERPER_KEY:
         return []
     try:
@@ -73,6 +80,18 @@ def serper_places(query: str, location: str = "France", num: int = 10, site_code
                           headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
                           json=payload,
                           timeout=15)
+    except Exception as e:
+        gm.log_serper_call(site_code, "places", query, credits=0, success=False)
+        print(f"[serper_places] error: {e}")
+        return []
+    # Refus EXPLICITE de Serper → on lève le flag (au lieu de l'avaler en []), pour que
+    # l'autoscrape sache qu'il est bloqué et ré-essaie chaque jour jusqu'à passage.
+    if r.status_code in (429, 402, 403):
+        SERPER_BLOCKED_STATUS = r.status_code
+        gm.log_serper_call(site_code, "places", query, credits=0, success=False)
+        print(f"[serper_places] BLOCKED HTTP {r.status_code} — Serper refuse l'appel")
+        return []
+    try:
         r.raise_for_status()
         data = r.json()
         credits = int(data.get("credits") or 1)

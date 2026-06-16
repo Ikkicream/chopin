@@ -4990,9 +4990,12 @@ async def api_autoscrape_start(site: str, request: Request):
     body = await request.json()
     sectors = body.get("sectors") or ([body["sector"]] if body.get("sector") else [])
     sectors = [s.strip() for s in sectors if s and s.strip()]
+    region = (body.get("region") or "").strip()
     dept = (body.get("dept") or "").strip()
-    if not sectors or not dept:
-        return {"ok": False, "error": "secteur(s) et département requis"}
+    # Demande user 2026-06-16 : on choisit juste secteur(s) + RÉGION, et ça scrape en
+    # continu tous les départements. `dept` reste accepté en legacy (mode mono-dept).
+    if not sectors or not (region or dept):
+        return {"ok": False, "error": "secteur(s) et région requis"}
 
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import autoscrape_backend as asb
@@ -5002,9 +5005,17 @@ async def api_autoscrape_start(site: str, request: Request):
     if cur.get("status") in ("running", "starting", "stopping", "cleaning") and (_tm.time() - cur.get("updated_at", 0) < 300):
         return {"ok": False, "running": True, "error": "Un autoscrape est déjà en cours.", "active": cur}
 
+    region_name = ""
+    if region:
+        try:
+            region_name = asb._region_name(region)
+        except Exception:
+            region_name = region
     asb.write_status(site, {
-        "site": site, "dept": dept, "sectors": sectors, "status": "starting",
-        "cities_total": 0, "cities_done": 0, "current_city": None,
+        "site": site, "region": region or None, "region_name": region_name or None,
+        "dept": dept or None, "sectors": sectors, "status": "starting",
+        "scope": f"Région {region_name}" if region else f"Dept {dept}",
+        "depts_total": 0, "depts_done": 0, "cities_total": 0, "cities_done": 0, "current_city": None,
         "examined": 0, "valid": 0, "rejected": 0, "errors": 0, "kept_total": 0,
         "serper_available": None, "blocked": False, "stopped": False,
         "started_at": _tm.time(), "message": None,
@@ -5015,20 +5026,19 @@ async def api_autoscrape_start(site: str, request: Request):
     except Exception:
         pass
 
-    cmd = ["python3", "scripts/autoscrape_backend.py", "--site", site, "--dept", dept, "--sectors", ",".join(sectors)]
-    tv = body.get("target_valid")
-    try:
-        if tv is not None and int(tv) > 0:
-            cmd += ["--target-valid", str(int(tv))]
-    except (TypeError, ValueError):
-        pass
+    cmd = ["python3", "scripts/autoscrape_backend.py", "--site", site, "--sectors", ",".join(sectors)]
+    if region:
+        cmd += ["--region", region]
+    elif dept:
+        cmd += ["--dept", dept]
     log_f = open(str(BASE_DIR / "logs" / f"autoscrape-{site}.log"), "w")
     try:
         subprocess.Popen(cmd, cwd=str(BASE_DIR), start_new_session=True,
                          stdout=log_f, stderr=subprocess.STDOUT)
     finally:
         log_f.close()
-    return {"ok": True, "started": True, "site": site, "dept": dept, "sectors": sectors}
+    return {"ok": True, "started": True, "site": site, "region": region or None,
+            "region_name": region_name or None, "dept": dept or None, "sectors": sectors}
 
 
 @app.get("/api/sites/{site}/autoscrape/status")
@@ -5759,23 +5769,24 @@ async def api_onboarding_confirm(site: str, request: Request):
 
 @app.get("/api/sites/{site}/geo/regions")
 def api_geo_regions(site: str):
+    # Métropole uniquement : Corse + DOM-TOM exclus du scrapper (demande user 2026-06-16).
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from workflow_geo import list_regions
-    return {"regions": list_regions()}
+    from workflow_geo import metropole_regions
+    return {"regions": metropole_regions()}
 
 
 @app.get("/api/sites/{site}/geo/departments")
 def api_geo_departments(site: str, region: str = ""):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from workflow_geo import list_departments
-    return {"departments": list_departments(region or None)}
+    from workflow_geo import metropole_departments
+    return {"departments": metropole_departments(region or None)}
 
 
 @app.get("/api/sites/{site}/geo/cities")
 def api_geo_cities(site: str, dept: str = "", region: str = "", min_pop: int = 10000):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from workflow_geo import list_cities
-    return {"cities": list_cities(dept or None, region or None, min_pop=min_pop)}
+    from workflow_geo import metropole_cities
+    return {"cities": metropole_cities(dept or None, region or None, min_pop=min_pop)}
 
 
 @app.get("/api/sites/{site}/scrape/cron-config")
@@ -5871,12 +5882,16 @@ def api_scrape_live_activity(site: str, limit: int = 20):
             cities = start_payload.get("cities") or []
             max_results = start_payload.get("max_results", 0)
 
-            # Match avec le scrape end (même sector, postérieur, dans les 10 min)
+            # Libellé périmètre (région) issu du start_scrape — autoscrape région agrégé.
+            scope = start_payload.get("scope") or start_payload.get("region_name")
+            run_message = None
+            # Match avec le scrape end (même sector, postérieur). Fenêtre large (12 h) car
+            # un autoscrape région tourne longtemps — 1 seul run à la fois ⇒ pas de collision.
             end_row = c.execute("""
                 SELECT created_at, payload, success
                 FROM god_mode_logs
                 WHERE site_code = ? AND action = 'scrape' AND resource_id = ?
-                  AND created_at > ? AND created_at < ? + INTERVAL 10 MINUTE
+                  AND created_at > ? AND created_at < ? + INTERVAL 12 HOUR
                 ORDER BY created_at ASC LIMIT 1
             """, [site, sector, start_at, start_at]).fetchone()
 
@@ -5891,7 +5906,11 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 valid    = ep.get("valid", 0)
                 rejected = ep.get("rejected", 0)
                 errors   = ep.get("errors", 0)
-                status   = "done" if success else "failed"
+                scope    = ep.get("scope") or scope
+                run_message = ep.get("message")
+                # Statut métier précis (région finie, bloquée Serper…) plutôt que done/failed.
+                _st = ep.get("status")
+                status = _st if _st in ("done", "blocked_serper", "stopped", "timeout", "stalled") else ("done" if success else "failed")
             else:
                 # Pas de log de fin (run interrompu / timeout ou en cours) : le recap chiffre du log
                 # final manque. On recupere le VRAI nombre de contacts SAUVES (insertion au fil de
@@ -5948,6 +5967,8 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 "duration_s":    duration_s,
                 "sector":        sector,
                 "cities":        cities,
+                "scope":         scope,
+                "message":       run_message,
                 "max_results":   max_results,
                 "username":      username or "cron",
                 "status":        status,

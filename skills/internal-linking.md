@@ -22,6 +22,11 @@ Tu réponds **UNIQUEMENT en JSON strict** :
 }
 ```
 
+**`action_type` AUTORISÉ — liste EXHAUSTIVE (toute autre valeur est ignorée par la boucle, n'en invente JAMAIS) :**
+- `add_internal_link` — insérer un lien interne (ancre + destination) dans un article source.
+
+C'est la **seule** valeur acceptée pour `action_type`. N'émets jamais `audit_links`, `remove_link`, `fetch_articles`, `rebuild_clusters` ni aucun autre type.
+
 **Max 5 liens par cycle**. Tri par impact estimé (de la page la plus visitée vers la moins visitée). Si pas de nouvel article à mailler ou pas de lien évident, renvoie `plan: []`.
 
 **Capitalise sur la mémoire** : si des liens passés ont verdict `validated` (la page cible a gagné en clics), continue à renforcer ce cluster. Si verdict `failed`, change de cluster.

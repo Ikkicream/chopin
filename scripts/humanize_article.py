@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_PROMPT = Path("/tmp/cmux-drop-e943bc70-13ba-40fa-8d64-6f6c9a93587a.md")
+DEFAULT_PROMPT = BASE_DIR / "skills" / "humanizer.md"
 DEFAULT_TONE = BASE_DIR / "skills" / "humanizer-tone.md"
 
 BLACKLIST = [
@@ -193,15 +193,27 @@ def main():
     # Filets déterministes : le LLM altère parfois le frontmatter (conversion 2025→2026)
     # alors que le prompt interdit ; et laisse souvent des '2025' dans le corps.
     # Force le frontmatter original + normalise l'année dans le corps.
+    # Le LLM oublie ou altère très souvent le frontmatter — il le supprime même
+    # entièrement (sortie qui commence direct par '# Titre'). On force DONC TOUJOURS
+    # le frontmatter original, qu'il ait produit un bloc parsable (fm_rw non vide) ou
+    # pas (body_rw == toute la sortie). Sans ça, check_constraints échoue systématiquement.
     fm_rw, body_rw = split_frontmatter(rewritten)
-    if fm_rw:
-        if fm_rw != fm:
-            print("  filet déterministe : frontmatter LLM remplacé par l'original")
-            fm_rw = fm
-        body_fixed, n_y = re.subn(r"\b2025\b", "2026", body_rw)
-        if n_y:
-            print(f"  filet déterministe : {n_y}× '2025' → '2026' dans le corps")
-        rewritten = fm_rw + body_fixed
+    if not fm_rw:
+        print("  filet déterministe : frontmatter absent de la sortie LLM, original réinjecté")
+        # retire un éventuel '---' orphelin laissé en tête par le LLM
+        body_rw = re.sub(r"\A\s*---\s*\n", "", body_rw)
+    elif fm_rw != fm:
+        print("  filet déterministe : frontmatter LLM remplacé par l'original")
+    body_fixed, n_y = re.subn(r"\b2025\b", "2026", body_rw)
+    if n_y:
+        print(f"  filet déterministe : {n_y}× '2025' → '2026' dans le corps")
+    # Règle horizontale '---' interdite dans le corps : le LLM en glisse parfois malgré
+    # la consigne. On la retire (le contenu est préservé, seul le séparateur saute) plutôt
+    # que de rejeter tout l'article — sinon le moindre écart du LLM = échec total.
+    body_fixed, n_hr = re.subn(r"(?m)^[ \t]*---[ \t]*$\n?", "", body_fixed)
+    if n_hr:
+        print(f"  filet déterministe : {n_hr}× règle horizontale '---' retirée du corps")
+    rewritten = fm + "\n" + body_fixed.lstrip("\n")
 
     # Phase 3 : auto-contrôle
     errors = check_constraints(rewritten, fm)
