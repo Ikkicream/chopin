@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+"""
+autoscrape_backend.py — Autoscrape continu d'un DÉPARTEMENT pour un/des secteur(s).
+
+Idée (demande user 2026-06-01) : on choisit un département + un secteur, et ça scrape
+VILLE PAR VILLE en continu jusqu'à épuisement du département OU blocage des crédits
+Serper. Plus aucun paramétrage manuel (max par ville / plafond). Au blocage crédit :
+statut 'blocked_credits' + alerte Telegram.
+
+Tourne dans un thread géré par l'API (cf. endpoints /autoscrape/* dans api.py).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BASE_DIR / ".env"
+SERPER_BALANCE_FILE = BASE_DIR / "memory" / "seo" / "serper-balance.json"
+GOD_DB = BASE_DIR / "data" / "god_mode.duckdb"
+STATUS_DIR = BASE_DIR / "memory" / "autoscrape"   # statut + flag stop (process détaché)
+
+
+def status_path(site: str) -> Path:
+    return STATUS_DIR / f"{site}-status.json"
+
+
+def stop_path(site: str) -> Path:
+    return STATUS_DIR / f"{site}-stop.flag"
+
+
+def write_status(site: str, state: dict) -> None:
+    try:
+        STATUS_DIR.mkdir(parents=True, exist_ok=True)
+        st = dict(state)
+        st["updated_at"] = time.time()
+        status_path(site).write_text(json.dumps(st, ensure_ascii=False))
+    except Exception:
+        pass
+
+
+def read_status(site: str) -> dict:
+    try:
+        p = status_path(site)
+        if p.exists():
+            return json.loads(p.read_text())
+    except Exception:
+        pass
+    return {"status": "idle"}
+
+# Réglages internes (volontairement non exposés à l'utilisateur)
+PER_CITY = 15          # objectif de contacts gardés par ville
+MAX_PAGES = 4          # pagination Serper max par requête
+CREDIT_FLOOR = 60      # on stoppe quand le solde Serper estimé descend sous ce seuil
+ZERO_STREAK_STOP = 5   # n villes consécutives à 0 commerce examiné ⇒ stall (arrêt sécurité)
+
+# Grandes villes = 1 seule commune INSEE dans la donnée géo → on les éclate en
+# arrondissements pour scraper réellement toute la ville (Serper localise bien par arr.).
+ARRONDISSEMENTS = {"Paris": 20, "Lyon": 9, "Marseille": 16}
+
+
+def _expand_arrondissements(cities: list[str]) -> list[str]:
+    out: list[str] = []
+    for c in cities:
+        n = ARRONDISSEMENTS.get(c)
+        if n:
+            out.extend(f"{c} 1er" if i == 1 else f"{c} {i}e" for i in range(1, n + 1))
+        else:
+            out.append(c)
+    return out
+
+
+def _env(key: str) -> str:
+    if ENV_FILE.exists():
+        for line in ENV_FILE.read_text().splitlines():
+            line = line.strip()
+            if line.startswith(key + "=") and "=" in line:
+                return line.split("=", 1)[1].strip("'\"")
+    return ""
+
+
+def notify_telegram(message: str) -> None:
+    token, chat = _env("TELEGRAM_TOKEN"), _env("TELEGRAM_CHAT_ID") or _env("TELEGRAM_CHAT")
+    if not token or not chat:
+        return
+    try:
+        import requests
+        requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
+                      json={"chat_id": chat, "text": message, "parse_mode": "Markdown"}, timeout=10)
+    except Exception:
+        pass
+
+
+def serper_available() -> int | None:
+    """Crédits Serper restants estimés = solde snapshot − conso depuis le snapshot
+    (table god_mode_serper_calls). None si pas de snapshot configuré."""
+    try:
+        cfg = json.loads(SERPER_BALANCE_FILE.read_text())
+        balance, snap = cfg.get("balance"), cfg.get("snapshot_at")
+        if balance is None or not snap:
+            return None
+        import duckdb
+        c = duckdb.connect(str(GOD_DB), read_only=True)
+        used = c.execute(
+            "SELECT COALESCE(SUM(credits), 0) FROM god_mode_serper_calls WHERE created_at >= ?::TIMESTAMP",
+            [snap[:19].replace("T", " ")]).fetchone()[0]
+        c.close()
+        return max(0, int(balance) - int(used or 0))
+    except Exception:
+        return None
+
+
+def run_autoscrape(site: str, sectors, dept: str,
+                   per_city: int = PER_CITY, credit_floor: int = CREDIT_FLOOR,
+                   max_pages: int = MAX_PAGES,
+                   progress_cb=None, should_stop=None) -> dict:
+    """Scrape toutes les villes (pop≥10k) du `dept` pour chaque secteur, en continu,
+    jusqu'à blocage crédit / stop / épuisement."""
+    import sys
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from workflow_geo import list_cities
+    import god_mode_agents as agents
+    import god_mode_backend as gm
+
+    if isinstance(sectors, str):
+        sectors = [sectors]
+    sectors = [s.strip() for s in (sectors or []) if s and s.strip()]
+    cities = [c.get("name") for c in list_cities(dept, None, min_pop=10000) if c.get("name")]
+    cities = _expand_arrondissements(cities)   # Paris/Lyon/Marseille → arrondissements
+
+    cum = {
+        "site": site, "dept": dept, "sectors": sectors,
+        "cities_total": len(cities), "cities_done": 0, "current_city": None,
+        "examined": 0, "valid": 0, "rejected": 0, "errors": 0, "kept_total": 0,
+        "serper_available": serper_available(),
+        "status": "running", "blocked": False, "stopped": False,
+        "started_at": time.time(), "message": None,
+    }
+
+    def emit():
+        if progress_cb:
+            try:
+                progress_cb(dict(cum))
+            except Exception:
+                pass
+
+    emit()
+    if not sectors or not cities:
+        cum["status"] = "done"
+        cum["message"] = "Aucune ville ou secteur." if not cities else "Aucun secteur."
+        emit()
+        return cum
+
+    zero_streak = 0
+    for city in cities:
+        if should_stop and should_stop():
+            cum["stopped"] = True
+            cum["status"] = "stopped"
+            break
+
+        avail = serper_available()
+        cum["serper_available"] = avail
+        if avail is not None and avail <= credit_floor:
+            cum["blocked"] = True
+            cum["status"] = "blocked_credits"
+            cum["message"] = f"Crédits Serper bas (~{avail}). Arrêt automatique."
+            notify_telegram(
+                f"⚠️ *Autoscrape {site.upper()}* stoppé — crédits Serper bas (~{avail}).\n"
+                f"Dept {dept} · {', '.join(sectors)}\n"
+                f"{cum['valid']} contacts gardés sur {cum['cities_done']}/{len(cities)} villes."
+            )
+            break
+
+        cum["current_city"] = city
+        emit()
+
+        city_examined = 0
+        for sector in sectors:
+            if should_stop and should_stop():
+                break
+            # Log start_scrape par (ville, secteur) → rend l'autoscrape visible dans
+            # le panneau "Activité des scrapes" (qui matche start_scrape ↔ scrape).
+            try:
+                gm.log_action(site, "autoscrape", "system", "start_scrape",
+                              resource="sector", resource_id=sector,
+                              payload={"sector": sector, "cities": [city], "auto": True,
+                                       "max_per_city": per_city})
+            except Exception:
+                pass
+            # Heartbeat intra-ville : maj statut (examiné/gardé live + ville/secteur en cours)
+            # à chaque page Serper, pour ne jamais paraître figé sur une ville longue.
+            _base_ex, _base_va = cum["examined"], cum["valid"]
+            def _hb(c, sec, ex, va):
+                cum["current_city"] = c
+                cum["current_detail"] = f"{sec} · {ex} examinés"
+                cum["examined"] = _base_ex + ex
+                cum["valid"] = _base_va + va
+                cum["kept_total"] = cum["valid"]
+                emit()
+            try:
+                r = agents.scrape_sector(site, sector, cities=[city],
+                                         max_per_city=per_city, global_cap=per_city,
+                                         max_pages=max_pages, username="autoscrape",
+                                         heartbeat_cb=_hb)
+            except Exception as e:
+                cum["errors"] += 1
+                r = {"scraped": 0, "valid": 0, "rejected": 0, "errors": 1}
+            cum["examined"] = _base_ex
+            cum["valid"] = _base_va
+            cum["examined"] += r.get("scraped", 0)
+            cum["valid"] += r.get("valid", 0)
+            cum["rejected"] += r.get("rejected", 0)
+            cum["errors"] += r.get("errors", 0)
+            cum["kept_total"] = cum["valid"]
+            city_examined += r.get("scraped", 0)
+            # Emit APRÈS chaque secteur : maj du statut + heartbeat (évite le faux
+            # "interrupted" sur une ville longue à plusieurs secteurs, ex. Paris).
+            emit()
+
+        cum["cities_done"] += 1
+        cum["kept_total"] = cum["valid"]
+        emit()
+
+        # Détection réactive d'un STALL (plusieurs villes vides d'affilée). NE déclenche
+        # un "blocked_credits" QUE si le solde est aussi bas — sinon c'est juste un
+        # passage à vide (erreurs DB transitoires / requêtes sans résultat) et on
+        # marque "stalled" sans crier au blocage crédit (cf. faux positif du 2026-06-01).
+        zero_streak = zero_streak + 1 if city_examined == 0 else 0
+        if zero_streak >= ZERO_STREAK_STOP:
+            low_credits = avail is not None and avail <= credit_floor * 3
+            cum["blocked"] = bool(low_credits)
+            cum["status"] = "blocked_credits" if low_credits else "stalled"
+            cum["message"] = (
+                f"Crédits Serper bas (~{avail}) + {zero_streak} villes vides — arrêt."
+                if low_credits else
+                f"{zero_streak} villes sans résultat d'affilée — arrêt par sécurité (crédits OK ~{avail})."
+            )
+            notify_telegram(
+                f"⚠️ *Autoscrape {site.upper()}* stoppé ({cum['status']}) — "
+                f"{zero_streak} villes vides.\nDept {dept} · {', '.join(sectors)} · "
+                f"{cum['valid']} contacts gardés · crédits ~{avail}."
+            )
+            break
+
+    if cum["status"] == "running":
+        cum["status"] = "done"
+        cum["message"] = f"Département {dept} terminé."
+    cum["serper_available"] = serper_available()
+    cum["scrape_finished_at"] = time.time()
+    emit()
+
+    try:
+        gm.log_action(site, "system", "autoscrape", "autoscrape_done",
+                      resource="dept", resource_id=dept, payload=dict(cum),
+                      success=not cum["blocked"])
+    except Exception:
+        pass
+
+    # ── Nettoyage AUTOMATIQUE en fin de scrape (demande user : tout scrape serper
+    # enchaîne le cleanup Mailnjoy). On le fait DANS ce process détaché (séquentiel,
+    # après le scrape) — l_ancien hook était sur l_endpoint manuel que l_autoscrape
+    # ne traverse pas. On nettoie même si stoppé/bloqué (les contacts sont déjà là).
+    if cum.get("valid", 0) > 0 and not (should_stop and should_stop()):
+        prev_status = cum["status"]
+        cum["status"] = "cleaning"
+        cum["cleanup"] = {"status": "running", "valid": 0, "removed": 0, "total": 0}
+        cum["message"] = f"Scrape fini ({cum['valid']} contacts) — nettoyage Mailnjoy en cours…"
+        emit()
+        try:
+            sys.path.insert(0, str(BASE_DIR / "scripts"))
+            import cleanup_backend as cb
+
+            def _clean_progress(cumc, chunk_stats, processed, email):
+                cum["cleanup"] = {"status": "running", "valid": cumc.get("valid", 0),
+                                  "removed": cumc.get("removed", 0), "total": cumc.get("total", 0)}
+                emit()
+
+            cres = cb.run_cleanup_drain(mode="unverified", site=site, chunk_size=100,
+                                        source="auto-scrape", progress_cb=_clean_progress,
+                                        should_stop=should_stop)
+            cum["cleanup"] = {"status": "done", "valid": cres.get("valid", 0),
+                              "removed": cres.get("removed", 0), "total": cres.get("total", 0)}
+            cum["message"] = (f"Dept {dept} : {cum['valid']} contacts scrapés · nettoyage Mailnjoy "
+                              f"{cres.get('valid', 0)} validés / {cres.get('removed', 0)} supprimés.")
+        except Exception as e:
+            cum["cleanup"] = {"status": "error", "error": str(e)}
+            cum["message"] = f"Scrape OK ({cum['valid']}) mais nettoyage en erreur : {e}"
+        cum["status"] = prev_status if prev_status != "done" else "done"
+
+    cum["finished_at"] = time.time()
+    emit()
+    return cum
+
+
+def main() -> int:
+    """Exécution en PROCESS DÉTACHÉ (lancé par l'API). Écrit l'avancement dans
+    memory/autoscrape/<site>-status.json ; s'arrête si le flag stop existe.
+    Process séparé = pas de conflit de connexions DuckDB avec l'API, et survit aux
+    redémarrages de l'API."""
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--site", required=True)
+    ap.add_argument("--dept", required=True)
+    ap.add_argument("--sectors", required=True, help="secteurs séparés par des virgules")
+    args = ap.parse_args()
+    sectors = [s.strip() for s in args.sectors.split(",") if s.strip()]
+
+    sp = stop_path(args.site)
+    try:
+        if sp.exists():
+            sp.unlink()
+    except Exception:
+        pass
+
+    def progress_cb(state):
+        write_status(args.site, state)
+
+    def should_stop():
+        return sp.exists()
+
+    try:
+        run_autoscrape(args.site, sectors, args.dept,
+                       progress_cb=progress_cb, should_stop=should_stop)
+    except Exception as e:
+        cur = read_status(args.site)
+        cur.update({"status": "error", "message": str(e), "finished_at": time.time()})
+        write_status(args.site, cur)
+        return 1
+    finally:
+        try:
+            if sp.exists():
+                sp.unlink()
+        except Exception:
+            pass
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,22 @@
+# Secrets
+.env
+.env.*
+!.env.template
+context/shared/credentials.md
+context/shared/prospects.csv
+
+# Data (too large / personal)
+data/
+memory/
+backups/
+
+# Tools & deps
+tools/
+node_modules/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+google-indexing-key.json
+.htpasswd
