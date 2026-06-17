@@ -262,7 +262,9 @@ def has_mx_record(domain: str, timeout: float = 3.0) -> bool:
 # ──────────────────────────────────────────────────────────────────────────────
 # RGPD blocker (avant scoring)
 # ──────────────────────────────────────────────────────────────────────────────
-LICIT_SOURCES = {"serper_places", "annuaire_public", "site_web_pro"}
+# "basile" ajouté 2026-06-17 : les emails Basile proviennent du registre légal public
+# (INSEE/RNCS) + Google My Business — sources publiques au sens RGPD, comme annuaire_public.
+LICIT_SOURCES = {"serper_places", "annuaire_public", "site_web_pro", "basile"}
 
 
 def rgpd_check(email: str, prospect: dict) -> tuple[bool, str]:

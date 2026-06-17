@@ -4,7 +4,72 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-17 (source `articles` dans observe() → internal-linking & linkedin agissent vraiment)
+2026-06-17 (connecteur Basile préparé hors-ligne + source `articles` observe())
+
+## 🔝 REPRISE 2026-06-17 (suite) — Connecteur Basile (2e outil d'acquisition)
+
+**Demande user :** ajouter Basile (api.basile.cc, base B2B FR, abo user) comme 2e outil de collecte
+de contacts À CÔTÉ de Serper, fusionné dans le même pool. Règles : jamais > 20 000, passes de 1 000.
+**app.basile.cc était DOWN** → préparer TOUT hors-ligne (doc, fonctions, UX, contexte LCR), brancher
+clé + tests live au retour du site. Skill fourni en zip (`basile-skill.zip`).
+
+**FAIT (hors-ligne, non testé live) :**
+- **Skill installé** : `skills/basile-b2b-search/` (SKILL.md + 8 refs + 2 scripts : basile_search.py,
+  emelia_enrich.py). C'est la doc source de l'API Basile + Emelia.
+- **Connecteur `scripts/basile_backend.py`** : `count()` (gratuit), `find()` (pagination 100),
+  `lead_to_prospect()` (normalise lead Basile → schéma `prospect` IDENTIQUE à serper_places, +
+  prenom/nom/job_title pour le pool), `enforce_volume_rules()` (≤20k→extract en N passes de 1000,
+  >20k→segment), `run_segment()` (collecte 1 passe, valide via `validate_and_score`, DOUBLE écriture
+  `scrappe_pending` + pool `contacts` `primary_source='basile'`, dry-run par défaut). Flag
+  `BASILE_BLOCKED_STATUS` sur 402/403 (comme SERPER_BLOCKED_STATUS). CLI : `count|segment [--live]`.
+  Fonctions pures TESTÉES (volume rules + normalisation + skip sans email). HTTP **non testé** (site down).
+- **Docs** : `docs/basile-api.md` (API complète + §Go-live checklist), `docs/contact-acquisition.md`
+  (fusion Serper+Basile, schéma pool, **proposition UX dashboard** = toggle Source Serper/Basile/Les2
+  + compter-avant-lancer + segmentation auto >20k + enrichissement Emelia opt-in, endpoints à ajouter,
+  mode opératoire jour-du-retour).
+- **Contexte LCR** : `context/lcr/acquisition-context.md` (ICP commerçants/artisans/resto/immo →
+  mapping secteurs→NAF/activity, workflow 2 étapes entreprises→dirigeants par SIREN, règles volume).
+- **Clés** : `EMELIA_API_KEY` déjà en `.env` ✅. **`BASILE_KEY` ABSENTE** → user la fournira au retour.
+
+**✅ TESTÉ EN LIVE (2026-06-17, clé fournie, ajoutée au `.env`) :**
+- Auth OK, `count` OK (15 M sociétés, 284 k CEO). FIELD MAP **confirmé** et câblé dans `lead_to_prospect`.
+- **Corrections de filtres** (doc à jour, `docs/basile-api.md §12bis`) : `naf_code` exact `"56.10A"`
+  (pas de wildcard `.x`) ; `activity` préfixe **`concept:`** (via activity-suggest) ; géo entreprises
+  via **`headquarters_postal_code`** (exact) ou **`headquarters_city` MAJUSCULES** — `*_department_code`
+  / `*_region_code` renvoient 0.
+- **Découverte clé** : sociétés Basile ~15 % avec email (~2 % net après validation), **dirigeants people
+  = 0 email/phone**. → Basile = liste sociétés + nom dirigeant + SIREN ; contactabilité réelle via Emelia.
+- **`email_validator.LICIT_SOURCES` += `"basile"`** (sinon tout droppé `rgpd_source_non_publique` ;
+  registre légal = source publique). Dry-run segment OK : 882 resto Lyon → 19 prospects valides, schéma OK.
+
+**DÉCISION USER prise (2026-06-17) : flux DIRIGEANTS + Emelia** (option A). Construit + testé dry-run.
+- `run_dirigeant_segment()` + CLI `dirigeants` : companies/find (NAF+géo) → people/find par SIREN
+  (nom dirigeant, ~58 % des sociétés) → Emelia find-email (nominatif, PAYANT 1 crédit/dirigeant,
+  derrière `--emelia --live`) → validate → double écriture scrappe_pending + pool (prenom/nom/job_title,
+  source=basile). Dry-run ESTIME le coût Emelia avant de dépenser. Website récupéré via `x_gmb`
+  (`domain_principal_url`/`open_website`/…) pour améliorer le taux Emelia. `emelia_enrich.py` du skill
+  réutilisé (mappe EMELIA_API_KEY→EMELIA_KEY). Testé dry-run lcr : 60 sociétés→31 dirigeants nommés.
+
+**Crédits Emelia (2026-06-17) — SOLDE LU EN LIVE ✅ :** la requête GraphQL du dashboard a été extraite
+du front app.emelia.io (`/static/js/main.*.js`) :
+`me { subscription { enrich { creditsRemaining creditsSubscription expiration } } }`.
+→ `scripts/emelia_credits.py fetch_live_balance()` / CLI `balance` lit le solde RÉEL sans saisie
+manuelle (vérifié : **949.75** crédits, ≈ le 950 annoncé). (L'introspection GraphQL est off et le
+champ n'était pas devinable — il a fallu lire le bundle JS du front.) Le suivi local
+(`record`/`COST`) sert juste à prédire le coût d'un lot. Branché dans `basile_backend._emelia_find_email`
++ `emelia_find_phone`.
+Test live find-phone OK : Clara Torres (agent immo La Garenne-Colombes) → +33679277362.
+**Coût find_phone = 50 crédits/numéro trouvé** (CONFIRMÉ user 2026-06-17 ; `COST` dans emelia_credits.py).
+find_email/verify/ai_action = à confirmer. ⚠️ Implication : 1 pack 1000 crédits = seulement 20 numéros
+→ réserver le find-phone aux cibles à forte valeur ; le find-email (≈cheap) reste le levier volume.
+
+**RESTE Basile :**
+1. **Test live Emelia** sur un petit lot (3-5 dirigeants) pour confirmer le finder — coûte qqs crédits,
+   à lancer avec OK explicite user (`--emelia --live --max 5`).
+2. Helper **géo→codes postaux/villes** par département (pas de champ dept côté Basile ; postal exact
+   ou ville MAJ seulement).
+3. Endpoints + UX dashboard (cf. `docs/contact-acquisition.md §5`). 4. Contextes MKD + autres sites.
+5. Crosscheck doc vs docs.basile.cc. 6. (optionnel) cron segments 1 secteur×dept/jour.
 
 ## 🔝 REPRISE 2026-06-17 — Source `articles` snapshot (RESTE #3 fait)
 
