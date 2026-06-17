@@ -98,7 +98,68 @@ def observe(site: str, sources=("gsc",)) -> dict:
                                          ("domain_rating", "org_keywords", "org_traffic", "ahrefs_rank")}
         except Exception as e:  # noqa: BLE001
             snap["sources"]["ahrefs"] = {"error": str(e)}
+    if "articles" in sources:
+        try:
+            snap["sources"]["articles"] = _observe_articles(site)
+        except Exception as e:  # noqa: BLE001
+            snap["sources"]["articles"] = {"error": str(e)}
     return snap
+
+
+def _observe_articles(site: str) -> dict:
+    """Snapshot articles pour internal-linking / linkedin.
+
+    - `published` : articles publiés sur le site (destinations de liens / candidats à
+      promouvoir). Tirés d'emdash (lcr) ou WP (mkd) via internal_linking_agent.
+    - `editable` : articles de la queue éditoriale AVEC markdown + published_url. Ce
+      sont les seuls que les writers savent réellement cibler (`target` est matché par
+      `published_url` / titre / id dans la queue). Sans cette liste les agents
+      inventaient des cibles → add_internal_link détourné en « fetch », linkedin plan:[].
+    """
+    # `editable` est listé EN PREMIER (et `published` cappé) car le snapshot est tronqué
+    # à ~8000 chars dans decide() : si `published` (30 items) passe avant, `editable` est
+    # coupé et le LLM ne voit jamais les seules cibles valides.
+    editable: list = []
+    editable_error = None
+    try:
+        qf = BASE_DIR / "memory" / "editorial" / "articles-queue.json"
+        if qf.exists():
+            for a in json.loads(qf.read_text()):
+                if a.get("site") != site:
+                    continue
+                art = a.get("article") or {}
+                if not (art.get("markdown") and a.get("published_url")):
+                    continue
+                editable.append({
+                    "id": a.get("id"),
+                    "title": (a.get("proposal") or {}).get("title", ""),
+                    "url": a.get("published_url"),
+                    "published_at": a.get("published_at"),
+                    "internal_links_applied": art.get("internal_links_applied", 0),
+                    "has_linkedin_post": bool(a.get("linkedin_post")),
+                })
+    except Exception as e:  # noqa: BLE001
+        editable_error = str(e)
+    published: list = []
+    published_error = None
+    try:
+        from internal_linking_agent import get_existing_articles
+        published = get_existing_articles(site)[:12]
+    except Exception as e:  # noqa: BLE001
+        published_error = str(e)
+    out: dict = {
+        "note": "`target` (article à modifier/promouvoir) DOIT venir de `editable`. "
+                "`published` = destinations de liens uniquement.",
+        "editable_count": len(editable),
+        "editable": editable,
+        "published_count": len(published),
+        "published": published,
+    }
+    if editable_error:
+        out["editable_error"] = editable_error
+    if published_error:
+        out["published_error"] = published_error
+    return out
 
 
 # ── RECALL ──────────────────────────────────────────────────────────────────────
@@ -184,7 +245,7 @@ def decide(agent: str, site: str, playbook: str, snapshot: dict, recalled: dict,
         )
     base = (
         f"=== TON PLAYBOOK ===\n{playbook[:6000] or '(aucun playbook)'}\n\n"
-        f"=== SNAPSHOT (état observé) ===\n{json.dumps(snapshot, ensure_ascii=False)[:6000]}\n\n"
+        f"=== SNAPSHOT (état observé) ===\n{json.dumps(snapshot, ensure_ascii=False)[:8000]}\n\n"
         f"=== TA MÉMOIRE ===\n{json.dumps(recalled, ensure_ascii=False)[:4000]}\n\n"
         "Décide le plan (JSON strict)."
     )

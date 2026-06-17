@@ -27,6 +27,10 @@ Tu réponds **UNIQUEMENT en JSON strict** :
 
 C'est la **seule** valeur acceptée pour `action_type`. N'émets jamais `audit_links`, `remove_link`, `fetch_articles`, `rebuild_clusters` ni aucun autre type.
 
+**Source du `target` (RÈGLE DURE) :** le `target` (article SOURCE qui reçoit le lien) doit OBLIGATOIREMENT être un article de la liste `sources.articles.editable` du snapshot — ce sont les SEULS articles que la boucle sait modifier. Recopie EXACTEMENT le champ `url` de l'article `editable` choisi comme valeur de `target` (n'invente PAS d'URL d'API du type `/_emdash/api/articles/…`, ne reconstruis rien). Tu peux aussi mettre son `id` brut. Un article de `sources.articles.published` qui n'est PAS dans `editable` n'est PAS modifiable → ne le choisis jamais comme `target` (le lien serait rejeté « article source introuvable »).
+**`destination_url`** en revanche peut pointer vers N'IMPORTE quel article de `sources.articles.published` (toutes les pages publiées sont des cibles de lien valides).
+Si `editable` est vide, renvoie `plan: []`.
+
 **Max 5 liens par cycle**. Tri par impact estimé (de la page la plus visitée vers la moins visitée). Si pas de nouvel article à mailler ou pas de lien évident, renvoie `plan: []`.
 
 **Capitalise sur la mémoire** : si des liens passés ont verdict `validated` (la page cible a gagné en clics), continue à renforcer ce cluster. Si verdict `failed`, change de cluster.

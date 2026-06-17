@@ -142,23 +142,43 @@ def _agentic_writer(item: dict, snapshot: dict, *, site: str, dry_run: bool):
         return
     target = item.get("target")  # URL/title de l'article source qui doit recevoir le lien
     tags = item.get("tags") or {}
-    anchor = tags.get("anchor_text")
-    dest = tags.get("destination_url")
+    anchor = tags.get("anchor_text") or tags.get("anchor")
+    # Le LLM épelle la destination de plusieurs façons : on accepte les variantes et on
+    # résout un slug nu via la liste `published` du snapshot (slug → URL complète).
+    dest = (tags.get("destination_url") or tags.get("url")
+            or tags.get("destination") or tags.get("target_url"))
+    if not dest:
+        slug = tags.get("linked_article_slug") or tags.get("slug") or tags.get("target_slug")
+        if slug:
+            pub = ((snapshot.get("sources") or {}).get("articles") or {}).get("published") or []
+            match = next((p for p in pub if p.get("slug") == slug or slug in (p.get("url") or "")), None)
+            dest = (match or {}).get("url")
+            if not dest and site == "lcr":  # fallback structurel connu (emdash) ; pas pour mkd/WP
+                dest = f"https://blog.leclientroi.com/posts/{slug}"
     if not (target and anchor and dest):
-        raise ValueError("plan sans target/anchor_text/destination_url")
+        raise ValueError(f"plan incomplet (target={bool(target)} anchor={bool(anchor)} dest={bool(dest)})")
+    # Validation de la cible AVANT la branche dry-run : seul un article présent dans la
+    # queue éditoriale (`editable` du snapshot) est modifiable. Un article seulement
+    # `published` (hors-queue) ne l'est pas → skip propre plutôt que crash.
+    if not QUEUE_FILE.exists():
+        raise FileNotFoundError("queue éditoriale introuvable")
+    queue = json.loads(QUEUE_FILE.read_text())
+    tgt_l = target.lower()
+    art = next((a for a in queue
+                if a.get("published_url") == target
+                or a.get("proposal", {}).get("title", "").lower() == tgt_l
+                or a.get("id") == target
+                # tolérant : le LLM emballe parfois l'id/le slug dans une URL d'API
+                or (a.get("id") and a["id"] in target)
+                or (a.get("published_url") and a["published_url"] in target)), None)
+    if not art:
+        item["skipped"] = f"article source hors queue éditoriale (non-éditable) : {target!r}"
+        print(f"  [agentic] SKIP {item['skipped']}")
+        return
     if dry_run:
         print(f"  [agentic] DRY-RUN link {anchor!r} → {dest} dans {target!r}")
         item["dry_run"] = True
         return
-    if not QUEUE_FILE.exists():
-        raise FileNotFoundError("queue éditoriale introuvable")
-    queue = json.loads(QUEUE_FILE.read_text())
-    art = next((a for a in queue
-                if a.get("published_url") == target
-                or a.get("proposal", {}).get("title", "").lower() == target.lower()
-                or a.get("id") == target), None)
-    if not art:
-        raise ValueError(f"article source introuvable : {target!r}")
     md = art.get("article", {}).get("markdown", "")
     if not md:
         raise ValueError(f"article {art['id']} sans markdown")
@@ -184,7 +204,7 @@ def run_agentic(site: str, dry_run: bool = True) -> dict:
     from agent_core import run_cycle
     writer = partial(_agentic_writer, site=site, dry_run=dry_run)
     result = run_cycle(agent="internal-linking", site=site,
-                       sources=("gsc", "ga4"), writer_fn=writer)
+                       sources=("gsc", "ga4", "articles"), writer_fn=writer)
     print(json.dumps(result, ensure_ascii=False, default=str))
     return result
 

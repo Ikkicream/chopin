@@ -109,17 +109,26 @@ def _agentic_writer(item: dict, snapshot: dict, *, site: str, dry_run: bool):
     post_text = "\n\n".join(t for t in (hook, body, cta) if t).strip()
     if not post_text:
         raise ValueError("plan sans hook/body/cta")
-    if dry_run:
-        print(f"  [agentic] DRY-RUN linkedin_post target={target_url!r} chars={len(post_text)}")
-        item["dry_run"] = True
-        return
+    # Validation de la cible AVANT la branche dry-run : le post ne peut être attaché
+    # qu'à un article présent dans la queue éditoriale (`editable` du snapshot). Si le
+    # LLM a halluciné une URL publiée hors-queue, on skippe proprement (pas de crash).
     if not QUEUE_FILE.exists():
         raise FileNotFoundError("queue éditoriale introuvable")
     queue = json.loads(QUEUE_FILE.read_text())
     art = next((a for a in queue if a.get("published_url") == target_url
                 or a.get("proposal", {}).get("title", "").lower() in target_url.lower()), None)
     if not art:
-        raise ValueError(f"article introuvable pour target {target_url!r}")
+        item["skipped"] = f"target hors queue éditoriale (non-éditable) : {target_url!r}"
+        print(f"  [agentic] SKIP {item['skipped']}")
+        return
+    if art.get("linkedin_post"):
+        item["skipped"] = f"article déjà promu (linkedin_post existant) : {target_url!r}"
+        print(f"  [agentic] SKIP {item['skipped']}")
+        return
+    if dry_run:
+        print(f"  [agentic] DRY-RUN linkedin_post target={target_url!r} chars={len(post_text)}")
+        item["dry_run"] = True
+        return
     art["linkedin_post"] = {
         "text": post_text, "generated_at": datetime.now(timezone.utc).isoformat(),
         "status": "draft", "source": "agentic",
@@ -142,7 +151,7 @@ def run_agentic(site: str, dry_run: bool = True) -> dict:
     from agent_core import run_cycle
     writer = partial(_agentic_writer, site=site, dry_run=dry_run)
     result = run_cycle(agent="linkedin-specialist", site=site,
-                       sources=("gsc", "ga4"), writer_fn=writer)
+                       sources=("gsc", "ga4", "articles"), writer_fn=writer)
     print(json.dumps(result, ensure_ascii=False, default=str))
     return result
 

@@ -4,7 +4,23 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-16 (V2 préambules action_type + bascule crons agentiques + humanizer fix + refonte scrapper région-continu)
+2026-06-17 (source `articles` dans observe() → internal-linking & linkedin agissent vraiment)
+
+## 🔝 REPRISE 2026-06-17 — Source `articles` snapshot (RESTE #3 fait)
+
+**Demande user :** reprise après une session terminée sans récap. Chantier choisi = RESTE #3 (internal-linking & linkedin n'avaient pas la liste d'articles dans leur snapshot → ils détournaient `add_internal_link` en « fetch » / restaient en `plan:[]`).
+
+**FAIT (testé dry-run lcr + mkd) :**
+- **`agent_core.observe()` : nouvelle source `articles`** (`_observe_articles(site)`). Expose `editable` (articles de la queue éditoriale AVEC markdown + published_url = les SEULS que les writers savent cibler, matchés dans la queue) **et** `published` (jusqu'à 12 articles publiés = destinations de liens). Câblée sur internal_linking_agent + linkedin_agent (`sources=("gsc","ga4","articles")`).
+- **Cause racine trouvée : troncature du snapshot.** `decide()` coupait le snapshot à **6000 chars** ; avec 30 articles `published` listés AVANT `editable`, la liste `editable` (offset 6586) était **coupée** → le LLM ne voyait jamais les seules cibles valides et piochait dans `published` (→ skip/erreur en live). Fix : (a) `editable` listé EN PREMIER + counts + `note` explicite, `published` cappé 30→12 ; (b) limite de troncature `decide()` 6000→8000. Snapshot lcr : 6944→4016 chars, `editable` visible à l'offset 1008.
+- **Playbooks durcis** (`skills/internal-linking.md`, `linkedin-specialist.md`) : RÈGLE DURE `target` ∈ `editable` (recopier le champ `url` exact, ne PAS inventer d'URL d'API), `destination_url` ∈ `published`. linkedin : ignorer `has_linkedin_post=true`, `plan:[]` si rien de neuf.
+- **Writers durcis (skip propre au lieu de crash)** : validation cible AVANT la branche dry-run dans les 2 `_agentic_writer`. internal-linking : matching tolérant (id/slug emballé dans une URL) + extraction destination tolérante (`destination_url`|`url`|`destination`|`linked_article_slug`→résolu via `published`). Fallback URL site-aware (lcr uniquement). linkedin : skip propre si `target` hors-queue ou déjà promu.
+- **Résultat dry-run lcr (mémoire purgée) :** internal-linking produit **4 liens valides** depuis l'éditable « SMS Marketing Restaurants » vers de vraies destinations (sms-salle-sport, rcs-marketing, fideliser-clients-sms, campagne-mms), URLs résolues, 0 erreur/skip. linkedin → `plan:[]` correct (seul éditable déjà promu). mkd → `plan:[]` propre (WP vide, pas de crash).
+- **Purge** : 9 lignes `agent_actions` de test du 17/06 (internal-linking + linkedin, lcr+mkd) supprimées pour ne pas empoisonner le `recall` des crons live de ce soir.
+
+**Limite connue :** la queue éditoriale lcr n'a qu'**1 article éditable** (les autres publiés ne sont pas dans la queue Genesis donc non modifiables). internal-linking ne peut donc mailler que cet article tant que Genesis ne publie pas plus via sa propre pipeline. C'est by-design (la queue = base éditoriale interne).
+
+**RESTE (inchangé hors #3) :** voir REPRISE 2026-06-16 ci-dessous (eval post-cron J+7 ~23/06, purge cosmétique agent_actions, migration slugify).
 
 ## 🔝 REPRISE 2026-06-16 (suite) — Refonte du scrapper (autoscrape région-continu)
 
@@ -48,7 +64,7 @@
 **RESTE (prochaine session, par priorité) :**
 1. **MKD publish 401** (action user : régénérer App Password WP, voir DÉCISIONS EN ATTENTE plus bas).
 2. ~~**humanizer invente des action_type / plante**~~ **CORRIGÉ 16/06** : la vraie cause du plantage nocturne était `humanize_article.py` qui faisait `exit 1` à chaque run — `check_constraints` échouait car le filet déterministe ne forçait le frontmatter original que si le LLM en produisait un (or DeepSeek le supprime souvent). Fixes : (a) frontmatter original réinjecté TOUJOURS, (b) strip déterministe des `---` en corps au lieu de rejeter, (c) `DEFAULT_PROMPT` repointé de `/tmp/cmux-drop-*.md` (éphémère) vers `skills/humanizer.md` (identique, stable), (d) `humanizer → ["humanize_article"]` ajouté à `ALLOWED_ACTION_TYPES`. Validé live (exit 0, frontmatter intact, `.bak` créé). **Résidu** : la mémoire de l'agent garde 8 erreurs périmées → il reste en `plan:[]` par prudence ; se résorbe en ~qq jours (noops chassent les erreurs de la fenêtre recall=10) ou via purge manuelle des lignes `agent_actions agent=humanizer status=error` (refusée par le classifier ce jour, à autoriser si on veut accélérer).
-3. **🆕 internal-linking & linkedin manquent la liste d'articles dans leur snapshot** (sources=gsc,ga4 seulement) → internal-linking détourne `add_internal_link` en « fetch », linkedin reste en `plan:[]`. Ajouter une source `articles` à `observe()` pour ces 2 agents pour qu'ils agissent vraiment.
+3. ~~**internal-linking & linkedin manquent la liste d'articles dans leur snapshot**~~ **FAIT 17/06** : source `articles` ajoutée à `observe()` (`editable`+`published`), troncature snapshot 6000→8000, playbooks+writers durcis. Voir REPRISE 2026-06-17 en haut. internal-linking produit des liens valides, linkedin `plan:[]` correct quand rien à promouvoir.
 4. **🆕 Pollution test agent_actions (16/06)** : `create_article`/`update_article`/`propose_article` en `done` issus de mes dry-runs d'avant le fix. Inoffensif (eval les skippe) mais à purger si on veut une table propre (delete manuel DB).
 5. **Évaluation post-cron** : laisser tourner 1-2 semaines, vérifier que `evaluate()` passe de `evaluated:0` à des outcomes réels, affiner les seuils.
 6. **Migrer humanize_article + gen_agents_state vers text_utils.slugify** (cosmétique).
