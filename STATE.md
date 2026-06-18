@@ -4,7 +4,35 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-17 (connecteur Basile préparé hors-ligne + source `articles` observe())
+2026-06-18 (Serper : diversification requêtes + burn placeId ; reporting doublons/net ; sidebar Basile+Emelia)
+
+## 🔝 REPRISE 2026-06-18 — Couverture Serper + reporting scrapper + sidebar
+
+**Contexte :** le scrape IDF immobilier ne ramenait que ~707 « examinés » (Google Places plafonne à
+~20 résultats/requête → on retombait sur le même top-20). Univers réel ≈ 7-8k agences IDF / ~30k FR
+(à confirmer via Basile, source registre = exhaustive — clé Basile **désactivée/401 depuis ~12h**,
+à régénérer).
+
+**FAIT :**
+- **Diversification des requêtes Serper** (`god_mode_agents.SECTOR_QUERIES`) : 2 → 4-10 angles métier
+  par secteur (immobilier : agence/agent/estimation/gestion locative/syndic/neuf/vente/location/mandataire/
+  négociateur). Chaque angle = un top-20 Google différent → couverture bien > 20/ville.
+- **Burn des lieux déjà scrappés** (cross-run) : `load/save_seen_places(site,sector)` →
+  `memory/scrape/seen-places-{site}-{sector}.json`. ⚠️ Clé = **domaine du website** (`norm_domain`),
+  PAS le placeId — découverte : Serper ne renvoie le placeId que 1 row/1787 (quasi toujours null),
+  alors que `website` est rempli à ~100 %. Dans `scrape_sector` : skip si domaine déjà vu (AVANT
+  fetch site) ; page ne ramenant QUE du déjà-vu (`page_new==0`) → variante épuisée → suivante.
+  `skipped_seen` propagé (scrape_sector → cum → log → API → UI, affiché « +N🔥 » près des doublons).
+  **Prérempli** depuis scrappe+scrappe_pending : **1769 domaines** (dont 1536 immo lcr) → le prochain
+  scrape immo saute direct les connus.
+- ⚠️ **SERPER À COURT DE CRÉDITS** (`"Not enough credits"` HTTP 400, sidebar 0/2500) — les scrapes
+  sont donc à l'arrêt tant que le forfait Serper n'est pas rechargé. Découvert en testant le burn.
+- **Reporting scrapper** : colonnes **Doublons** + **Net Mailnjoy** ajoutées (UI scrapper) ; le log
+  d'activité autoscrape est désormais écrit APRÈS le cleanup (inclut `duplicates`, `cleanup`, `net`).
+  Live-activity API expose duplicates/skipped_seen/net/cleanup. (Explication run 707 : 1 valid+302
+  rejetés[=sans email]+404 doublons ; net réel 0 car Mailnjoy a viré le seul valid.)
+- **Sidebar `credits-widget.tsx`** : ajout **Basile** (`/api/basile/usage` : compte local pool
+  primary_source='basile' du mois / 250000) et **Emelia** (`/api/emelia/credits` : solde LIVE 950).
 
 ## 🔝 REPRISE 2026-06-17 (suite) — Connecteur Basile (2e outil d'acquisition)
 

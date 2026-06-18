@@ -213,6 +213,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
         "depts_total": len(all_depts), "depts_done": len(done_set), "current_dept": None,
         "cities_total": cities_total, "cities_done": 0, "current_city": None,
         "examined": 0, "valid": 0, "rejected": 0, "duplicates": 0, "errors": 0, "kept_total": 0,
+        "skipped_seen": 0,
         "serper_available": serper_available(),
         "status": "running", "blocked": False, "stopped": False,
         "started_at": time.time(), "message": None,
@@ -299,6 +300,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
                 cum["valid"] = _base_va + r.get("valid", 0)
                 cum["rejected"] += r.get("rejected", 0)
                 cum["duplicates"] += r.get("duplicates", 0)
+                cum["skipped_seen"] += r.get("skipped_seen", 0)
                 cum["errors"] += r.get("errors", 0)
                 cum["kept_total"] = cum["valid"]
                 emit()
@@ -343,18 +345,6 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     persist_progress()
     emit()
 
-    # Ligne d'activité de fin (1 par run) + audit.
-    try:
-        gm.log_action(site, "system", "autoscrape", "scrape",
-                      resource="sector", resource_id=sector_label,
-                      payload={"sector": sector_label, "region": region, "region_name": region_name,
-                               "scope": scope_label, "scraped": cum["examined"], "valid": cum["valid"],
-                               "rejected": cum["rejected"], "duplicates": cum["duplicates"],
-                               "errors": cum["errors"], "status": cum["status"], "message": cum["message"]},
-                      success=not cum["blocked"])
-    except Exception:
-        pass
-
     # ── Nettoyage Mailnjoy automatique en fin de scrape (inchangé). ─────────────
     if cum.get("valid", 0) > 0 and not (should_stop and should_stop()):
         prev_status = cum["status"]
@@ -382,6 +372,25 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
             cum["cleanup"] = {"status": "error", "error": str(e)}
             cum["message"] = f"Scrape OK ({cum['valid']}) mais nettoyage en erreur : {e}"
         cum["status"] = prev_status
+
+    # Ligne d'activité de fin (1 par run) + audit — loggée APRÈS le cleanup pour inclure
+    # les doublons ET le net Mailnjoy (validés/supprimés). `net` = contacts gardés après
+    # nettoyage = valid − supprimés par Mailnjoy.
+    try:
+        _cl = cum.get("cleanup") or {}
+        _removed = int(_cl.get("removed", 0) or 0)
+        _net = max(0, int(cum.get("valid", 0) or 0) - _removed)
+        gm.log_action(site, "system", "autoscrape", "scrape",
+                      resource="sector", resource_id=sector_label,
+                      payload={"sector": sector_label, "region": region, "region_name": region_name,
+                               "scope": scope_label, "scraped": cum["examined"], "valid": cum["valid"],
+                               "rejected": cum["rejected"], "duplicates": cum["duplicates"],
+                               "skipped_seen": cum.get("skipped_seen", 0),
+                               "errors": cum["errors"], "status": cum["status"],
+                               "cleanup": _cl, "net": _net, "message": cum["message"]},
+                      success=not cum["blocked"])
+    except Exception:
+        pass
 
     cum["finished_at"] = time.time()
     persist_progress()

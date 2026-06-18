@@ -3654,6 +3654,56 @@ def get_serper_usage():
         return {"error": str(e)}
 
 
+@app.get("/api/emelia/credits")
+def get_emelia_credits():
+    """Solde Emelia LIVE (crédits enrichissement). Lu via l'API GraphQL Emelia
+    (me.subscription.enrich.creditsRemaining). Affiche l'arrondi (comme le dashboard Emelia)."""
+    try:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        import emelia_credits
+        live = emelia_credits.fetch_live_balance()
+        if not live.get("ok"):
+            return {"error": live.get("error", "fetch"), "configured": False}
+        return {
+            "configured": True,
+            "remaining": live.get("remaining"),          # arrondi (réf. dashboard)
+            "remaining_raw": live.get("remaining_raw"),  # valeur brute
+            "subscription_credits": live.get("subscription_credits"),
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {"error": str(e), "configured": False}
+
+
+@app.get("/api/basile/usage")
+def get_basile_usage():
+    """Conso Basile du mois (contacts collectés via le connecteur Basile, source de vérité =
+    pool contacts.duckdb primary_source='basile') vs forfait plan API (250 000/mois).
+    Basile n'expose aucune API de solde/quota → décompte local, comme Serper."""
+    try:
+        import duckdb as _dd
+        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        used = 0
+        try:
+            c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"), read_only=True)
+            r = c.execute(
+                "SELECT COUNT(*) FROM contacts WHERE primary_source = 'basile' "
+                "AND strftime(created_at, '%Y-%m') = ?", [month]).fetchone()
+            used = int(r[0] or 0)
+            c.close()
+        except Exception:
+            used = 0
+        plan_total = 250000  # plan API Basile (export/mois). Cf. docs/basile-api.md §10.
+        configured = bool(os.environ.get("BASILE_KEY"))
+        if not configured and ENV_FILE.exists():
+            configured = any(l.strip().startswith("BASILE_KEY=") and l.split("=", 1)[1].strip(" '\"")
+                             for l in ENV_FILE.read_text().splitlines())
+        return {"configured": configured, "used_month": used, "plan_total": plan_total,
+                "month": month, "fetched_at": datetime.now(timezone.utc).isoformat()}
+    except Exception as e:
+        return {"error": str(e), "configured": False}
+
+
 # ── Prospects scraping (Serper.dev) ───────────────────────────────────────────
 
 @app.post("/api/sites/{site}/prospects/scrape")
@@ -5896,6 +5946,7 @@ def api_scrape_live_activity(site: str, limit: int = 20):
             """, [site, sector, start_at, start_at]).fetchone()
 
             end_at = None; scraped = 0; valid = 0; rejected = 0; errors = 0; status = "running"
+            duplicates = 0; net = None; cleanup = None; skipped_seen = 0
             if end_row:
                 end_at, end_payload_raw, success = end_row
                 try:
@@ -5906,6 +5957,15 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 valid    = ep.get("valid", 0)
                 rejected = ep.get("rejected", 0)
                 errors   = ep.get("errors", 0)
+                duplicates = ep.get("duplicates", 0)
+                skipped_seen = ep.get("skipped_seen", 0)
+                cleanup  = ep.get("cleanup")
+                # net = contacts gardés après Mailnjoy. Si pas de champ net (runs anciens),
+                # on dérive valid − supprimés ; sinon net = valid (pas de cleanup loggé).
+                if ep.get("net") is not None:
+                    net = ep.get("net")
+                elif cleanup and cleanup.get("removed") is not None:
+                    net = max(0, (valid or 0) - int(cleanup.get("removed") or 0))
                 scope    = ep.get("scope") or scope
                 run_message = ep.get("message")
                 # Statut métier précis (région finie, bloquée Serper…) plutôt que done/failed.
@@ -5975,7 +6035,11 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 "scraped":       scraped,
                 "valid":         valid,
                 "rejected":      rejected,
+                "duplicates":    duplicates,
+                "skipped_seen":  skipped_seen,
                 "errors":        errors,
+                "net":           net,
+                "cleanup":       cleanup,
                 "credits_used":  int(credits_used or 0),
                 "progress_pct":  progress_pct,
             })
