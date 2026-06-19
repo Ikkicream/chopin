@@ -3636,12 +3636,19 @@ def get_serper_usage():
         if live is not None:
             out["available"] = live
             out["balance_live"] = live
+            # plan_total = plafond du forfait. Serper /account ne renvoie QUE le solde,
+            # pas la taille du forfait => on prend le max(plafond connu, solde live) :
+            # une recharge (ex. +50000) relève donc automatiquement le plafond au lieu
+            # de rester collée à l'ancien forfait (bug "50 000 / 2500").
+            plan_total = max(int(plan_total or 0), live)
+            out["plan_total"] = plan_total
             try:
                 cfg_path.write_text(json.dumps({
-                    "plan_total": out.get("plan_total", plan_total),
+                    "plan_total": plan_total,
                     "balance": live,
                     "snapshot_at": now.isoformat(),
-                    "note": "Auto-rafraichi depuis le solde live serper.dev /account.",
+                    "note": "Auto-rafraichi depuis le solde live serper.dev /account. "
+                            "plan_total = max(plafond connu, solde live) -> suit les recharges.",
                 }, ensure_ascii=False, indent=2))
             except Exception:
                 pass

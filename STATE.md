@@ -4,7 +4,35 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-18 (Serper : diversification requêtes + burn placeId ; reporting doublons/net ; sidebar Basile+Emelia)
+2026-06-19 (Fix affichage crédits Serper + alertes crédits bannière + clé Basile régénérée)
+
+## 🔝 REPRISE 2026-06-19 — Crédits Serper (affichage+alertes) + clé Basile
+
+**Demande user :** (1) Serper affichait « 50 000 / 2500 » après recharge à 50 000, sans aucune alerte
+quand le solde était tombé à 0. (2) Clé Basile en 401.
+
+**FAIT :**
+- **Serper affichage (Fix A)** — `api.py:get_serper_usage` : le dénominateur `plan_total` venait d'un
+  snapshot figé (`memory/seo/serper-balance.json`, plan_total=2500 daté du 30/05) que la logique
+  réécrivait toujours à l'identique. **+ cause profonde** : le JSON était `root:root` 644 -> l'API
+  (sous `autoblog`) ne pouvait PAS le réécrire (`except: pass` avalait la PermissionError). Fixes :
+  `plan_total = max(plafond connu, solde live)` (une recharge relève le plafond) + `chown autoblog`
+  le JSON. Snapshot désormais auto-rafraîchi depuis le solde live `/account`. Vérifié 50000/50000.
+  ATTENTION : le solde Serper EST live via `god_mode_agents.serper_balance()` (`/account` existe) —
+  l'ancien commentaire « pas d'API de solde » est faux.
+- **Alertes crédits (Fix B)** — `connector-alerts.tsx` : avant, un solde bas ne faisait QUE colorer un
+  chiffre en rouge dans la sidebar (passif). Ajout de vraies bannières (rouge « épuisés » / orange
+  « bas ») pour Serper/Emelia/DeepSeek/Mailnjoy (solde) + Basile/Ahrefs (quota >=80%). Mêmes seuils que
+  le widget, refresh 60s, masquables. Build next + restart genesis-ui OK.
+- **Clé Basile régénérée** — l'ancienne (`sk_live_aae1966a...`, .env du 17/06) avait été supprimée côté
+  console -> 401. User a créé une nouvelle clé (`sk_live_7d99683...`, active). Remplacée dans `.env`,
+  testée live : count companies=28,6M / people=4,4M OK. Dashboard restart pour recharger la clé.
+- **Audit permissions `memory/` (suite du fix Serper)** — 13 entrées étaient `root:root` (créées par
+  d'anciennes sessions root) que l'app sous `autoblog` ne pouvait pas réécrire (échec SILENCIEUX).
+  Impact réel : `site-api-keys.json` (sauvegarde clés par site), dossier `seo/history/` (snapshots SEO
+  journaliers d'`ahrefs_daily.py`), `shared/agent-logs/sessions.jsonl`, `{lcr,mkd}/modules.json`,
+  `seo/{site}-competitor-analysis.json`. Fix : `chown -R autoblog:autoblog memory/`. Vérifié W_OK +
+  création fichier OK. Règle : `memory/` = données app, doit rester à `autoblog`.
 
 ## 🔝 REPRISE 2026-06-18 — Couverture Serper + reporting scrapper + sidebar
 
