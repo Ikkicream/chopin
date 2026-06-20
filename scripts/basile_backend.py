@@ -54,6 +54,31 @@ PAGE_SIZE = 100               # max /find par page
 # Flag de blocage live (même esprit que SERPER_BLOCKED_STATUS) : posé sur 402/429/403.
 BASILE_BLOCKED_STATUS: int | None = None
 
+# ── Mapping secteur Genesis → codes NAF (confirmés live 2026-06-17) ─────────────
+# Format NAF strict avec point+lettre ("56.10A"). Géo via headquarters_city (MAJUSCULES).
+SECTOR_NAF: dict[str, list[str]] = {
+    "restaurant":       ["56.10A", "56.10C", "56.30Z"],
+    "boulanger":        ["10.71C", "47.24Z"],
+    "coiffeur":         ["96.02A", "96.02B"],
+    "garagiste":        ["45.20A", "45.20B"],
+    "immobilier":       ["68.31Z"],
+    "artisan":          ["41.20A", "43.11Z", "43.12A", "43.13Z", "43.21A", "43.21B",
+                         "43.22A", "43.22B", "43.31Z", "43.32A", "43.32B", "43.32C",
+                         "43.33Z", "43.34Z", "43.39Z", "43.91A", "43.91B",
+                         "43.99A", "43.99B"],
+    "retail":           ["47.11A", "47.11B", "47.11C", "47.11D", "47.11E", "47.11F",
+                         "47.19A", "47.19B", "47.21Z", "47.22Z", "47.23Z", "47.29Z"],
+    "fleuriste":        ["47.76Z"],
+    "plombier":         ["43.22A", "43.22B"],
+    "electricien":      ["43.21A", "43.21B"],
+    "menuisier":        ["43.32A", "43.32B", "43.32C"],
+    "avocat":           ["69.10Z"],
+    "comptable":        ["69.20Z"],
+    "agence-marketing": ["73.11Z"],
+    "agence-web":       ["62.01Z", "73.11Z"],
+    "consultant":       ["70.22Z"],
+}
+
 
 def _ssl_context():
     try:
@@ -526,6 +551,66 @@ def run_dirigeant_segment(site: str, companies_filter: dict, *, sector: str | No
             progress_cb({"valid": out["valid"], "emelia_calls": out["emelia_calls"]})
     out["status"] = "done"
     return out
+
+
+# ── Intégration autoscrape (Serper + Basile en parallèle de sources) ────────────
+def _city_to_basile_city(city_name: str) -> str:
+    """Normalise un nom de ville (workflow_geo) → majuscules Basile.
+    Arrondissements (Paris 1er, Lyon 2e, Marseille 16e) → ville parente."""
+    base = city_name.split()[0].upper()
+    if base in ("PARIS", "LYON", "MARSEILLE"):
+        return base
+    return city_name.upper()
+
+
+def run_sector_for_city(site: str, sector: str, city_name: str,
+                        dept_code: str | None = None, region_code: str | None = None,
+                        target: int = 50, delay: float = DEFAULT_DELAY,
+                        dry_run: bool = False) -> dict:
+    """Collecte Basile pour un secteur × une ville. Complète Serper sans remplacer.
+
+    Utilise SECTOR_NAF pour mapper le code secteur → codes NAF. Si pas de mapping,
+    retourne status='no_naf'. Filtre géo = headquarters_city (MAJUSCULES Basile).
+    Les résultats sont insérés dans le même pool que Serper (dédup par email).
+
+    Retourne {"valid", "rejected", "duplicates", "errors", "status", ...}
+    """
+    global BASILE_BLOCKED_STATUS
+    nafs = SECTOR_NAF.get(sector)
+    if not nafs:
+        return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 0, "status": "no_naf",
+                "sector": sector, "city": city_name}
+
+    if not BASILE_KEY:
+        return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 0,
+                "status": "no_key", "sector": sector, "city": city_name}
+
+    basile_city = _city_to_basile_city(city_name)
+    filters = {
+        "naf_code":        {"include": nafs},
+        "company_ceased":  False,
+        "headquarters_city": basile_city,
+    }
+
+    try:
+        BASILE_BLOCKED_STATUS = None  # reset avant l'appel
+        res = run_segment(
+            site, "companies", filters,
+            sector=sector, dept_code=dept_code, region_code=region_code,
+            max_contacts=target, delay=delay, dry_run=dry_run,
+        )
+        res["city"] = city_name
+        return res
+    except RuntimeError as e:
+        msg = str(e)
+        if "BASILE_BLOCKED" in msg:
+            return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 1,
+                    "status": "blocked", "city": city_name, "error": msg}
+        return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 1,
+                "status": "error", "city": city_name, "error": msg}
+    except Exception as e:  # noqa: BLE001
+        return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 1,
+                "status": "error", "city": city_name, "error": str(e)}
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────────

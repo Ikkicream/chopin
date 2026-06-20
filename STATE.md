@@ -4,7 +4,24 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-19 (Fix affichage crédits Serper + alertes crédits bannière + clé Basile régénérée)
+2026-06-20 (Intégration Serper + Basile en double source — target 100 contacts)
+
+## 🔝 REPRISE 2026-06-20 — Scrapper Serper + Basile (double source, cible 100 contacts)
+
+**Demande user :** Basile = 2e source parallèle à Serper (pas juste un connecteur séparé). Quand on lance un scrape secteur × région, les deux sources tournent pour chaque ville jusqu'à atteindre 100 contacts (configurable). Si Serper se bloque, Basile continue seul (exports illimités).
+
+**FAIT :**
+- **`scripts/basile_backend.py`** : ajout `SECTOR_NAF` (mapping 16 secteurs Genesis → codes NAF confirmés) + `run_sector_for_city(site, sector, city, ...)` — interroge Basile `companies/find` par NAF + `headquarters_city` (MAJUSCULES), insère dans le même pool que Serper. Gère arrondissements Paris/Lyon/Marseille (PARIS, LYON, MARSEILLE).
+- **`scripts/autoscrape_backend.py`** : `run_autoscrape()` intègre Basile en séquence après Serper pour chaque ville. Nouveau `target_contacts=100` — stop dès que `valid_serper + valid_basile >= target`. Si Serper bloqué ET Basile disponible → Basile continue seul. Compteurs séparés `valid_serper` / `valid_basile` dans l'état. Arg CLI `--target-contacts`.
+- **`scripts/api.py`** : `/autoscrape/start` accepte `target_contacts` (body JSON, défaut 100, max 10000), le transmet en arg CLI.
+- **`genesis-ui/src/app/site/[code]/scrapper/page.tsx`** : titre "Scrapper — Serper + Basile", badge, champ "Cible contacts", compteur Basile (∞), barre de progression vers la cible, stats Serper X + Basile Y dans le panel statut, description mise à jour.
+- **Build Next.js OK**, genesis-ui redémarré.
+
+**RESTE Scrapper Serper+Basile :**
+1. **Test live un segment** : lancer un vrai run (ex. restaurant × Île-de-France, cible 20) pour confirmer que les 2 sources s'enchaînent et qu'on atteint la cible → valider les logs.
+2. **Secteurs sans NAF** (`autre`) → pas de Basile pour ce secteur (ok, fallback Serper seul).
+3. **Routing Emelia** : une fois le pool rempli (100 contacts), la vue Campaigns / Cold Email route vers Emelia — à vérifier que le flow campaign_create → add_contacts fonctionne bien avec les contacts du pool.
+4. **Optionnel** : cron segment 1 secteur × 1 dept/jour (au lieu de relancer manuellement).
 
 ## 🔝 REPRISE 2026-06-19 — Crédits Serper (affichage+alertes) + clé Basile
 

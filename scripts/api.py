@@ -5049,6 +5049,9 @@ async def api_autoscrape_start(site: str, request: Request):
     sectors = [s.strip() for s in sectors if s and s.strip()]
     region = (body.get("region") or "").strip()
     dept = (body.get("dept") or "").strip()
+    _tc = body.get("target_contacts")
+    target_contacts = int(_tc) if _tc is not None else 0   # 0 = illimité (scrape tout)
+    target_contacts = max(0, min(target_contacts, 100000))
     # Demande user 2026-06-16 : on choisit juste secteur(s) + RÉGION, et ça scrape en
     # continu tous les départements. `dept` reste accepté en legacy (mode mono-dept).
     if not sectors or not (region or dept):
@@ -5074,7 +5077,8 @@ async def api_autoscrape_start(site: str, request: Request):
         "scope": f"Région {region_name}" if region else f"Dept {dept}",
         "depts_total": 0, "depts_done": 0, "cities_total": 0, "cities_done": 0, "current_city": None,
         "examined": 0, "valid": 0, "rejected": 0, "errors": 0, "kept_total": 0,
-        "serper_available": None, "blocked": False, "stopped": False,
+        "valid_serper": 0, "valid_basile": 0, "target_contacts": target_contacts,
+        "serper_available": None, "basile_active": True, "blocked": False, "stopped": False,
         "started_at": _tm.time(), "message": None,
     })
     try:
@@ -5083,7 +5087,8 @@ async def api_autoscrape_start(site: str, request: Request):
     except Exception:
         pass
 
-    cmd = ["python3", "scripts/autoscrape_backend.py", "--site", site, "--sectors", ",".join(sectors)]
+    cmd = ["python3", "scripts/autoscrape_backend.py", "--site", site,
+           "--sectors", ",".join(sectors), "--target-contacts", str(target_contacts)]
     if region:
         cmd += ["--region", region]
     elif dept:
@@ -5095,7 +5100,8 @@ async def api_autoscrape_start(site: str, request: Request):
     finally:
         log_f.close()
     return {"ok": True, "started": True, "site": site, "region": region or None,
-            "region_name": region_name or None, "dept": dept or None, "sectors": sectors}
+            "region_name": region_name or None, "dept": dept or None, "sectors": sectors,
+            "target_contacts": target_contacts}
 
 
 @app.get("/api/sites/{site}/autoscrape/status")

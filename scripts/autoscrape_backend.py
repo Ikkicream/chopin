@@ -79,12 +79,13 @@ def read_status(site: str) -> dict:
     return {"status": "idle"}
 
 # Réglages internes (volontairement non exposés à l'utilisateur)
-PER_CITY = 15          # objectif de contacts gardés par ville
+PER_CITY = 15          # objectif de contacts gardés par ville (Serper)
 MAX_PAGES = 4          # pagination Serper max par requête
 # NB : plus de "credit floor" préemptif ni de "volume cible". Demande user (2026-06-16) :
 # on scrape EN CONTINU tant que Serper ne nous stoppe pas réellement (HTTP 429/402/403).
 # Le seul vrai signal d'arrêt = SERPER_BLOCKED_STATUS levé par god_mode_agents.serper_places.
 MAX_RUN_SECONDS = 6 * 3600  # garde-temps DUR (6 h) — anti-thread-zombie, pas une limite métier
+TARGET_CONTACTS = 0    # 0 = illimité (scrape tout) ; N > 0 = stop quand valid >= N
 
 # Grandes villes = 1 seule commune INSEE dans la donnée géo → on les éclate en
 # arrondissements pour scraper réellement toute la ville (Serper localise bien par arr.).
@@ -167,22 +168,31 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
                    region_name: str | None = None, depts_done: list | None = None,
                    per_city: int = PER_CITY, max_pages: int = MAX_PAGES,
                    max_seconds: int = MAX_RUN_SECONDS,
+                   target_contacts: int = TARGET_CONTACTS,
                    progress_cb=None, should_stop=None) -> dict:
-    """Scrape EN CONTINU un périmètre, secteur(s) × villes (pop≥10k), jusqu'à ce que
-    Serper nous stoppe réellement (HTTP 429/402/403), un stop manuel, ou l'épuisement.
+    """Scrape EN CONTINU (Serper + Basile) un périmètre, secteur(s) × villes (pop≥10k).
+
+    Sources : Serper (Google Places, créditisé) ET Basile (registre B2B, illimité) tournent
+    en séquence pour chaque ville. La cible `target_contacts` (défaut 100) est partagée entre
+    les deux sources : dès que `valid_serper + valid_basile >= target`, on s'arrête.
+
+    Si Serper est bloqué, Basile continue seul jusqu'à la cible. Seul un stop manuel ou
+    l'épuisement géo met fin au run quand Basile est actif.
 
     - region : on enchaîne TOUS ses départements dans l'ordre du code, toutes les villes.
       À l'épuisement → statut 'done' message "Région <nom> finie."
     - dept (si pas de region) : mode mono-département (legacy).
-    Plus de volume cible ni de credit-floor préemptif : seul un vrai refus Serper arrête.
     `depts_done` (reprise) : départements déjà finis à sauter (retry quotidien)."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from workflow_geo import metropole_cities as list_cities
     import god_mode_agents as agents
     import god_mode_backend as gm
+    import basile_backend as bb
 
-    # Repart d'un état Serper "non bloqué" pour ce process.
+    # Repart d'un état "non bloqué" pour les deux sources.
     agents.SERPER_BLOCKED_STATUS = None
+    bb.BASILE_BLOCKED_STATUS = None
+    basile_available = bool(bb.BASILE_KEY)
 
     if isinstance(sectors, str):
         sectors = [sectors]
@@ -214,7 +224,11 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
         "cities_total": cities_total, "cities_done": 0, "current_city": None,
         "examined": 0, "valid": 0, "rejected": 0, "duplicates": 0, "errors": 0, "kept_total": 0,
         "skipped_seen": 0,
+        # Compteurs par source (Serper + Basile)
+        "valid_serper": 0, "valid_basile": 0,
+        "target_contacts": target_contacts,
         "serper_available": serper_available(),
+        "basile_active": basile_available,
         "status": "running", "blocked": False, "stopped": False,
         "started_at": time.time(), "message": None,
     }
@@ -255,11 +269,17 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     def serper_blocked() -> int | None:
         return getattr(agents, "SERPER_BLOCKED_STATUS", None)
 
+    def target_reached() -> bool:
+        return target_contacts > 0 and cum["valid"] >= target_contacts
+
     # ── Boucle DÉPARTEMENT → VILLE → SECTEUR ───────────────────────────────────
     for d in todo_depts:
         if should_stop and should_stop():
             cum["stopped"] = True; cum["status"] = "stopped"; break
-        if serper_blocked():
+        # Si Serper ET Basile sont tous les deux bloqués/indisponibles → arrêt
+        if serper_blocked() and not basile_available:
+            break
+        if target_reached():
             break
         dcode = d["code"]
         cum["current_dept"] = f"{dcode} {d.get('name', '')}".strip()
@@ -268,7 +288,10 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
         for city in dept_cities[dcode]:
             if should_stop and should_stop():
                 cum["stopped"] = True; cum["status"] = "stopped"; break
-            if serper_blocked():
+            # Ne stoppe sur Serper seul que si Basile aussi indisponible
+            if serper_blocked() and not basile_available:
+                break
+            if target_reached():
                 break
             if time.time() - cum["started_at"] >= max_seconds:
                 cum["status"] = "timeout"
@@ -278,40 +301,77 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
             cum["current_city"] = city
             emit()
             for sector in sectors:
-                if should_stop and should_stop() or serper_blocked():
+                if should_stop and should_stop() or target_reached():
                     break
-                _base_ex, _base_va = cum["examined"], cum["valid"]
-                def _hb(c, sec, ex, va):
-                    cum["current_city"] = c
-                    cum["current_detail"] = f"{sec} · {ex} examinés"
-                    cum["examined"] = _base_ex + ex
-                    cum["valid"] = _base_va + va
+                if serper_blocked() and not basile_available:
+                    break
+
+                # ── Source 1 : Serper ─────────────────────────────────────────
+                if not serper_blocked():
+                    _base_ex, _base_va = cum["examined"], cum["valid_serper"]
+                    def _hb(c, sec, ex, va):
+                        cum["current_city"] = c
+                        cum["current_detail"] = f"{sec} · Serper {ex} examinés"
+                        cum["examined"] = _base_ex + ex
+                        cum["valid_serper"] = _base_va + va
+                        cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
+                        cum["kept_total"] = cum["valid"]
+                        emit()
+                    try:
+                        r = agents.scrape_sector(site, sector, cities=[city],
+                                                 max_per_city=per_city, global_cap=per_city,
+                                                 max_pages=max_pages, username="autoscrape",
+                                                 heartbeat_cb=_hb)
+                    except Exception:
+                        cum["errors"] += 1
+                        r = {"scraped": 0, "valid": 0, "rejected": 0, "errors": 1}
+                    cum["examined"] = _base_ex + r.get("scraped", 0)
+                    cum["valid_serper"] = _base_va + r.get("valid", 0)
+                    cum["rejected"] += r.get("rejected", 0)
+                    cum["duplicates"] += r.get("duplicates", 0)
+                    cum["skipped_seen"] += r.get("skipped_seen", 0)
+                    cum["errors"] += r.get("errors", 0)
+                    cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
                     cum["kept_total"] = cum["valid"]
                     emit()
-                try:
-                    r = agents.scrape_sector(site, sector, cities=[city],
-                                             max_per_city=per_city, global_cap=per_city,
-                                             max_pages=max_pages, username="autoscrape",
-                                             heartbeat_cb=_hb)
-                except Exception:
-                    cum["errors"] += 1
-                    r = {"scraped": 0, "valid": 0, "rejected": 0, "errors": 1}
-                cum["examined"] = _base_ex + r.get("scraped", 0)
-                cum["valid"] = _base_va + r.get("valid", 0)
-                cum["rejected"] += r.get("rejected", 0)
-                cum["duplicates"] += r.get("duplicates", 0)
-                cum["skipped_seen"] += r.get("skipped_seen", 0)
-                cum["errors"] += r.get("errors", 0)
-                cum["kept_total"] = cum["valid"]
-                emit()
 
-            if not (serper_blocked() or (should_stop and should_stop())):
+                # ── Source 2 : Basile (illimité — continue si Serper bloqué) ─
+                if basile_available and not target_reached():
+                    cum["current_detail"] = f"{sector} · Basile {city}"
+                    emit()
+                    remaining = max(1, target_contacts - cum["valid"]) if target_contacts else per_city
+                    try:
+                        rb = bb.run_sector_for_city(
+                            site, sector, city,
+                            dept_code=dcode, region_code=region,
+                            target=min(remaining, per_city * 2),
+                            dry_run=False,
+                        )
+                        cum["valid_basile"] += rb.get("valid", 0)
+                        cum["rejected"] += rb.get("rejected", 0)
+                        cum["duplicates"] += rb.get("duplicates", 0)
+                        cum["errors"] += rb.get("errors", 0)
+                        cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
+                        cum["kept_total"] = cum["valid"]
+                        if rb.get("status") == "blocked":
+                            basile_available = False
+                    except Exception:
+                        cum["errors"] += 1
+                    emit()
+
+            if not (serper_blocked() and not basile_available) and not (should_stop and should_stop()) and not target_reached():
                 cum["cities_done"] += 1
+            elif not target_reached():
+                pass  # city partielle : ne pas incrémenter cities_done
+            else:
+                cum["cities_done"] += 1  # ville complète avant cible atteinte
             emit()
 
-        # Si on est sorti de la ville-loop sur blocage/stop/timeout, on ne marque pas
-        # ce département comme fini (il sera repris). Sinon il est complet.
-        if serper_blocked() or cum["stopped"] or cum["status"] == "timeout":
+        # Si on est sorti de la ville-loop sur blocage total ou cible atteinte ou stop,
+        # on ne marque pas ce département comme fini (sauf cible atteinte = run complet).
+        if (serper_blocked() and not basile_available) or cum["stopped"] or cum["status"] == "timeout":
+            break
+        if target_reached():
             break
         done_set.add(dcode)
         cum["depts_done"] = len(done_set)
@@ -320,15 +380,32 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
 
     # ── Verdict ────────────────────────────────────────────────────────────────
     blk = serper_blocked()
-    if blk:
+    if target_contacts > 0 and cum["valid"] >= target_contacts and cum["status"] == "running":
+        cum["status"] = "done"
+        cum["message"] = (f"Cible {target_contacts} contacts atteinte — {cum['valid']} gardés "
+                          f"(Serper {cum['valid_serper']} + Basile {cum['valid_basile']}).")
+        notify_telegram(
+            f"✅ *Autoscrape {site.upper()}* — Cible {target_contacts} atteinte · "
+            f"{cum['valid']} contacts · Serper {cum['valid_serper']} + Basile {cum['valid_basile']}."
+        )
+    elif blk and not basile_available:
         cum["blocked"] = True
         cum["status"] = "blocked_serper"
-        cum["message"] = (f"Serper nous a stoppés (HTTP {blk}). {cum['valid']} gardés. "
-                          f"Reprise automatique chaque jour jusqu'à passage.")
+        cum["message"] = (f"Serper stoppé (HTTP {blk}) et Basile indisponible. {cum['valid']} gardés. "
+                          f"Reprise automatique chaque jour jusqu'à passage Serper.")
         notify_telegram(
-            f"⛔ *Autoscrape {site.upper()}* stoppé par Serper (HTTP {blk}).\n"
+            f"⛔ *Autoscrape {site.upper()}* stoppé Serper+Basile (HTTP {blk}).\n"
             f"{scope_label} · {sector_label} · {cum['valid']} gardés · "
             f"{cum['depts_done']}/{cum['depts_total']} dépts finis. Retry quotidien actif."
+        )
+    elif blk and basile_available:
+        # Serper bloqué mais Basile a pu continuer jusqu'à épuisement géo
+        cum["status"] = "done"
+        cum["message"] = (f"Serper stoppé (HTTP {blk}) — Basile a complété. {cum['valid']} gardés "
+                          f"(Serper {cum['valid_serper']} + Basile {cum['valid_basile']}).")
+        notify_telegram(
+            f"✅ *Autoscrape {site.upper()}* — Serper bloqué, Basile relayé. "
+            f"{cum['valid']} contacts · {scope_label}."
         )
     elif cum["stopped"]:
         cum["message"] = f"Arrêt manuel — {cum['valid']} gardés."
@@ -337,7 +414,8 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     elif cum["status"] == "running":
         cum["status"] = "done"
         cum["message"] = (f"{scope_label} finie — {cum['valid']} contacts gardés "
-                          f"({cum['depts_done']}/{cum['depts_total']} dépts).")
+                          f"({cum['depts_done']}/{cum['depts_total']} dépts · "
+                          f"Serper {cum['valid_serper']} + Basile {cum['valid_basile']}).")
         notify_telegram(f"✅ *Autoscrape {site.upper()}* — {scope_label} finie · {cum['valid']} gardés.")
 
     cum["serper_available"] = serper_available()
@@ -442,6 +520,8 @@ def main() -> int:
     ap.add_argument("--region", default=None, help="code région INSEE — scrape tous ses dépts")
     ap.add_argument("--dept", default=None, help="mode mono-département (legacy)")
     ap.add_argument("--sectors", default="", help="secteurs séparés par des virgules")
+    ap.add_argument("--target-contacts", type=int, default=TARGET_CONTACTS,
+                    help="cible contacts valides (Serper + Basile) avant arrêt")
     ap.add_argument("--daily-retry", action="store_true",
                     help="reprend la région stoppée si Serper repasse (cron)")
     args = ap.parse_args()
@@ -474,6 +554,7 @@ def main() -> int:
 
     try:
         run_autoscrape(args.site, sectors, region=args.region, dept=args.dept,
+                       target_contacts=args.target_contacts,
                        progress_cb=progress_cb, should_stop=should_stop)
     except Exception as e:
         cur = read_status(args.site)
