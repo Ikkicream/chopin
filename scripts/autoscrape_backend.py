@@ -285,6 +285,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
         cum["current_dept"] = f"{dcode} {d.get('name', '')}".strip()
         emit()
 
+        seen_basile_cities: set[str] = set()  # évite d'appeler Basile N fois pour PARIS/LYON/MARSEILLE
         for city in dept_cities[dcode]:
             if should_stop and should_stop():
                 cum["stopped"] = True; cum["status"] = "stopped"; break
@@ -337,27 +338,34 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
 
                 # ── Source 2 : Basile (illimité — continue si Serper bloqué) ─
                 if basile_available and not target_reached():
-                    cum["current_detail"] = f"{sector} · Basile {city}"
-                    emit()
-                    remaining = max(1, target_contacts - cum["valid"]) if target_contacts else per_city
-                    try:
-                        rb = bb.run_sector_for_city(
-                            site, sector, city,
-                            dept_code=dcode, region_code=region,
-                            target=min(remaining, per_city * 2),
-                            dry_run=False,
-                        )
-                        cum["valid_basile"] += rb.get("valid", 0)
-                        cum["rejected"] += rb.get("rejected", 0)
-                        cum["duplicates"] += rb.get("duplicates", 0)
-                        cum["errors"] += rb.get("errors", 0)
-                        cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
-                        cum["kept_total"] = cum["valid"]
-                        if rb.get("status") == "blocked":
-                            basile_available = False
-                    except Exception:
-                        cum["errors"] += 1
-                    emit()
+                    # Basile normalise Paris 1er/2e/... → PARIS, idem Lyon/Marseille.
+                    # On n'appelle Basile qu'UNE FOIS par ville Basile réelle par dept.
+                    basile_city_key = f"{sector}:{bb._city_to_basile_city(city)}"
+                    if basile_city_key in seen_basile_cities:
+                        pass  # déjà fait pour cette ville Basile ce dept → skip
+                    else:
+                        seen_basile_cities.add(basile_city_key)
+                        cum["current_detail"] = f"{sector} · Basile {city}"
+                        emit()
+                        remaining = max(1, target_contacts - cum["valid"]) if target_contacts else per_city
+                        try:
+                            rb = bb.run_sector_for_city(
+                                site, sector, city,
+                                dept_code=dcode, region_code=region,
+                                target=min(remaining, per_city * 2),
+                                dry_run=False,
+                            )
+                            cum["valid_basile"] += rb.get("valid", 0)
+                            cum["rejected"] += rb.get("rejected", 0)
+                            cum["duplicates"] += rb.get("duplicates", 0)
+                            cum["errors"] += rb.get("errors", 0)
+                            cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
+                            cum["kept_total"] = cum["valid"]
+                            if rb.get("status") == "blocked":
+                                basile_available = False
+                        except Exception:
+                            cum["errors"] += 1
+                        emit()
 
             if not (serper_blocked() and not basile_available) and not (should_stop and should_stop()) and not target_reached():
                 cum["cities_done"] += 1

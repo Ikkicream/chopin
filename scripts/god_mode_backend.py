@@ -13,6 +13,8 @@ import uuid
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import time
+
 import duckdb
 
 BASE_DIR = Path(__file__).parent.parent
@@ -38,8 +40,16 @@ TOP_50_INSEE = [
 
 
 # ── Connexions ────────────────────────────────────────────────────────────────
-def _conn():
-    return duckdb.connect(str(GOD_DB))
+def _conn(retries: int = 8, delay: float = 0.4):
+    """Ouvre une connexion write en retrying sur lock conflict (API concurrente)."""
+    for attempt in range(retries):
+        try:
+            return duckdb.connect(str(GOD_DB))
+        except Exception as e:
+            if "Conflicting lock" in str(e) and attempt < retries - 1:
+                time.sleep(delay)
+                continue
+            raise
 
 
 def _auth():
@@ -396,12 +406,17 @@ def bump_pending_error(pending_id: str, err: str) -> None:
 
 
 
+def _conn_ro():
+    """Connexion lecture seule — ne prend pas le write-lock DuckDB."""
+    return duckdb.connect(str(GOD_DB), read_only=True)
+
+
 def email_recently_validated(email: str, days: int = 30) -> bool:
     """True si l'email a déjà été validé par Mailnjoy il y a moins de N jours.
     Empêche de re-checker un email récemment confirmé."""
     if not email:
         return False
-    c = _conn()
+    c = _conn_ro()
     try:
         from datetime import timedelta
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
@@ -420,7 +435,7 @@ def email_in_pending(email: str) -> bool:
     """True si l'email est déjà dans scrappe_pending (évite doublons de queue)."""
     if not email:
         return False
-    c = _conn()
+    c = _conn_ro()
     try:
         row = c.execute('SELECT 1 FROM scrappe_pending WHERE email = ? LIMIT 1', [email]).fetchone()
     finally:
