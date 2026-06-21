@@ -253,17 +253,22 @@ def run_segment(site: str, kind: str, filters: dict, *, sector: str | None = Non
     - COMPTE d'abord (gratuit). Refuse si > 20 000 (à segmenter en amont).
     - Pagine /find par pages de 100, throttle `delay`, jusqu'à `max_contacts`.
     - Pour chaque lead : normalise → valide l'email → double-écrit (scrappe_pending + pool).
+    - Fallback email : si Basile n'a pas d'email direct mais a un website (x_gmb), on scrape
+      la page contact du site exactement comme Serper fait — c'est ainsi qu'on trouve
+      agence.colombes@cabinetvincent.fr à partir de la fiche Basile de Cabinet Vincent.
     - dry_run=True : ne fait QUE compter + normaliser (aucune écriture DB) — sûr sans quota.
 
     Retourne un récap. Ne lève pas sur erreur lead (skip + compteur).
     """
     from email_validator import validate_and_score
+    from god_mode_agents import fetch_email_from_site
 
     total = count(kind, filters)
     rule = enforce_volume_rules(total)
     out = {"site": site, "kind": kind, "sector": sector, "dept_code": dept_code,
            "total": total, "rule": rule, "valid": 0, "rejected": 0,
-           "duplicates": 0, "errors": 0, "dry_run": dry_run, "collected": 0}
+           "duplicates": 0, "errors": 0, "dry_run": dry_run, "collected": 0,
+           "website_scraped": 0}
     if rule["action"] != "extract":
         out["status"] = rule["action"]      # skip | segment
         return out
@@ -291,8 +296,29 @@ def run_segment(site: str, kind: str, filters: dict, *, sector: str | None = Non
                     lead, sector=sector, dept_code=dept_code,
                     region_code=region_code, search_query=f"basile:{sector or kind}")
                 if not prospect:
-                    out["rejected"] += 1
-                    continue
+                    # Fallback : le lead n'a pas d'email direct chez Basile.
+                    # On essaie de scraper le site web de la fiche (x_gmb ou website) —
+                    # même technique que Serper pour trouver contact@, agence@, etc.
+                    d = lead.get("data") or {}
+                    xg = d.get("x_gmb") or {}
+                    website = (_first(d, "website", "domain")
+                               or _first(xg, "domain_principal_url", "domain_url",
+                                         "open_website", "website", "site", "url"))
+                    if website and not dry_run:
+                        scraped_email = fetch_email_from_site(website)
+                        if scraped_email:
+                            out["website_scraped"] += 1
+                            # On ré-injecte l'email dans le lead et on re-tente
+                            lead_patched = dict(lead)
+                            lead_patched["data"] = dict(d)
+                            lead_patched["data"]["email"] = scraped_email
+                            prospect = lead_to_prospect(
+                                lead_patched, sector=sector, dept_code=dept_code,
+                                region_code=region_code,
+                                search_query=f"basile-web:{sector or kind}")
+                    if not prospect:
+                        out["rejected"] += 1
+                        continue
                 vres = validate_and_score(prospect["email"], prospect)
                 if vres["decision"] == "drop":
                     out["rejected"] += 1
@@ -589,7 +615,7 @@ def run_sector_for_city(site: str, sector: str, city_name: str,
     filters = {
         "naf_code":        {"include": nafs},
         "company_ceased":  False,
-        "headquarters_city": basile_city,
+        "headquarters_city": {"include": [basile_city]},  # format obligatoire {include:[...]}
     }
 
     try:
