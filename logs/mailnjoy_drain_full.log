@@ -1,0 +1,7 @@
+batch 1: 200 traités | valid=63 risky=121 | CUMUL valid=63 total=200
+batch 2: 200 traités | valid=70 risky=100 | CUMUL valid=133 total=400
+batch 3: 200 traités | valid=69 risky=110 | CUMUL valid=202 total=600
+batch 4: 200 traités | valid=69 risky=106 | CUMUL valid=271 total=800
+batch 5: 200 traités | valid=70 risky=102 | CUMUL valid=341 total=1000
+batch 6: 200 traités | valid=69 risky=108 | CUMUL valid=410 total=1200
+batch 7: 200 traités | valid=88 risky=93 | CUMUL valid=498 total=1400

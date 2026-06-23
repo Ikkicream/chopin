@@ -5054,8 +5054,9 @@ async def api_autoscrape_start(site: str, request: Request):
     target_contacts = max(0, min(target_contacts, 100000))
     # Demande user 2026-06-16 : on choisit juste secteur(s) + RÉGION, et ça scrape en
     # continu tous les départements. `dept` reste accepté en legacy (mode mono-dept).
-    if not sectors or not (region or dept):
-        return {"ok": False, "error": "secteur(s) et région requis"}
+    all_regions = bool(body.get("all_regions"))
+    if not sectors or not (region or dept or all_regions):
+        return {"ok": False, "error": "secteur(s) et région (ou 'all_regions': true) requis"}
 
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import autoscrape_backend as asb
@@ -5065,16 +5066,18 @@ async def api_autoscrape_start(site: str, request: Request):
     if cur.get("status") in ("running", "starting", "stopping", "cleaning") and (_tm.time() - cur.get("updated_at", 0) < 300):
         return {"ok": False, "running": True, "error": "Un autoscrape est déjà en cours.", "active": cur}
 
-    region_name = ""
-    if region:
+    region_name = "Toutes les régions" if all_regions else ""
+    if region and not all_regions:
         try:
             region_name = asb._region_name(region)
         except Exception:
             region_name = region
+    scope = "Toutes les régions (France métropole)" if all_regions else (f"Région {region_name}" if region else f"Dept {dept}")
     asb.write_status(site, {
         "site": site, "region": region or None, "region_name": region_name or None,
+        "all_regions": all_regions,
         "dept": dept or None, "sectors": sectors, "status": "starting",
-        "scope": f"Région {region_name}" if region else f"Dept {dept}",
+        "scope": scope,
         "depts_total": 0, "depts_done": 0, "cities_total": 0, "cities_done": 0, "current_city": None,
         "examined": 0, "valid": 0, "rejected": 0, "errors": 0, "kept_total": 0,
         "valid_serper": 0, "valid_basile": 0, "target_contacts": target_contacts,
@@ -5089,7 +5092,9 @@ async def api_autoscrape_start(site: str, request: Request):
 
     cmd = ["python3", "scripts/autoscrape_backend.py", "--site", site,
            "--sectors", ",".join(sectors), "--target-contacts", str(target_contacts)]
-    if region:
+    if all_regions:
+        cmd += ["--all-regions"]
+    elif region:
         cmd += ["--region", region]
     elif dept:
         cmd += ["--dept", dept]
@@ -5099,9 +5104,9 @@ async def api_autoscrape_start(site: str, request: Request):
                          stdout=log_f, stderr=subprocess.STDOUT)
     finally:
         log_f.close()
-    return {"ok": True, "started": True, "site": site, "region": region or None,
-            "region_name": region_name or None, "dept": dept or None, "sectors": sectors,
-            "target_contacts": target_contacts}
+    return {"ok": True, "started": True, "site": site, "all_regions": all_regions,
+            "region": region or None, "region_name": region_name or None,
+            "dept": dept or None, "sectors": sectors, "target_contacts": target_contacts}
 
 
 @app.get("/api/sites/{site}/autoscrape/status")

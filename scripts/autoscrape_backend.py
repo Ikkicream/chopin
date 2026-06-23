@@ -431,8 +431,11 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     persist_progress()
     emit()
 
-    # ── Nettoyage Mailnjoy automatique en fin de scrape (inchangé). ─────────────
-    if cum.get("valid", 0) > 0 and not (should_stop and should_stop()):
+    # ── Nettoyage Mailnjoy automatique en fin de scrape ─────────────────────────
+    # Draine scrappe_pending (god_mode.duckdb) via mailnjoy_check — c'est là que
+    # scrape_sector écrit les nouveaux contacts. cleanup_backend opère sur contacts.duckdb
+    # (pool) et n'a rien à voir avec les contacts fraîchement scrappés.
+    if not (should_stop and should_stop()):
         prev_status = cum["status"]
         cum["status"] = "cleaning"
         cum["cleanup"] = {"status": "running", "valid": 0, "removed": 0, "total": 0}
@@ -440,20 +443,26 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
         emit()
         try:
             sys.path.insert(0, str(BASE_DIR / "scripts"))
-            import cleanup_backend as cb
+            import mailnjoy_check as mj
 
-            def _clean_progress(cumc, chunk_stats, processed, email):
-                cum["cleanup"] = {"status": "running", "valid": cumc.get("valid", 0),
-                                  "removed": cumc.get("removed", 0), "total": cumc.get("total", 0)}
+            total_valid = total_removed = total_processed = 0
+            while True:
+                if should_stop and should_stop():
+                    break
+                r = mj.check_pending_queue(site_code=site, delay_ms=100, max_rows=100)
+                total_valid += r.get("valid", 0)
+                total_removed += r.get("risky", 0) + r.get("invalid", 0)
+                total_processed += r.get("total", 0)
+                cum["cleanup"] = {"status": "running", "valid": total_valid,
+                                  "removed": total_removed, "total": total_processed}
                 emit()
+                if r.get("error") or r.get("total", 0) == 0:
+                    break
 
-            cres = cb.run_cleanup_drain(mode="unverified", site=site, chunk_size=100,
-                                        source="auto-scrape", progress_cb=_clean_progress,
-                                        should_stop=should_stop)
-            cum["cleanup"] = {"status": "done", "valid": cres.get("valid", 0),
-                              "removed": cres.get("removed", 0), "total": cres.get("total", 0)}
-            cum["message"] = (f"{scope_label} : {cum['valid']} contacts · nettoyage Mailnjoy "
-                              f"{cres.get('valid', 0)} validés / {cres.get('removed', 0)} supprimés.")
+            cum["cleanup"] = {"status": "done", "valid": total_valid,
+                              "removed": total_removed, "total": total_processed}
+            cum["message"] = (f"{scope_label} : {cum['valid']} scrappés · Mailnjoy "
+                              f"{total_valid} valides / {total_removed} supprimés.")
         except Exception as e:
             cum["cleanup"] = {"status": "error", "error": str(e)}
             cum["message"] = f"Scrape OK ({cum['valid']}) mais nettoyage en erreur : {e}"
@@ -482,6 +491,52 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     persist_progress()
     emit()
     return cum
+
+
+def run_all_regions(site: str, sectors, target_contacts: int = TARGET_CONTACTS,
+                    progress_cb=None, should_stop=None) -> dict:
+    """Scrape TOUTES les régions métropole en séquence (75→84→27→…).
+    Pour chaque région : tous les départements, toutes les villes ≥10k hab.
+    S'arrête uniquement sur stop manuel ou blocage Serper + Basile simultané."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from workflow_geo import metropole_regions
+
+    regions = sorted(metropole_regions(), key=lambda r: str(r.get("code")))
+    total = {"regions_total": len(regions), "regions_done": 0, "valid": 0,
+             "status": "running", "current_region": None}
+
+    def emit(state=None):
+        if progress_cb:
+            try:
+                progress_cb(state or total)
+            except Exception:
+                pass
+
+    for r in regions:
+        if should_stop and should_stop():
+            total["status"] = "stopped"
+            break
+        code = r.get("code")
+        name = r.get("name") or code
+        total["current_region"] = f"{name} ({code})"
+        emit()
+        res = run_autoscrape(site, sectors, region=code, region_name=name,
+                             target_contacts=target_contacts,
+                             progress_cb=lambda s: (total.update({"valid": total["valid"] + s.get("valid", 0)}) or emit(s)),
+                             should_stop=should_stop)
+        total["regions_done"] += 1
+        # Blocage Serper + pas de Basile = inutile de continuer les régions suivantes
+        if res.get("status") == "blocked_serper":
+            total["status"] = "blocked_serper"
+            total["message"] = f"Serper bloqué après {name} — retry quotidien actif."
+            break
+    else:
+        total["status"] = "done"
+        total["message"] = f"Toutes les régions scrappées — {total['valid']} contacts."
+        notify_telegram(f"✅ *Autoscrape {site.upper()} ALL REGIONS* — {total['valid']} contacts · {total['regions_done']} régions.")
+
+    emit()
+    return total
 
 
 def daily_retry(site: str) -> dict:
@@ -530,6 +585,8 @@ def main() -> int:
     ap.add_argument("--sectors", default="", help="secteurs séparés par des virgules")
     ap.add_argument("--target-contacts", type=int, default=TARGET_CONTACTS,
                     help="cible contacts valides (Serper + Basile) avant arrêt")
+    ap.add_argument("--all-regions", action="store_true",
+                    help="scrape toutes les régions métropole en séquence")
     ap.add_argument("--daily-retry", action="store_true",
                     help="reprend la région stoppée si Serper repasse (cron)")
     args = ap.parse_args()
@@ -544,8 +601,8 @@ def main() -> int:
             return 1
 
     sectors = [s.strip() for s in args.sectors.split(",") if s.strip()]
-    if not args.region and not args.dept:
-        print("--region ou --dept requis"); return 2
+    if not args.all_regions and not args.region and not args.dept:
+        print("--region, --dept ou --all-regions requis"); return 2
 
     sp = stop_path(args.site)
     try:
@@ -561,9 +618,13 @@ def main() -> int:
         return sp.exists()
 
     try:
-        run_autoscrape(args.site, sectors, region=args.region, dept=args.dept,
-                       target_contacts=args.target_contacts,
-                       progress_cb=progress_cb, should_stop=should_stop)
+        if args.all_regions:
+            run_all_regions(args.site, sectors, target_contacts=args.target_contacts,
+                            progress_cb=progress_cb, should_stop=should_stop)
+        else:
+            run_autoscrape(args.site, sectors, region=args.region, dept=args.dept,
+                           target_contacts=args.target_contacts,
+                           progress_cb=progress_cb, should_stop=should_stop)
     except Exception as e:
         cur = read_status(args.site)
         cur.update({"status": "error", "message": str(e), "finished_at": time.time()})

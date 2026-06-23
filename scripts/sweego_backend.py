@@ -2,12 +2,12 @@
 Mass campaigns via Sweego (https://api.sweego.io) — canal séparé d'Emelia (cold email).
 
 - Auth : header `Api-Key` (clé dans .env : SWEEGO_API_KEY, domaine SWEEGO_DOMAIN).
-- Envoi : POST /send, inline `message-html` + `message-txt` (newsletters génériques, PAS de perso
-  par destinataire — confirmé : Sweego ne substitue pas les variables inline). campaign-type=newsletter.
-- Désinscription : gérée nativement par Sweego (header List-Unsubscribe 1-clic). On RETIRE donc les
-  tokens {{...}} du corps (sinon ils s'afficheraient littéralement).
-- Stats : POST /stats {channel:"email"} -> ouvertures/clics (nb_openers, nb_clicks…) ; POST /stats/msp
-  -> délivrabilité par MSP (gmail/microsoft/yahoo_eu…).
+- Envoi : POST /send, provider="email", campaign-type="market"|"transac".
+  Pour une newsletter sans perso on retire les {{tokens}} (clean_html_for_sweego).
+  Pour un envoi personnalisé, passer les champs extra dans chaque recipient object.
+- Domaines autorisés (vérifiés) : leclientroi.com, news.leclientroi.email.
+- Désinscription : gérée nativement par Sweego (header List-Unsubscribe 1-clic).
+- Stats : POST /stats/msp {channel:"email"} → délivrabilité par MSP (gmail/microsoft/yahoo_eu…).
 """
 from __future__ import annotations
 
@@ -78,13 +78,12 @@ def send_campaign(campaign_id: str, subject: str, html_str: str,
         return {"ok": False, "error": "sujet requis"}
     try:
         from utm_tagging import tag_links
-        html_str = tag_links(html_str, "newsletter", "email", campaign_id or "newsletter")
+        html_str = tag_links(html_str, "sweego", "email", campaign_id or "lcr-mass")
     except Exception:
         pass
     body = {
-        "channel": "email",
-        "provider": "sweego",
-        "campaign-type": "newsletter",
+        "provider": "email",
+        "campaign-type": "market",
         "campaign-id": campaign_id or "lcr-mass",
         "subject": subject,
         "from": _from(),

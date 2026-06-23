@@ -405,12 +405,9 @@ def validate_and_score(email_raw: str, prospect: dict) -> dict:
     score, score_reasons = score_email(email, prospect)
     reasons.extend(score_reasons)
 
-    if score < 40:
-        decision = "drop"
-    elif score < 60:
-        decision = "queue"
-    else:
-        decision = "push"
+    # Tout ce qui passe les hard rejects va à Mailnjoy — y compris contact@ sur domaine B2B.
+    # Mailnjoy est la vraie barrière qualité. On ne droppe plus par score soft.
+    decision = "push"
 
     return {"email": email, "valid": True, "score": score,
             "decision": decision, "reasons": reasons}

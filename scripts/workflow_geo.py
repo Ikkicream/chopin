@@ -55,7 +55,7 @@ def list_cities(dept_code: str | None = None, region_code: str | None = None,
         cities = [c for c in cities if c["region"] == region_code]
     if min_pop:
         cities = [c for c in cities if (c.get("pop") or 0) >= min_pop]
-    return sorted(cities, key=lambda c: -(c.get("pop") or 0))
+    return sorted(cities, key=lambda c: (c.get("cp") or ["99999"])[0])
 
 
 # Périmètre de scraping = France métropolitaine UNIQUEMENT. On exclut la Corse et les

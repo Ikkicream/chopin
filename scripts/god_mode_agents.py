@@ -406,7 +406,7 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                         if vres["decision"] == "drop":
                             rejected += 1
                             continue
-                        email_status = "manual_review" if vres["decision"] == "queue" else "mailnjoy_pending"
+                        email_status = "mailnjoy_pending"
 
                         prospect = {
                             "company_name":              title,
