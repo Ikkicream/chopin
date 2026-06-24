@@ -173,15 +173,39 @@ préalable, simulation (dry-run) et envoi réel. Historique des campagnes Sweego
 
 ---
 
-### `/site/[code]/campaigns` — Campagnes Emelia automatiques
-**Rôle :** CRUD des campagnes cold email automatiques (secteur × département × quota quotidien).
-Chaque campagne a un état (active/paused/stopped), un historique de runs, une liaison Emelia.
+### `/site/[code]/campaigns` — Hub de campagnes multi-canal
+**Rôle :** hub unifié pour créer et piloter des campagnes sur n'importe quel canal (Sweego, Emelia,
+Maildoso). Structure de la page :
+1. **Wizard « Nouvelle campagne »** (5 étapes, voir ci-dessous).
+2. **Table des campagnes unifiées** — tous canaux, progression (envoyés/cible), planning, statut,
+   actions (envoyer le lot du jour / pause / reprendre / annuler).
+3. **Performance par canal** — `<ChannelPerfCard>` (Emelia vs Sweego).
+4. **Campagnes auto Emelia** — section repliable conservant les campagnes récurrentes existantes.
+
+**Wizard (composant `campaign-wizard.tsx`) :**
+1. **Canal** — 3 cartes (Emelia / Sweego / Maildoso désactivé « dispo ~07/07 ») + cap/jour live.
+2. **Message** — liste des messages (`/html/templates`) ou import HTML.
+3. **Cible** — secteurs (MultiSelect) + compteur live des contacts éligibles (Mailnjoy valid **< 6
+   mois**, non blacklistés, hors cooldown) + volume plafonné.
+4. **Aperçu** — iframe desktop/laptop/mobile + « Vérifier liens & rendu » (lint).
+5. **Récap & planning** — date de lancement + **agent délivrabilité** (cadence jour/jour, faisabilité,
+   explication IA) + BAT. Bouton « Programmer » bloqué si cadence infaisable.
+
+**Backend :** `campaign_engine.py` (modèle + scheduler `dispatch_due`, cron quotidien 8h30) +
+`deliverability_agent.py` (règles dures par canal + explication DeepSeek).
 
 **APIs :**
-- GET/POST/DELETE `/api/sites/{site}/god-mode/campaigns`
-- POST `/api/sites/{site}/god-mode/campaigns/{id}/start` / `pause` / `stop`
+- GET `/api/sites/{site}/channels` — canaux + caps
+- POST `/api/sites/{site}/campaigns/target-count` — cible éligible (Mailnjoy < 6 mois)
+- POST `/api/sites/{site}/campaigns/plan` — cadence + faisabilité + explication
+- POST `/api/sites/{site}/campaigns/preview-lint` — lint liens/rendu
+- POST `/api/sites/{site}/campaigns` — créer + planifier (refuse si infaisable)
+- GET `/api/sites/{site}/campaigns` — liste unifiée
+- POST `/api/sites/{site}/campaigns/{id}/{pause|resume|cancel|send-now|bat}`
+- Auto Emelia (conservé) : `/api/sites/{site}/auto-campaigns/*`
 
-**Connexions :** → Cold-email (templates), → Acquisition (contacts pushés)
+**Connexions :** → Acquisition (cible + contacts pushés), → Newsletters (messages), → Cleanup
+(fraîcheur Mailnjoy), → Cold-email (templates pour l'auto Emelia)
 
 ---
 

@@ -223,9 +223,13 @@ def _validate_address(email: str) -> dict:
     return {"ok": True, "mailnjoy_check": mn_check}
 
 
-def create(site: str, data: dict, by: str = "manual") -> dict:
+def create(site: str, data: dict, by: str = "manual", skip_validation: bool = False) -> dict:
     """Crée un contact. Si email existe déjà : retourne l'existant sans erreur.
-    Promu seulement si le nouveau state est supérieur (et pas blacklisted)."""
+    Promu seulement si le nouveau state est supérieur (et pas blacklisted).
+
+    skip_validation=True : saute la vérif Mailnjoy. À utiliser pour les signaux
+    d'engagement (clic/réponse) — un contact qui a interagi est par définition réel,
+    et la vérif synchrone (lente) bloquerait le webhook/redirect de tracking."""
     email = (data.get("email") or "").strip().lower()
     if not email or "@" not in email:
         return {"error": "email_required"}
@@ -237,22 +241,25 @@ def create(site: str, data: dict, by: str = "manual") -> dict:
             return change_state(site, existing["id"], new_state, by=by, note=data.get("notes", ""))
         return {"existing": True, **existing}
 
-    # Pré-import : validator local + Mailnjoy
-    vcheck = _validate_address(email)
-    # Log dans god_mode_logs (visible dans /admin/logs)
-    try:
-        import god_mode_backend as _gm
-        _gm.log_action(site, by, "system", "mailnjoy_check", resource="email", resource_id=email,
-                       payload={"decision": vcheck.get("decision") or "valid",
-                                "result": (vcheck.get("mailnjoy_check") or {}).get("result") if vcheck.get("ok") else None,
-                                "reason": vcheck.get("reason")},
-                       success=bool(vcheck.get("ok")),
-                       error=vcheck.get("reason") if not vcheck.get("ok") else None)
-    except Exception:
-        pass
-    if not vcheck.get("ok"):
-        return {"rejected": True, "email": email, "decision": vcheck.get("decision"), "reason": vcheck.get("reason")}
-    mn_check_json = json.dumps(vcheck.get("mailnjoy_check")) if vcheck.get("mailnjoy_check") else None
+    if skip_validation:
+        mn_check_json = None
+    else:
+        # Pré-import : validator local + Mailnjoy
+        vcheck = _validate_address(email)
+        # Log dans god_mode_logs (visible dans /admin/logs)
+        try:
+            import god_mode_backend as _gm
+            _gm.log_action(site, by, "system", "mailnjoy_check", resource="email", resource_id=email,
+                           payload={"decision": vcheck.get("decision") or "valid",
+                                    "result": (vcheck.get("mailnjoy_check") or {}).get("result") if vcheck.get("ok") else None,
+                                    "reason": vcheck.get("reason")},
+                           success=bool(vcheck.get("ok")),
+                           error=vcheck.get("reason") if not vcheck.get("ok") else None)
+        except Exception:
+            pass
+        if not vcheck.get("ok"):
+            return {"rejected": True, "email": email, "decision": vcheck.get("decision"), "reason": vcheck.get("reason")}
+        mn_check_json = json.dumps(vcheck.get("mailnjoy_check")) if vcheck.get("mailnjoy_check") else None
 
     new_id = _new_id()
     state = data.get("state", "cold_email")

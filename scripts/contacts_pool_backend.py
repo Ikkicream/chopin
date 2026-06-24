@@ -602,18 +602,21 @@ SOURCE_RANK_SQL = """
 
 def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
                       cooldown_global_days: int = COOLDOWN_GLOBAL_DAYS,
-                      cooldown_same_site_days: int = COOLDOWN_SAME_SITE_DAYS) -> list[dict]:
+                      cooldown_same_site_days: int = COOLDOWN_SAME_SITE_DAYS,
+                      cleaned_within_days: int = 180) -> list[dict]:
     """Algorithme de pioche : retourne les N meilleurs contacts pour une campagne.
 
     Filtres :
       - sector dans contacts.sectors
       - NOT global_blacklisted
+      - Mailnjoy décision 'valid' ET vérifié il y a < cleaned_within_days (récence, défaut 6 mois)
       - state IS NULL (jamais utilisé par ce site) OR state = 'cold_email'
       - last_contacted_by_site_at IS NULL OR > NOW - cooldown_same_site_days
       - aucun autre site ne l'a contacté dans les cooldown_global_days
 
     Tri : source (tally>serper>csv>manual), email_score desc, updated_at desc
     """
+    cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
     q = f"""
         SELECT c.id, c.email, c.prenom, c.nom, c.societe, c.tel, c.website,
                c.city, c.dept_code, c.region_code, c.sectors,
@@ -634,6 +637,8 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
             -- N'ENVOYER QU'AUX EMAILS NETTOYÉS : Mailnjoy décision 'valid' uniquement
             -- (exclut error/risky/pending et les jamais-vérifiés NULL).
             AND json_extract_string(c.mailnjoy_check, '$.decision') = 'valid'
+            -- RÉCENCE : vérification Mailnjoy < cleaned_within_days (défaut 6 mois)
+            AND json_extract_string(c.mailnjoy_check, '$.checked_at') >= ?
             AND (csh.state IS NULL OR csh.state = 'cold_email')
             AND (
                 csh.last_contacted_by_site_at IS NULL
@@ -653,7 +658,7 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
     """
     c = _conn(read_only=True)
     try:
-        rows = c.execute(q, [site_code, f"%{sector}%", site_code, limit]).fetchall()
+        rows = c.execute(q, [site_code, f"%{sector}%", cutoff, site_code, limit]).fetchall()
     finally:
         c.close()
     cols = ["id", "email", "prenom", "nom", "societe", "tel", "website",
@@ -670,8 +675,9 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
     return out
 
 
-def count_available_for_sector(site_code: str, sector: str) -> int:
+def count_available_for_sector(site_code: str, sector: str, cleaned_within_days: int = 180) -> int:
     """Count des contacts disponibles pour pioche dans un secteur (filtres identiques à pick_for_campaign)."""
+    cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
     q = f"""
         SELECT COUNT(*)
         FROM contacts c
@@ -686,6 +692,8 @@ def count_available_for_sector(site_code: str, sector: str) -> int:
             -- N'ENVOYER QU'AUX EMAILS NETTOYÉS : Mailnjoy décision 'valid' uniquement
             -- (exclut error/risky/pending et les jamais-vérifiés NULL).
             AND json_extract_string(c.mailnjoy_check, '$.decision') = 'valid'
+            -- RÉCENCE : vérification Mailnjoy < cleaned_within_days (défaut 6 mois)
+            AND json_extract_string(c.mailnjoy_check, '$.checked_at') >= ?
             AND (csh.state IS NULL OR csh.state = 'cold_email')
             AND (
                 csh.last_contacted_by_site_at IS NULL
@@ -700,7 +708,7 @@ def count_available_for_sector(site_code: str, sector: str) -> int:
     """
     c = _conn(read_only=True)
     try:
-        n = c.execute(q, [site_code, f"%{sector}%", site_code]).fetchone()[0]
+        n = c.execute(q, [site_code, f"%{sector}%", cutoff, site_code]).fetchone()[0]
     finally:
         c.close()
     return int(n or 0)

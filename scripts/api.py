@@ -112,6 +112,11 @@ async def auth_middleware(request: Request, call_next):
     if path in _AUTH_OPEN_PATHS:
         return await call_next(request)
 
+    # Tracking de clic public : le lien est dans un email (pas de session). La sécurité
+    # vient du token aléatoire dans l'URL. L'endpoint ne fait qu'enregistrer + rediriger.
+    if path == "/api/sweego/click":
+        return await call_next(request)
+
     # Endpoints de test interne loopback-only (dryrun non destructif + test-batch run synchrone)
     if path.endswith("/cleanup/dryrun") or path.endswith("/cleanup/test-batch"):
         client_host = (request.client.host if request.client else "")
@@ -3289,6 +3294,145 @@ async def api_emelia_webhook(request: Request):
     return {"ok": True, "action": action, "email": email}
 
 
+@app.get("/api/sweego/click")
+async def api_sweego_click(t: str = "", request: Request = None):
+    """Lien de tracking de clic Sweego (public). Résout le token → email, promeut le
+    contact en `prm` dans acquisition, puis redirige (302) vers l'URL de destination.
+    Indépendant du webhook Sweego — fonctionne pour le test bout-en-bout."""
+    from fastapi.responses import RedirectResponse
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import sweego_backend as sw
+    fallback = "https://leclientroi.com"
+    if not t:
+        return RedirectResponse(fallback, status_code=302)
+    info = sw.resolve_click(t)
+    if not info:
+        return RedirectResponse(fallback, status_code=302)
+
+    email = (info.get("email") or "").strip().lower()
+    site = info.get("site") or "lcr"
+    campaign_id = info.get("campaign_id") or ""
+    dest = info.get("dest_url") or fallback
+
+    if email and "@" in email:
+        try:
+            from scripts.acquisition_backend import (
+                create as acq_create, find_by_email as acq_find,
+                change_state as acq_change_state, STATE_RANK)
+            note = f"sweego click campaign={campaign_id}"
+            existing = acq_find(site, email)
+            if existing:
+                if (STATE_RANK.get("prm", 0) > STATE_RANK.get(existing["state"], 0)
+                        and existing["state"] != "blacklisted"):
+                    acq_change_state(site, existing["id"], "prm", by="sweego_click", note=note)
+            else:
+                acq_create(site, {
+                    "email": email, "notes": note, "state": "prm",
+                    "source": f"sweego:{campaign_id}"[:60],
+                }, by="sweego_click", skip_validation=True)
+            # Dual-write pool
+            try:
+                import contacts_pool_backend as cpb_pool
+                pool_cid = cpb_pool.create_in_pool({"email": email}, primary_source="sweego")
+                if pool_cid:
+                    cpb_pool.change_state_for_site(pool_cid, site, "prm", by="sweego_click", note=note)
+            except Exception as _pe:
+                print(f"[sweego_click][pool] {_pe}")
+        except Exception as _e:
+            print(f"[sweego_click] promote failed: {_e}")
+
+    return RedirectResponse(dest, status_code=302)
+
+
+@app.post("/api/sweego/webhook")
+async def api_sweego_webhook(request: Request):
+    """Webhook Sweego (email events). Payload par destinataire — doc learn.sweego.io/docs/webhooks.
+    event_type ∈ email_sent, delivered, soft-bounce, hard_bounce, list_unsub, complaint,
+                 email_opened, email_clicked.
+    Champs clés : recipient (email), campaign_id, campaign_type, click.url, open.proxy.
+    Action → état : email_clicked→prm, hard_bounce/list_unsub/complaint→blacklisted,
+                    email_opened (humain)→horodatage seul, reste→ignoré.
+    """
+    data = await request.json()
+    event_type = (data.get("event_type") or "").lower().replace("-", "_")
+    email = (data.get("recipient") or "").strip().lower()
+    if not email or "@" not in email:
+        return {"ok": False, "error": "no recipient"}
+
+    campaign_id = data.get("campaign_id") or ""
+    # site detect via campaign_id (on génère lcr-… / mkd-… dans sweego_backend)
+    site = "mkd" if str(campaign_id).lower().startswith("mkd") else "lcr"
+
+    # email_opened : ne promeut rien, et on ignore les ouvertures proxy (bots/prefetch)
+    is_proxy_open = bool((data.get("open") or {}).get("proxy"))
+
+    # action → état cible (mirror Emelia)
+    state_map = {
+        "email_clicked": "prm",
+        "hard_bounce": "blacklisted",
+        "list_unsub": "blacklisted",
+        "complaint": "blacklisted",
+        "email_opened": None,
+        "delivered": None,
+        "email_sent": None,
+        "soft_bounce": None,
+    }
+    target_state = state_map.get(event_type, None)
+
+    # === Audit log des events Sweego (table créée à la volée) ===
+    try:
+        import duckdb as _dd, uuid as _uuid, json as _json
+        from datetime import datetime as _dt, timezone as _tz
+        _c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"))
+        try:
+            _c.execute("""CREATE TABLE IF NOT EXISTS sweego_events (
+                id VARCHAR, event_type VARCHAR, email VARCHAR, campaign_id VARCHAR,
+                site_code VARCHAR, url VARCHAR, proxy BOOLEAN, transaction_id VARCHAR,
+                received_at TIMESTAMP, raw_payload VARCHAR, PRIMARY KEY (id))""")
+            _c.execute("INSERT INTO sweego_events VALUES (?,?,?,?,?,?,?,?,?,?)",
+                [str(_uuid.uuid4()), event_type, email, str(campaign_id), site,
+                 (data.get("click") or {}).get("url", ""), is_proxy_open,
+                 data.get("transaction_id", ""), _dt.now(_tz.utc),
+                 _json.dumps(data, ensure_ascii=False)])
+        finally:
+            _c.close()
+    except Exception as _e:
+        print(f"[sweego_webhook] audit log failed: {_e}")
+
+    # === Promotion acquisition_contacts ===
+    if target_state:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        from scripts.acquisition_backend import (
+            create as acq_create, find_by_email as acq_find,
+            change_state as acq_change_state, STATE_RANK)
+        existing = acq_find(site, email)
+        note = f"sweego campaign={campaign_id} event={event_type}"
+        if existing:
+            if (STATE_RANK.get(target_state, 0) > STATE_RANK.get(existing["state"], 0)
+                    and existing["state"] != "blacklisted"):
+                acq_change_state(site, existing["id"], target_state, by="sweego_webhook", note=note)
+        else:
+            acq_create(site, {
+                "email": email, "notes": note, "state": target_state,
+                "source": f"sweego:{campaign_id}"[:60],
+            }, by="sweego_webhook", skip_validation=True)
+
+        # Dual-write pool mutualisé + blacklist globale RGPD
+        try:
+            import contacts_pool_backend as cpb_pool
+            pool_cid = cpb_pool.create_in_pool({"email": email}, primary_source="sweego")
+            if pool_cid:
+                cpb_pool.change_state_for_site(pool_cid, site, target_state,
+                    by="sweego_webhook", note=note)
+                if target_state == "blacklisted":
+                    cpb_pool.set_global_blacklist(email,
+                        reason=f"{event_type.upper()} via sweego webhook (site={site})")
+        except Exception as _pool_err:
+            print(f"[sweego_webhook][pool] {_pool_err}")
+
+    return {"ok": True, "event": event_type, "email": email, "state": target_state}
+
+
 @app.post("/api/auth/users/{user_id}/reset-password")
 async def api_auth_reset_password(user_id: str):
     new_pass = auth_reset(user_id)
@@ -3703,6 +3847,110 @@ def get_sweego_stats():
         }
     except Exception as e:
         return {"configured": False, "error": str(e)}
+
+
+@app.get("/api/sweego/engagement")
+def get_sweego_engagement(start: str | None = None, end: str | None = None):
+    """Engagement Sweego (ouvertures/clics/bounces + taux) via /stats. Optionnel : start/end (YYYY-MM-DD).
+    Câble sweego_backend.engagement_stats() — sert la vue masse des newsletters."""
+    try:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        import sweego_backend as sw
+        if not sw._env().get("SWEEGO_API_KEY"):
+            return {"configured": False}
+        data = sw.engagement_stats(start, end)
+        g = data.get("global", {})
+        return {
+            "configured": True,
+            "sent": g.get("sent", 0),
+            "accepted": g.get("accepted", 0),
+            "bounced": g.get("bounced", 0),
+            "openers": g.get("nb_human_openers", 0),
+            "clickers": g.get("nb_clickers", 0),
+            "unsubscribes": g.get("list_unsubscribe", 0),
+            "open_rate": g.get("open_rate", 0),
+            "click_rate": g.get("click_rate", 0),
+            "by_day": data.get("by_day", []),
+        }
+    except Exception as e:
+        return {"configured": False, "error": str(e)}
+
+
+@app.get("/api/sites/{site}/marketing/overview")
+def get_marketing_overview(site: str):
+    """Stats harmonisées par canal : Cold email (Emelia) vs Masse (Sweego).
+    Forme comparable : sent / opens / open_rate / clicks / click_rate / bounces / bounce_rate.
+    - Emelia : agrège les campagnes dont le nom matche le site (préfixe LCR/MKD), dérive les
+      compteurs absolus depuis mailsSent × pourcentages, puis recalcule les taux globaux.
+    - Sweego : engagement_stats() (compte au niveau du compte Sweego, pas par site — libellé tel quel).
+    """
+    import os
+    out = {"emelia": None, "sweego": None}
+    pref = site.upper()
+
+    # ── Emelia (cold email) ──
+    try:
+        EMELIA_KEY = os.environ.get("EMELIA_API_KEY", "")
+        H = {"Authorization": EMELIA_KEY, "Content-Type": "application/json"}
+        camps = requests.get("https://api.emelia.io/emails/campaigns", headers=H, timeout=15).json().get("campaigns", [])
+        agg = {"sent": 0, "opens": 0.0, "clicks": 0.0, "replies": 0.0, "bounces": 0.0, "campaigns": 0}
+        for c in camps:
+            name = (c.get("name") or "").upper().replace(" ", "")
+            # code site n'importe où dans le nom (workflow-lcr-x, test-...-lcr, LCR-...)
+            if not (pref in name or (pref == "LCR" and "LECLIENTROI" in name)):
+                continue
+            cid = c.get("_id", "")
+            try:
+                st = requests.get(f"https://api.emelia.io/stats?campaignId={cid}", headers=H, timeout=8).json()
+            except Exception:
+                continue
+            sent = st.get("mailsSent", 0) or 0
+            if sent <= 0:
+                continue
+            agg["campaigns"] += 1
+            agg["sent"] += sent
+            agg["opens"]   += sent * (st.get("uniqueOpensPercent", 0) or 0) / 100.0
+            agg["clicks"]  += sent * (st.get("linkClickedPercent", 0) or 0) / 100.0
+            agg["replies"] += sent * (st.get("repliedPercent", 0) or 0) / 100.0
+            agg["bounces"] += sent * (st.get("bouncedPercent", 0) or 0) / 100.0
+        s = agg["sent"]
+        out["emelia"] = {
+            "configured": bool(EMELIA_KEY),
+            "campaigns": agg["campaigns"],
+            "sent": s,
+            "opens": round(agg["opens"]), "clicks": round(agg["clicks"]),
+            "replies": round(agg["replies"]), "bounces": round(agg["bounces"]),
+            "open_rate": round(agg["opens"] / s * 100, 1) if s else 0,
+            "click_rate": round(agg["clicks"] / s * 100, 1) if s else 0,
+            "reply_rate": round(agg["replies"] / s * 100, 1) if s else 0,
+            "bounce_rate": round(agg["bounces"] / s * 100, 1) if s else 0,
+        }
+    except Exception as e:
+        out["emelia"] = {"configured": False, "error": str(e)}
+
+    # ── Sweego (masse) ──
+    try:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        import sweego_backend as sw
+        if sw._env().get("SWEEGO_API_KEY"):
+            d = sw.engagement_stats()
+            g = d.get("global", {})
+            s = g.get("sent", 0)
+            out["sweego"] = {
+                "configured": True, "account_wide": True,
+                "sent": s,
+                "opens": g.get("nb_human_openers", 0), "clicks": g.get("nb_clickers", 0),
+                "bounces": g.get("bounced", 0), "replies": None,
+                "open_rate": g.get("open_rate", 0), "click_rate": g.get("click_rate", 0),
+                "reply_rate": None,
+                "bounce_rate": round(g.get("bounced", 0) / s * 100, 1) if s else 0,
+            }
+        else:
+            out["sweego"] = {"configured": False}
+    except Exception as e:
+        out["sweego"] = {"configured": False, "error": str(e)}
+
+    return out
 
 
 @app.get("/api/basile/usage")
@@ -4889,6 +5137,173 @@ def api_mass_campaigns_stats(site: str, date_start: str = "", date_end: str = ""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import sweego_backend as sw
     return {"engagement": sw.engagement_stats(date_start or None, date_end or None), "msp": sw.msp_stats()}
+
+
+# ── Campagnes unifiées multi-canal (hub) ────────────────────────────────────────
+@app.get("/api/sites/{site}/channels")
+def api_campaign_channels(site: str):
+    """Canaux d'envoi disponibles + cap/jour live. Maildoso désactivé (warmup en cours)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import deliverability_agent as da
+    import sweego_backend as sw
+    emelia_caps = da.channel_caps(site, "emelia")
+    sweego_ok = bool(sw._env().get("SWEEGO_API_KEY"))
+    return {"channels": [
+        {"key": "emelia", "label": "Cold email", "sub": "Emelia",
+         "enabled": (emelia_caps.get("plateau") or 0) > 0,
+         "daily_cap": emelia_caps.get("plateau") or 0,
+         "note": "Séquence à froid, plafonnée au warmup des expéditeurs."},
+        {"key": "sweego", "label": "Masse", "sub": "Sweego",
+         "enabled": sweego_ok, "daily_cap": da.channel_caps(site, "sweego").get("plateau"),
+         "note": "Newsletters / annonces en volume."},
+        {"key": "maildoso", "label": "Cold email maison", "sub": "Maildoso",
+         "enabled": False, "daily_cap": 0, "available_at": "2026-07-07",
+         "note": "Séquenceur maison — warmup en cours, dispo ~07/07."},
+    ]}
+
+
+@app.post("/api/sites/{site}/campaigns/target-count")
+async def api_campaign_target_count(site: str, request: Request):
+    """Nb de contacts éligibles (Mailnjoy valid < 6 mois) pour des secteurs donnés.
+    Body: {sectors:[...], cleaned_within_days?}."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import contacts_pool_backend as pool
+    body = await request.json()
+    sectors = body.get("sectors") or []
+    days = int(body.get("cleaned_within_days") or 180)
+    per = {}
+    seen_total = 0
+    for sec in sectors:
+        n = pool.count_available_for_sector(site, sec, cleaned_within_days=days)
+        per[sec] = n
+        seen_total += n
+    return {"by_sector": per, "total": seen_total, "cleaned_within_days": days}
+
+
+@app.post("/api/sites/{site}/campaigns/plan")
+async def api_campaign_plan(site: str, request: Request):
+    """Planning de cadence + faisabilité + explication IA. Body: {channel, target_size, start_date}."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import deliverability_agent as da
+    from datetime import date as _d
+    body = await request.json()
+    channel = (body.get("channel") or "").lower()
+    target = int(body.get("target_size") or 0)
+    try:
+        start = _d.fromisoformat(body.get("start_date") or _d.today().isoformat())
+    except Exception:
+        start = _d.today()
+    plan = da.plan_cadence(site, channel, target, start)
+    plan["explanation"] = da.explain(plan, channel, target)
+    return plan
+
+
+@app.post("/api/sites/{site}/campaigns/suggest-subject")
+async def api_campaign_suggest_subject(site: str, request: Request):
+    """Propose un objet d'email accrocheur via DeepSeek à partir du contenu du message.
+    Body: {message_id} ou {html}."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import html_templates_backend as htb, sweego_backend as sw
+    body = await request.json()
+    html = body.get("html")
+    if not html and body.get("message_id"):
+        msg = htb.get_version(site, body["message_id"])
+        html = msg["html"] if msg else ""
+    if not html:
+        return {"ok": False, "error": "html ou message_id requis"}
+    text = sw.html_to_text(html)[:1500]
+    try:
+        import llm_call
+        prompt = (
+            "Tu es expert emailing B2B en français. Propose UN SEUL objet d'email court (max 60 "
+            "caractères), accrocheur, sans clickbait ni emoji, qui maximise le taux d'ouverture pour "
+            "ce contenu. Réponds UNIQUEMENT par l'objet, sans guillemets ni préfixe.\n\n"
+            f"Contenu de l'email :\n{text}"
+        )
+        subject = llm_call.call_llm(prompt, max_tokens=40, temperature=0.7,
+                                    module="campaigns", action="suggest_subject", site=site)
+        subject = (subject or "").strip().strip('"').splitlines()[0][:80]
+        return {"ok": bool(subject), "subject": subject}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/sites/{site}/campaigns/preview-lint")
+async def api_campaign_preview_lint(site: str, request: Request):
+    """Lint HTML (liens cassés, rendu client, spam). Body: {html} ou {message_id}."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import email_lint_backend as elb, html_templates_backend as htb
+    body = await request.json()
+    html = body.get("html")
+    if not html and body.get("message_id"):
+        msg = htb.get_version(site, body["message_id"])
+        html = msg["html"] if msg else ""
+    if not html:
+        return {"ok": False, "error": "html ou message_id requis"}
+    return elb.run_lint(html)
+
+
+@app.post("/api/sites/{site}/campaigns")
+async def api_campaign_create(site: str, request: Request):
+    """Crée + planifie une campagne unifiée. Refuse si cadence infaisable.
+    Body: {name, channel, message_id, subject, sectors:[...], target_size, schedule_start}."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import campaign_engine as ce
+    body = await request.json()
+    sess = getattr(request.state, "session", None)
+    by = (sess or {}).get("username", "ui")
+    return ce.create_campaign(
+        site, (body.get("name") or "").strip(), (body.get("channel") or "").lower(),
+        (body.get("message_id") or "").strip(), (body.get("subject") or "").strip(),
+        body.get("sectors") or [], int(body.get("target_size") or 0),
+        (body.get("schedule_start") or "").strip(), by=by)
+
+
+@app.get("/api/sites/{site}/campaigns")
+def api_campaigns_list(site: str):
+    """Liste les campagnes unifiées du site."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import campaign_engine as ce
+    return {"campaigns": ce.list_campaigns(site)}
+
+
+@app.post("/api/sites/{site}/campaigns/{cid}/bat")
+async def api_campaign_unified_bat(site: str, cid: str, request: Request):
+    """BAT : envoie le message de la campagne à une adresse de test (canal Sweego)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import campaign_engine as ce, sweego_backend as sw, html_templates_backend as htb
+    body = await request.json()
+    email = (body.get("email") or "").strip()
+    if not email or "@" not in email:
+        return {"ok": False, "error": "email invalide"}
+    camp = ce.get_campaign(cid)
+    if not camp:
+        return {"ok": False, "error": "campagne introuvable"}
+    msg = htb.get_version(site, camp["message_id"])
+    if not msg:
+        return {"ok": False, "error": "message introuvable"}
+    return sw.send_campaign(f"{site}-bat-{cid}", camp["subject"], msg["html"], [email], dry_run=False)
+
+
+@app.post("/api/sites/{site}/campaigns/{cid}/{action}")
+async def api_campaign_action(site: str, cid: str, action: str):
+    """Actions sur une campagne : pause | resume | cancel | send-now."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import campaign_engine as ce
+    from datetime import date as _d
+    camp = ce.get_campaign(cid)
+    if not camp or camp["site_code"] != site:
+        return {"ok": False, "error": "campagne introuvable"}
+    if action == "pause":
+        ce.set_status(cid, "paused"); return {"ok": True, "status": "paused"}
+    if action == "resume":
+        ce.set_status(cid, "running" if (camp["sent_count"] or 0) > 0 else "scheduled")
+        return {"ok": True, "status": "resumed"}
+    if action == "cancel":
+        ce.set_status(cid, "cancelled"); return {"ok": True, "status": "cancelled"}
+    if action == "send-now":
+        return ce.dispatch_campaign(cid, _d.today())
+    return {"ok": False, "error": f"action inconnue: {action}"}
 
 
 @app.get("/api/sites/{site}/cleanup/counts")

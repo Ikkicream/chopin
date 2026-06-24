@@ -5,7 +5,8 @@ Mass campaigns via Sweego (https://api.sweego.io) — canal séparé d'Emelia (c
 - Envoi : POST /send, provider="email", campaign-type="market"|"transac".
   Pour une newsletter sans perso on retire les {{tokens}} (clean_html_for_sweego).
   Pour un envoi personnalisé, passer les champs extra dans chaque recipient object.
-- Domaines autorisés (vérifiés) : leclientroi.com, news.leclientroi.email.
+- Domaine autorisé (vérifié) : leclientroi.com UNIQUEMENT. news.leclientroi.email ne marche PAS
+  (Sweego accepte l'envoi mais l'email part dans le vide — pas de swg.news.leclientroi.email).
 - Désinscription : gérée nativement par Sweego (header List-Unsubscribe 1-clic).
 - Stats : POST /stats/msp {channel:"email"} → délivrabilité par MSP (gmail/microsoft/yahoo_eu…).
 """
@@ -69,8 +70,12 @@ def html_to_text(html_str: str) -> str:
 
 # ── Envoi ───────────────────────────────────────────────────────────────────────
 def send_campaign(campaign_id: str, subject: str, html_str: str,
-                  recipients: list[str], dry_run: bool = False) -> dict:
-    """Envoie une mass campaign. `recipients` = liste d'emails. dry_run=True -> validation sans envoi."""
+                  recipients: list[str], dry_run: bool = False,
+                  utm_campaign: str | None = None, utm_source: str = "sweego") -> dict:
+    """Envoie une mass campaign. `recipients` = liste d'emails. dry_run=True -> validation sans envoi.
+
+    Taggage : pose utm_source/utm_medium=email/utm_campaign sur les liens des domaines possédés.
+    `utm_campaign` (valeur unique par campagne) prime sur campaign_id pour l'attribution GA4."""
     recipients = [e for e in (recipients or []) if e and "@" in e]
     if not recipients:
         return {"ok": False, "error": "aucun destinataire valide"}
@@ -78,7 +83,7 @@ def send_campaign(campaign_id: str, subject: str, html_str: str,
         return {"ok": False, "error": "sujet requis"}
     try:
         from utm_tagging import tag_links
-        html_str = tag_links(html_str, "sweego", "email", campaign_id or "lcr-mass")
+        html_str = tag_links(html_str, utm_source, "email", utm_campaign or campaign_id or "lcr-mass")
     except Exception:
         pass
     body = {
@@ -195,6 +200,60 @@ def list_campaigns(site) -> list[dict]:
     return [{"id": r[0], "name": r[1], "campaign_id": r[2], "subject": r[3], "sector": r[4],
              "recipients_count": r[5], "transaction_id": r[6], "status": r[7],
              "created_at": str(r[8]), "provider": "sweego"} for r in rows]
+
+
+# ── Tracking de clic par destinataire (token → email) ───────────────────────────
+# Sweego facture des liens trackés agrégés, mais pour savoir QUI a cliqué on génère
+# un token par destinataire et on pointe le lien vers /api/sweego/click?t=<token>
+# (endpoint Genesis public qui enregistre + redirige). Indépendant du webhook Sweego.
+def _ensure_click_table():
+    c = _conn()
+    try:
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS sweego_click_tokens (
+                token       VARCHAR,
+                site_code   VARCHAR,
+                email       VARCHAR,
+                campaign_id VARCHAR,
+                dest_url    VARCHAR,
+                created_at  TIMESTAMP,
+                clicked_at  TIMESTAMP,
+                PRIMARY KEY (token)
+            )"""
+        )
+    finally:
+        c.close()
+
+
+def make_click_token(site: str, email: str, campaign_id: str, dest_url: str) -> str:
+    _ensure_click_table()
+    tok = _uuid.uuid4().hex[:16]
+    c = _conn()
+    try:
+        c.execute("INSERT INTO sweego_click_tokens VALUES (?,?,?,?,?,?,NULL)",
+                  [tok, site, email, campaign_id, dest_url, datetime.now(timezone.utc)])
+    finally:
+        c.close()
+    return tok
+
+
+def resolve_click(token: str) -> dict | None:
+    """Marque le token comme cliqué (1re fois) et renvoie {site,email,campaign_id,dest_url}."""
+    _ensure_click_table()
+    c = _conn()
+    try:
+        row = c.execute(
+            "SELECT site_code, email, campaign_id, dest_url, clicked_at "
+            "FROM sweego_click_tokens WHERE token=?", [token]).fetchone()
+        if not row:
+            return None
+        if row[4] is None:
+            c.execute("UPDATE sweego_click_tokens SET clicked_at=? WHERE token=?",
+                      [datetime.now(timezone.utc), token])
+        return {"site": row[0], "email": row[1], "campaign_id": row[2],
+                "dest_url": row[3], "first_click": row[4] is None}
+    finally:
+        c.close()
 
 
 if __name__ == "__main__":

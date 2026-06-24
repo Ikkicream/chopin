@@ -122,10 +122,12 @@ POST https://api.sweego.io/send
 ### Domaines expéditeur autorisés (vérifiés par test)
 | Domaine | Statut |
 |---|---|
-| `leclientroi.com` | ✅ Autorisé |
-| `news.leclientroi.email` | ✅ Autorisé |
+| `leclientroi.com` | ✅ **Seul domaine fonctionnel** (DKIM/SPF/DMARC OK, MTA via `swg.leclientroi.com`) |
+| `news.leclientroi.email` | ❌ NE FONCTIONNE PAS — Sweego accepte l'envoi mais l'email part dans le vide (pas de `swg.news.leclientroi.email` dans l'infra DNS Sweego). Vérifié : 0 email reçu. |
 | `leclientroi.email` | ❌ Unauthorized |
 | `notification.leclientroi.fr` | ❌ Non autorisé |
+
+> **Règle absolue** : `SWEEGO_DOMAIN=leclientroi.com` uniquement. Détails dans `docs/infrastructure.md`.
 
 ### Personnalisation
 Sweego substitue les `{{variable}}` si le champ correspondant est présent dans l'objet recipient.
@@ -143,11 +145,39 @@ Retourne par MSP (gmail, microsoft, yahoo_eu, laposte, sfr, orange, default) :
 `POST /stats` avec `{channel: "sms"}` → retourne `result: [{...}]` par jour (email stats via /stats/msp seulement).
 
 ### Click → lead (Sweego)
-Pas encore de webhook natif découvert. Deux approches possibles :
-1. **Polling `/stats/msp`** + tracking UTM (le lien contient `utm_source=sweego&utm_campaign=ID`) → détecter les clics UTM dans les logs Apache/nginx → pousser vers acquisition
-2. **Pixel de tracking** Sweego (à explorer dans le dashboard) → webhook vers `/api/sweego/webhook`
 
-**À implémenter** : un endpoint `/api/sweego/webhook` ou un cron de polling UTM qui pousse les cliqueurs vers `acquisition_backend.create()` avec `state=prm`.
+> ⚠️ Correction 2026-06-24 : une version précédente de cette doc affirmait « pas de webhook natif ».
+> **C'était faux.** Sweego A un webhook par destinataire. Deux mécanismes coexistent maintenant :
+
+**A. Lien de tracking maison — ✅ EN PROD, testé bout-en-bout (2026-06-24)**
+Pour chaque destinataire on génère un token et le lien pointe vers un endpoint Genesis public :
+```
+GET https://api.cheffer.email/api/sweego/click?t=<token>
+```
+- `sweego_backend.make_click_token(site, email, campaign_id, dest_url)` → stocke le mapping dans
+  la table `sweego_click_tokens` (god_mode.duckdb) et renvoie le token.
+- L'endpoint `GET /api/sweego/click` (public — exception dans le middleware d'auth) :
+  résout le token → promeut le contact en `prm` (`acquisition_backend.create(..., skip_validation=True)`)
+  → redirige (302) vers `dest_url`.
+- **`skip_validation=True` obligatoire** : un cliqueur est réel par définition. Sans ça, la vérif
+  Mailnjoy synchrone (a) bloque la redirection ~10s et (b) peut rejeter le contact (ex.
+  `camille@leclientroi.com` classé *risky*).
+- Indépendant de Sweego : marche même sans webhook enregistré.
+
+**B. Webhook natif Sweego — RÉCEPTEUR PRÊT, enregistrement à faire**
+Sweego POST un event par destinataire (doc : learn.sweego.io/docs/webhooks/email_events) :
+```
+event_type ∈ email_sent, delivered, soft-bounce, hard_bounce, list_unsub,
+             complaint, email_opened, email_clicked
+champs clés : recipient (email), campaign_id, campaign_type, click.url, open.proxy
+```
+- Récepteur : `POST /api/sweego/webhook?token=<WEBHOOK_TOKEN_1>` (déjà codé dans `api.py`).
+  Mapping : `email_clicked`→`prm` ; `hard_bounce`/`list_unsub`/`complaint`→`blacklisted` ;
+  `email_opened` (humain)→horodatage ; reste→ignoré. Events bruts loggés dans `sweego_events`.
+- **Enregistrement** : route `POST /clients/{uuid_client}/webhooks` (scopée client).
+  ⚠️ L'UUID client n'est PAS récupérable via l'API avec la seule clé — il vient du **dashboard
+  Sweego** (paramètres/compte) ou de l'en-tête `x-client-id` d'un email reçu. **À fournir** pour
+  activer ce canal (captera alors aussi les clics sur les liens normaux, sans api.cheffer.email).
 
 ---
 
@@ -234,13 +264,40 @@ dans `/site/lcr/acquisition` en état `prm` minimum.
 
 | Plateforme | Mécanisme actuel | Status |
 |---|---|---|
-| Emelia | `emelia_to_crm.py` cron 19h → `hasClicked` → `prm` | ✅ Actif |
-| Sweego | UTM tracking (`utm_source=sweego`) → à capter côté site/webhook | ⬜ À faire |
+| Emelia | `emelia_to_crm.py` cron 19h + `POST /api/emelia/webhook` → `hasClicked`/`clicked` → `prm` | ✅ Actif |
+| Sweego (lien maison) | `GET /api/sweego/click?t=<token>` → `prm` → redirect | ✅ Actif, testé en réel 2026-06-24 |
+| Sweego (webhook natif) | `POST /api/sweego/webhook` → `email_clicked` → `prm` | 🟡 Récepteur prêt, manque UUID client pour enregistrer |
 | Maildoso | IMAP reply uniquement (texte brut, pas de lien trackable) | ⬜ Prévu dans poller |
 
-Endpoint d'arrivée pour tous : `acquisition_backend.create()` ou `change_state()` → `data/crm/{site}.duckdb`.
+Endpoint d'arrivée pour tous : `acquisition_backend.create(..., skip_validation=True)` ou
+`change_state()` → `data/crm/{site}.duckdb`. Les signaux d'engagement (clic/réponse) sautent la vérif
+Mailnjoy (le contact a déjà interagi → il est réel).
 
 ---
+
+## 5bis. Cadence & délivrabilité (agent + scheduler)
+
+Les campagnes du **hub** (`/site/{site}/campaigns`) sont planifiées et étalées par un scheduler, sous
+le contrôle d'un agent délivrabilité à **règles dures** (jamais dépassées) + explication IA.
+
+### Plafonds d'envoi/jour par canal (`deliverability_agent.DAILY_CAP`, validés user 2026-06-24)
+| Canal | Cap/jour | Fenêtre max | Au-delà |
+|---|---|---|---|
+| Emelia | **30/j** | 30 j (≈900) | → suggère Sweego |
+| Sweego | **1000/j** | 60 j (≈60k) | → réduire / étaler |
+| Maildoso | **300/j** | 60 j (≈18k) | → suggère Sweego (canal désactivé jusqu'au ~07/07) |
+
+Caps **plats** (pas de ramp). Au-delà de la fenêtre → `feasible=false` + canal suggéré.
+Exemples vérifiés : Emelia 30k → refus + Sweego ; Sweego 30k → étalé 30 j ; Maildoso 900 → 3 j.
+
+### Modèle & scheduler (`campaign_engine.py`)
+- Table `campaigns_unified` (god_mode.duckdb) : canal, message, secteurs, cible, `schedule_start`,
+  `cadence` (planning jour/jour), statut, `sent_count`.
+- `dispatch_due(today)` — cron quotidien **8h30** (`run_agent.sh scripts/campaign_engine.py dispatch`) :
+  pour chaque campagne due, pioche le lot du jour (`pick_for_campaign`, Mailnjoy valid < 6 mois),
+  envoie via le canal, incrémente `sent_count`, passe `done` à la cible atteinte. Idempotent/jour.
+- Cible : `count_available_for_sector` / `pick_for_campaign` filtrent désormais **Mailnjoy valid ET
+  `checked_at` < 180 jours** (param `cleaned_within_days`, défaut 180).
 
 ## 6. Fichiers clés
 
@@ -248,8 +305,13 @@ Endpoint d'arrivée pour tous : `acquisition_backend.create()` ou `change_state(
 |---|---|
 | `scripts/emelia_campaign_manager.py` | Création + configuration campagnes Emelia |
 | `scripts/emelia_to_crm.py` | Sync click/reply Emelia → acquisition (cron 19h) |
-| `scripts/sweego_backend.py` | Envoi masse + stats Sweego |
-| `scripts/acquisition_backend.py` | Storage unifié des leads (cold_email→prm→lead→crm) |
+| `scripts/sweego_backend.py` | Envoi masse + stats + engagement + tokens de clic (`make_click_token`/`resolve_click`) |
+| `scripts/api.py` | Endpoints `GET /api/sweego/click` (lien tracké) + `POST /api/sweego/webhook` (récepteur natif) + `GET /api/sweego/engagement` |
+| `scripts/acquisition_backend.py` | Storage unifié des leads (cold_email→prm→lead→crm), `create(skip_validation=…)` |
+| `scripts/campaign_engine.py` | Modèle de campagne unifié + scheduler (`dispatch_due`, cron 8h30) |
+| `scripts/deliverability_agent.py` | Caps par canal + planning de cadence + explication IA |
+| `genesis-ui/.../campaign-wizard.tsx` | Wizard 5 étapes (canal→message→cible→aperçu→planning) |
+| `genesis-ui/.../channel-perf-card.tsx` | Carte stats par canal (Emelia vs Sweego), réutilisée dashboard + hub |
 | `routeur_doc/cold-email-engine.md` | Spec complète du séquenceur Maildoso |
 | `routeur_doc/coldemail.md` | Copywriting + séquence 4 touches |
 | `routeur_doc/accounts_maildoso.csv` | Identifiants SMTP/IMAP des 4 boîtes |

@@ -4,7 +4,37 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-24 (Sweego mass campaigns + BAT ✅ + docs infrastructure/features/platforms-api)
+2026-06-24 (Hub campagnes multi-canal + agent délivrabilité + scheduler + stats unifiées)
+
+## 🔝 REPRISE 2026-06-24 (soir) — Hub de campagnes multi-canal
+
+**Demande user :** refondre `/site/{site}/campaigns` en hub : wizard guidé (canal → message → cible →
+aperçu → récap+planning), cible = Mailnjoy nettoyé < 6 mois, agent IA de délivrabilité contrôlant la
+cadence (30k en cold = refus), + stats unifiées. UX au top.
+
+**FAIT (P1→P5, plan approuvé `mutable-tickling-sky.md`) :**
+- **`contacts_pool_backend.py`** : `pick_for_campaign` + `count_available_for_sector` filtrent
+  désormais Mailnjoy valid ET `checked_at` < 180 j (param `cleaned_within_days`).
+- **`deliverability_agent.py`** (NOUVEAU) : caps durs/canal (Emelia=warmup, Sweego ramp 1k→20k,
+  Maildoso 0) + `plan_cadence` (faisabilité + planning jour/jour) + `explain` (DeepSeek + fallback).
+  Vérifié : Emelia 30k → refus + suggère Sweego ; Sweego 30k → 5 j ✅.
+- **`campaign_engine.py`** (NOUVEAU) : table `campaigns_unified` + CRUD + `dispatch_due` (scheduler).
+  Dispatch Sweego (testé dry-run : pioche 3 → would_send 3) + Emelia (création campagne 1-step +
+  add_contact). Cron **8h30** ajouté (crontab autoblog).
+- **`api.py`** : endpoints `channels`, `campaigns/target-count`, `campaigns/plan`,
+  `campaigns/preview-lint`, `campaigns` (CRUD), `campaigns/{id}/{pause|resume|cancel|send-now|bat}`,
+  + `marketing/overview` + `sweego/engagement` (faits plus tôt).
+- **UI** : `campaign-wizard.tsx` (wizard 5 étapes, stepper, cartes canal, aperçu responsive + lint,
+  agent délivrabilité, BAT) + `channel-perf-card.tsx` (partagé dashboard/hub) + `campaigns/page.tsx`
+  réécrite en hub (table unifiée + ChannelPerfCard + section auto Emelia repliable conservée).
+  Build Next OK, restart OK.
+
+**RESTE / À surveiller :**
+- Test d'un envoi RÉEL via le hub (jusqu'ici dry-run pour ne pas spammer un vrai prospect).
+- Stats par campagne unifiée (engagement) : actuellement progression (envoyés/cible) + ChannelPerfCard
+  niveau canal. Rollup par campagne = amélioration possible.
+- Maildoso : carte désactivée tant que le séquenceur n'est pas branché (~07/07).
+- User va lancer `/ultrareview` sur ce chantier.
 
 ## 🔝 REPRISE 2026-06-24 — Sweego mass campaigns + docs
 
@@ -38,12 +68,50 @@ DKIM ✅ SPF ✅ DMARC ✅ — From `info@leclientroi.com`, MTA via `swg.leclien
   Maildoso SMTP/IMAP, tableau comparatif tags, état click→lead.
 - **`docs/features.md`** (nouveau) : carte complète des pages UI avec breadcrumbs, APIs, connexions.
 
+### Stats engagement Sweego — FAIT (2026-06-24)
+- **`scripts/api.py`** : ajout `GET /api/sweego/engagement` (start/end optionnels) qui câble
+  `sweego_backend.engagement_stats()` (jusque-là code mort). Retourne sent/openers/clickers/
+  bounces/unsubscribes + open_rate/click_rate.
+- **`newsletters/page.tsx`** : ligne de stats engagement (6 tuiles) dans l'en-tête de la carte
+  "Campagnes masse Sweego". S'affiche dès qu'il y a des envois. Build + restart OK.
+- Vérifié live : 262 envoyés, 7 ouvreurs humains, 42 cliqueurs (16%), 0 bounce.
+
+### Click→lead Sweego — FAIT + testé en réel (2026-06-24)
+- Découverte : Sweego A un webhook par destinataire (`email_clicked` avec `recipient`). La doc
+  `platforms-api.md` disait l'inverse à tort → corrigée.
+- **`GET /api/sweego/click?t=<token>`** (public, exception middleware) : lien tracké par destinataire.
+  `sweego_backend.make_click_token()` / `resolve_click()` + table `sweego_click_tokens`. Résout
+  token→email → promeut en `prm` → redirige 302. **Testé en réel par le user (Camille → prm).**
+- **`POST /api/sweego/webhook`** : récepteur natif prêt (email_clicked→prm, bounce/unsub/complaint→
+  blacklisted, opened→horodatage). Table `sweego_events`. ⚠️ Enregistrement bloqué : route
+  `/clients/{uuid_client}/webhooks` nécessite l'UUID client (dashboard Sweego / en-tête x-client-id).
+  **User a demandé l'UUID au support Sweego — en attente.**
+- **`acquisition_backend.create(skip_validation=True)`** : bypass Mailnjoy pour les signaux
+  d'engagement (un cliqueur est réel). Corrige le bug "page blanche 10s + contact rejeté".
+
+### Stats harmonisées — FAIT (2026-06-24)
+- **`GET /api/sites/{site}/marketing/overview`** : agrège Emelia (campagnes matchant le site,
+  compteurs dérivés de mailsSent×%) + Sweego (engagement_stats, niveau compte) en forme comparable
+  (sent/open_rate/click_rate/reply_rate/bounce_rate).
+- **`dashboard/page.tsx`** : carte "Performance emailing par canal" (composant `ChannelPerfCard`)
+  comparant cold email (Emelia) vs masse (Sweego) côte à côte. Build + restart OK.
+
 **RESTE :**
-1. **Click→lead Sweego** : capter `utm_source=sweego` → push `acquisition_contacts` (state=prm).
+1. **Webhook natif Sweego** : enregistrer via `/clients/{uuid_client}/webhooks` dès que le support
+   fournit l'UUID client. Débloquera ouvertures + blacklist auto bounce/désinscription/plainte.
+2. **(ancien #1) Click→lead Sweego** : ⚠️ pour les envois de MASSE, le token par destinataire dans
+   le lien maison demande la perso URL Sweego (`{{token}}`, non vérifiée) ou 1 envoi/destinataire.
+   Le webhook natif (cf #1) est la solution propre. Sweego n'expose PAS les clics
+   par destinataire (stats agrégées seulement). Deux options :
+   (a) Redirection via `https://api.cheffer.email/api/sweego/r?t=<token>` dans chaque lien (token
+       par destinataire via perso Sweego) → fiable mais lien cross-domaine (déliverabilité à tester)
+   (b) Capture côté site leclientroi.com (snippet JS lit `utm_source=sweego` → POST API) → ne fire
+       que si le contact atterrit sur une page équipée.
 2. **Click→lead Maildoso** : IMAP reply detection dans séquenceur maison.
 3. **Maildoso séquenceur** (`cold_email_engine.py`) : disponible ~2026-07-07 (warmup en cours).
-4. **Stats harmonisées** : vue unifiée Emelia + Sweego + Maildoso.
-5. **Test live scrapper** : valider un run Serper + Basile (voir RESTE Serper+Basile ci-dessous).
+4. **Stats harmonisées** : vue unifiée Emelia + Sweego + Maildoso (Sweego engagement fait, reste à
+   fusionner avec Emelia dans une vue commune).
+5. **Test live scrapper** : valider un run Serper + Basile (coûte des crédits → demander au user avant).
 
 ### Architecture Sweego (mémo)
 - Sweego MTA : enveloppe via `swg.leclientroi.com` (indépendant du From)
