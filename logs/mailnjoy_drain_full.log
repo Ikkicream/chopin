@@ -5,3 +5,16 @@ batch 4: 200 traités | valid=69 risky=106 | CUMUL valid=271 total=800
 batch 5: 200 traités | valid=70 risky=102 | CUMUL valid=341 total=1000
 batch 6: 200 traités | valid=69 risky=108 | CUMUL valid=410 total=1200
 batch 7: 200 traités | valid=88 risky=93 | CUMUL valid=498 total=1400
+batch 8: 200 traités | valid=68 risky=118 | CUMUL valid=566 total=1600
+batch 9: 200 traités | valid=61 risky=119 | CUMUL valid=627 total=1800
+batch 10: 200 traités | valid=46 risky=130 | CUMUL valid=673 total=2000
+batch 11: 200 traités | valid=66 risky=109 | CUMUL valid=739 total=2200
+batch 12: 200 traités | valid=63 risky=114 | CUMUL valid=802 total=2400
+batch 13: 200 traités | valid=64 risky=118 | CUMUL valid=866 total=2600
+batch 14: 200 traités | valid=71 risky=107 | CUMUL valid=937 total=2800
+batch 15: 200 traités | valid=49 risky=114 | CUMUL valid=986 total=3000
+batch 16: 144 traités | valid=26 risky=102 | CUMUL valid=1012 total=3144
+batch 17: 1 traités | valid=0 risky=0 | CUMUL valid=1012 total=3145
+batch 18: 1 traités | valid=0 risky=0 | CUMUL valid=1012 total=3146
+batch 19: 0 traités | valid=0 risky=0 | CUMUL valid=1012 total=3146
+DONE — 1012 valides / 3146 traités

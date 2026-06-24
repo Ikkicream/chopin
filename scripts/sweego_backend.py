@@ -43,8 +43,8 @@ def _headers() -> dict:
 
 
 def _from() -> dict:
-    dom = _env().get("SWEEGO_DOMAIN", "news.leclientroi.email")
-    return {"email": "news@" + dom, "name": "Le Client ROI"}
+    dom = _env().get("SWEEGO_DOMAIN", "leclientroi.com")
+    return {"email": "info@" + dom, "name": "Le Client ROI"}
 
 
 # ── Préparation du HTML ─────────────────────────────────────────────────────────

@@ -4,7 +4,52 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-20 (Intégration Serper + Basile en double source — target 100 contacts)
+2026-06-24 (Sweego mass campaigns + BAT ✅ + docs infrastructure/features/platforms-api)
+
+## 🔝 REPRISE 2026-06-24 — Sweego mass campaigns + docs
+
+**Demande user :** Intégrer Sweego comme canal "masse" (newsletters + annonces), envoyer un BAT réel,
+ajouter Sweego à la sidebar, documenter l'infrastructure email, créer le plan des pages UI.
+
+**FAIT :**
+
+### Sweego backend (scripts/)
+- **`scripts/sweego_backend.py`** : 3 bugs corrigés — `provider: "sweego"` → `"email"`,
+  `campaign-type: "newsletter"` → `"market"`, champ `channel` supprimé. Sender domain
+  `news@news.leclientroi.email` → `info@leclientroi.com`. UTM source `newsletter` → `sweego`.
+- **`scripts/api.py`** : ajout `GET /api/sweego/stats` + `POST /api/sites/{site}/mass-campaigns/bat`.
+- **`.env`** : `SWEEGO_DOMAIN=news.leclientroi.email` → `SWEEGO_DOMAIN=leclientroi.com`
+
+### BAT envoyé et reçu ✅
+Email test "test sweego LCR 2" reçu par `camille@leclientroi.com` (2 min délai).
+DKIM ✅ SPF ✅ DMARC ✅ — From `info@leclientroi.com`, MTA via `swg.leclientroi.com`.
+
+### UI (genesis-ui/)
+- **`credits-widget.tsx`** : ajout Sweego (Send icon, indigo, nb emails envoyés total).
+- **`newsletters/page.tsx`** : section masse complète — dialog preview (iframe scalée 0.33),
+  inputs secteur/volume/sujet, BAT (`camille@leclientroi.com`), Simuler + Envoyer (indigo),
+  historique campagnes Sweego.
+- **`tag/page.tsx`** : ajout Sweego (`utm_source=sweego`) + Maildoso (`utm_source=maildoso`).
+
+### Docs (docs/)
+- **`docs/infrastructure.md`** (nouveau) : domaines, MTA Sweego (swg.leclientroi.com), auth triple-pass,
+  règle absolue `SWEEGO_DOMAIN=leclientroi.com`, boîtes Maildoso, IP VPS.
+- **`docs/platforms-api.md`** (nouveau) : référence Emelia REST+GraphQL, Sweego send/stats,
+  Maildoso SMTP/IMAP, tableau comparatif tags, état click→lead.
+- **`docs/features.md`** (nouveau) : carte complète des pages UI avec breadcrumbs, APIs, connexions.
+
+**RESTE :**
+1. **Click→lead Sweego** : capter `utm_source=sweego` → push `acquisition_contacts` (state=prm).
+2. **Click→lead Maildoso** : IMAP reply detection dans séquenceur maison.
+3. **Maildoso séquenceur** (`cold_email_engine.py`) : disponible ~2026-07-07 (warmup en cours).
+4. **Stats harmonisées** : vue unifiée Emelia + Sweego + Maildoso.
+5. **Test live scrapper** : valider un run Serper + Basile (voir RESTE Serper+Basile ci-dessous).
+
+### Architecture Sweego (mémo)
+- Sweego MTA : enveloppe via `swg.leclientroi.com` (indépendant du From)
+- Seul domaine autorisé : `leclientroi.com` (pas `news.leclientroi.email`)
+- Clé API : `SWEEGO_API_KEY` dans `.env` (ne jamais hardcoder)
+- Maildoso : 4 boîtes `@leclient-roi.com` warmup depuis 2026-06-23, dispo ~2026-07-07
 
 ## 🔝 REPRISE 2026-06-20 — Scrapper Serper + Basile (double source, cible 100 contacts)
 

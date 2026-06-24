@@ -3682,6 +3682,29 @@ def get_emelia_credits():
         return {"error": str(e), "configured": False}
 
 
+@app.get("/api/sweego/stats")
+def get_sweego_stats():
+    """Emails envoyés via Sweego (total cumulé depuis /stats/msp + nombre de campagnes en base)."""
+    try:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        import sweego_backend as sw
+        env_ok = bool(sw._env().get("SWEEGO_API_KEY"))
+        if not env_ok:
+            return {"configured": False}
+        msp = sw.msp_stats()
+        total_sent = sum(r.get("sent", 0) for r in (msp.get("result") or []))
+        # Compter les campagnes en base toutes plateformes confondues
+        campaigns = sw.list_campaigns("lcr") + sw.list_campaigns("mkd")
+        return {
+            "configured": True,
+            "sent_total": total_sent,
+            "campaigns_count": len(campaigns),
+            "msps": msp.get("msps", []),
+        }
+    except Exception as e:
+        return {"configured": False, "error": str(e)}
+
+
 @app.get("/api/basile/usage")
 def get_basile_usage():
     """Conso Basile du mois (contacts collectés via le connecteur Basile, source de vérité =
@@ -4783,6 +4806,25 @@ def api_html_lint_results(site: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import email_lint_backend as elb
     return {"results": elb.get_all_results(site)}
+
+
+@app.post("/api/sites/{site}/mass-campaigns/bat")
+async def api_mass_campaign_bat(site: str, request: Request):
+    """BAT Sweego : envoie le message validé à une seule adresse de test. Body: {message_id, subject, email}."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import sweego_backend as sw
+    import html_templates_backend as htb
+    body = await request.json()
+    message_id = (body.get("message_id") or "").strip()
+    subject = (body.get("subject") or "").strip()
+    email = (body.get("email") or "").strip()
+    if not message_id or not subject or not email or "@" not in email:
+        return {"ok": False, "error": "message_id, subject et email requis"}
+    msg = htb.get_version(site, message_id)
+    if not msg:
+        return {"ok": False, "error": "message introuvable"}
+    res = sw.send_campaign(f"{site}-bat-{message_id[:8]}", subject, msg["html"], [email], dry_run=False)
+    return res
 
 
 @app.post("/api/sites/{site}/mass-campaigns/create")
