@@ -31,20 +31,31 @@ MAX_LOCK_RETRIES = 5
 LOCK_WAIT_S = 30
 
 
-def _drain_with_retry(site: str) -> dict:
-    """run_cleanup_drain avec retry si la DB du pool est verrouillée (1 writer DuckDB)."""
+def _retry_lock(fn, label: str):
+    """Exécute fn() avec retry si la pool DuckDB est verrouillée (1 seul writer DuckDB).
+
+    Couvre AUSSI count_unverified() (lecture), qui s'exécute avant le drain : sans ça
+    un verrou à l'heure du job faisait tout planter (cf. crash 2026-06-21)."""
     last_err = None
     for attempt in range(1, MAX_LOCK_RETRIES + 1):
         try:
-            return cb.run_cleanup_drain(mode="unverified", site=site, source="cron-nightly")
+            return fn()
         except Exception as e:  # noqa: BLE001
             last_err = e
             if "lock" in str(e).lower() and attempt < MAX_LOCK_RETRIES:
-                print(f"[{site}] DB verrouillée (tentative {attempt}/{MAX_LOCK_RETRIES}), retry dans {LOCK_WAIT_S}s…", flush=True)
+                print(f"[{label}] DB verrouillée (tentative {attempt}/{MAX_LOCK_RETRIES}), retry dans {LOCK_WAIT_S}s…", flush=True)
                 time.sleep(LOCK_WAIT_S)
                 continue
             raise
     raise last_err  # type: ignore
+
+
+def _drain_with_retry(site: str) -> dict:
+    """run_cleanup_drain avec retry si la DB du pool est verrouillée (1 writer DuckDB)."""
+    return _retry_lock(
+        lambda: cb.run_cleanup_drain(mode="unverified", site=site, source="cron-nightly"),
+        site,
+    )
 
 
 def main():
@@ -53,7 +64,7 @@ def main():
     args = ap.parse_args()
     sites = [args.site] if args.site else SITES
 
-    before = cb.count_unverified()
+    before = _retry_lock(cb.count_unverified, "count-before")
     print(f"[nightly_cleanup] non-vérifiés avant: {before}", flush=True)
 
     problems = []
@@ -67,7 +78,7 @@ def main():
             print(f"[{site}] ÉCHEC: {e}", flush=True)
             problems.append(f"{site}: {e}")
 
-    after = cb.count_unverified()
+    after = _retry_lock(cb.count_unverified, "count-after")
     print(f"[nightly_cleanup] non-vérifiés après: {after} (supprimés/validés: {before - after})", flush=True)
 
     if problems:
@@ -76,4 +87,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Un verrou pool persistant = un AUTRE nettoyage tient déjà la DB (cleanup manuelle
+    # via l'API, enrich, import…). À fréquence horaire ces collisions sont attendues :
+    # on sort proprement (exit 0, pas de traceback ni d'alerte) — le run suivant reprendra.
+    try:
+        main()
+    except Exception as e:  # noqa: BLE001
+        if "lock" in str(e).lower():
+            print(f"[nightly_cleanup] SKIP — pool occupé par un autre nettoyage "
+                  f"({e.__class__.__name__}); le prochain run horaire reprendra.", flush=True)
+            sys.exit(0)
+        raise

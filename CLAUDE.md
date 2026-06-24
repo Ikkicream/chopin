@@ -1,4 +1,8 @@
-# Genesis — Plateforme SaaS multi-sites (LCR + MKD + futurs)
+# Genesis — Outil interne d'automatisation multi-sites (LCR + MKD + futurs)
+
+> **🏷️ Noms produit (Camille) :** ce dépôt `genesis` (backend) = **BigMatch** · le dépôt `genesis-ui` (UI cold email, `api.cheffer.email`) = **Cheffer**. Les noms `genesis`/`genesis-ui` ne sont QUE des noms de code historiques — **NE PAS renommer les dossiers** (chemins câblés en dur : crontab, PM2, .env, nginx, ~/.ssh). Parler de BigMatch / Cheffer.
+
+> **Pas un SaaS** : outil INTERNE pour les marques de Camille (LCR, MKD…), pas un service vendu à des clients. L'architecture est *SaaS-ready* (multi-tenant, onboarding, auth/rôles) mais n'est pas commercialisée. 1 seul user en base : Camille (superadmin).
 
 > **⚠️ AVANT TOUTE CHOSE : lire `STATE.md` à la racine du projet.**
 > Source de vérité "où on en est". À mettre à jour AVANT chaque fin de session.
@@ -9,7 +13,7 @@
 ---
 
 ## Ce projet
-Plateforme SaaS automatisant la **prospection cold email B2B** pour plusieurs sites cibles (LCR, MKD, futurs). Pipeline complet : Serper → email_validator → Mailnjoy → DeepSeek qualifier → Emelia (push + webhook retours) → CRM (pool mutualisé).
+Outil interne d'automatisation **multi-canal** (cold email B2B + masse) pour les marques de Camille (LCR, MKD, futurs). Pipeline complet : Serper → email_validator → Mailnjoy → DeepSeek qualifier → canaux d'envoi (Emelia warmup, Sweego masse, Maildoso à venir) + webhooks retours → CRM (pool mutualisé). Agent de délivrabilité contrôlant la cadence + hub de campagnes unifié.
 
 Stack : FastAPI + DuckDB côté serveur, Next.js 16 + shadcn v4 + Tailwind v4 côté UI.
 

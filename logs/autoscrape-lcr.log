@@ -42,3 +42,23 @@
   [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3999833) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
   [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3999833) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
   [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3999833) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[serper_places] error: 502 Server Error: Bad Gateway for url: https://google.serper.dev/places
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/autoscrape_backend.py", line 643, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/autoblog/genesis/scripts/autoscrape_backend.py", line 622, in main
+    run_all_regions(args.site, sectors, target_contacts=args.target_contacts,
+  File "/home/autoblog/genesis/scripts/autoscrape_backend.py", line 523, in run_all_regions
+    res = run_autoscrape(site, sectors, region=code, region_name=name,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/autoscrape_backend.py", line 322, in run_autoscrape
+    r = agents.scrape_sector(site, sector, cities=[city],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/god_mode_agents.py", line 372, in scrape_sector
+    email = fetch_email_from_site(website)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/god_mode_agents.py", line 228, in fetch_email_from_site
+    matches = EMAIL_RE.findall(r.text)
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
