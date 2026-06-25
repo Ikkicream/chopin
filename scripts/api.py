@@ -3434,6 +3434,23 @@ async def api_sweego_webhook(request: Request):
         except Exception as _pool_err:
             print(f"[sweego_webhook][pool] {_pool_err}")
 
+    # Cliqueur promu lead → enrichissement téléphone best-effort (waterfall Basile → Emelia),
+    # en tâche de fond pour NE PAS bloquer la réponse au webhook (Basile/Emelia ~90s).
+    if target_state == "prm":
+        try:
+            import threading
+
+            def _enrich_phone_bg(_site=site, _email=email):
+                try:
+                    import phone_enrich_backend as _pe
+                    _pe.enrich_phone(_site, _email)
+                except Exception as _e:  # noqa: BLE001
+                    print(f"[sweego_webhook][phone] {_e}")
+
+            threading.Thread(target=_enrich_phone_bg, daemon=True).start()
+        except Exception as _e:  # noqa: BLE001
+            print(f"[sweego_webhook][phone-spawn] {_e}")
+
     return {"ok": True, "event": event_type, "email": email, "state": target_state}
 
 

@@ -6581,3 +6581,158 @@
 {"ts": "2026-06-24T21:00:27.612858+00:00", "email": "contact@epim-immobilier.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
 {"ts": "2026-06-24T21:00:32.130973+00:00", "email": "selftest@example.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
 {"ts": "2026-06-24T21:00:37.253044+00:00", "email": "camille@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T10:00:06.866513+00:00", "email": "camille@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T10:49:24.087300+00:00", "email": "hello@aicodigital.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:49:40.940415+00:00", "email": "contact@eyeteck.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:49:51.006181+00:00", "email": "info@website.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T10:50:13.269390+00:00", "email": "contact@kroustyfactory.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:50:17.043648+00:00", "email": "contact@bourbonnoux.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:50:26.872390+00:00", "email": "porto@domain.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:50:41.200266+00:00", "email": "contact@brasserie-bos.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:50:52.317172+00:00", "email": "contact@visicod.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:50:59.900740+00:00", "email": "info@naf.org", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T10:51:14.495843+00:00", "email": "contact@23pizzastreet.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:51:19.585962+00:00", "email": "contact@madeincafe.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:51:38.138686+00:00", "email": "lefambar@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T10:51:55.119666+00:00", "email": "contact@auhealthy.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:52:06.430201+00:00", "email": "contact@hotel-lamire.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:52:10.914072+00:00", "email": "contact.lenvers@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T10:57:18.631832+00:00", "email": "contact@gangofpizza.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:57:34.406441+00:00", "email": "contact@lespetitsplatsdecelestin.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:57:45.060316+00:00", "email": "contact@auxvieuxgarcons.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T10:57:58.012429+00:00", "email": "contact@cafebleu-chartres.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:58:06.873420+00:00", "email": "contact@bistrotracines.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:58:23.498125+00:00", "email": "bonjour@cobalt-chartres.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:58:28.775390+00:00", "email": "info@monarque.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:58:30.416853+00:00", "email": "bonjour@cobalt-chartres.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:58:35.299828+00:00", "email": "info@monarque.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:58:42.848830+00:00", "email": "reservation@lecathedrale-brasserie.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:58:44.678226+00:00", "email": "reservation@lecathedrale-brasserie.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:58:57.583152+00:00", "email": "reservation@lannexe-brasserie.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:00.365870+00:00", "email": "reservation@lannexe-brasserie.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:02.102910+00:00", "email": "reservation@estocade-chartres.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:04.063638+00:00", "email": "reservation@estocade-chartres.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:08.519629+00:00", "email": "mail@mail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T10:59:09.278045+00:00", "email": "mail@mail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T10:59:18.127635+00:00", "email": "info@api-and-you.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:18.774170+00:00", "email": "info@api-and-you.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:23.075522+00:00", "email": "contact@tomate-et-piment.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:24.165979+00:00", "email": "contact@tomate-et-piment.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:35.056067+00:00", "email": "contact@cema28.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:35.367740+00:00", "email": "contact@cema28.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:45.717001+00:00", "email": "contact@picoterie.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T10:59:45.936130+00:00", "email": "contact@picoterie.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:00:06.882376+00:00", "email": "camille@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:00:14.759369+00:00", "email": "reservation@marketpub.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:00:15.223271+00:00", "email": "reservation@marketpub.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:00:16.868769+00:00", "email": "hello@aicodigital.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:00:23.726156+00:00", "email": "hi@mystore.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:00:24.018404+00:00", "email": "hi@mystore.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:00:26.173471+00:00", "email": "contact@eyeteck.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:00:39.021182+00:00", "email": "info@website.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:00:42.657156+00:00", "email": "contact@butchersteakhouse.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:00:42.994966+00:00", "email": "contact@butchersteakhouse.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:00:47.752220+00:00", "email": "contact@kroustyfactory.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:00:53.849599+00:00", "email": "contact@bourbonnoux.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:01:00.334374+00:00", "email": "contact@bvmlesboucherstraiteurs.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:01:05.579868+00:00", "email": "contact@bvmlesboucherstraiteurs.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:01:08.032584+00:00", "email": "porto@domain.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:01:12.264370+00:00", "email": "contact@brasserie-bos.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:01:21.557922+00:00", "email": "contact@visicod.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:01:28.115768+00:00", "email": "contact@lotrelieu.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:01:29.203008+00:00", "email": "info@naf.org", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:01:31.588686+00:00", "email": "contact@lotrelieu.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:01:38.610855+00:00", "email": "contact@23pizzastreet.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:01:42.007219+00:00", "email": "contact@madeincafe.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:01:51.393677+00:00", "email": "contact@auhealthy.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:01:52.490042+00:00", "email": "contact@plusquuntraiteur.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:01:56.803467+00:00", "email": "contact@plusquuntraiteur.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:01:59.047411+00:00", "email": "info@chateaugrandluce.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:02:00.887277+00:00", "email": "contact@hotel-lamire.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:04.736791+00:00", "email": "contact@storydeveloppement.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:02:05.573997+00:00", "email": "contact@gangofpizza.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:06.499769+00:00", "email": "info@chateaugrandluce.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:02:12.663216+00:00", "email": "contact@storydeveloppement.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:02:16.692364+00:00", "email": "kroostiyummy@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:02:19.250926+00:00", "email": "contact@lespetitsplatsdecelestin.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:19.323463+00:00", "email": "kroostiyummy@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:02:22.899042+00:00", "email": "contact@auxvieuxgarcons.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:32.364089+00:00", "email": "contact@cafebleu-chartres.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:36.250139+00:00", "email": "contact@bistrotracines.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:45.567395+00:00", "email": "bonjour@cobalt-chartres.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:50.496730+00:00", "email": "info@monarque.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:56.214193+00:00", "email": "reservation@lecathedrale-brasserie.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:02:56.612433+00:00", "email": "contact@lepetitluce.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:02:56.880143+00:00", "email": "contact@lepetitluce.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:02:59.905482+00:00", "email": "reservation@lannexe-brasserie.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:03:04.015355+00:00", "email": "reservation@estocade-chartres.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:03:11.120701+00:00", "email": "mail@mail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:03:21.095957+00:00", "email": "contact@kameleon-traiteur.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:03:23.036812+00:00", "email": "contact@kameleon-traiteur.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:03:23.183736+00:00", "email": "info@api-and-you.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:03:24.906356+00:00", "email": "votre@email.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:03:26.808368+00:00", "email": "votre@email.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:03:26.935040+00:00", "email": "contact@tomate-et-piment.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:03:28.605792+00:00", "email": "magasin@banette.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:03:30.125718+00:00", "email": "contact@cema28.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:03:32.131576+00:00", "email": "magasin@banette.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:03:39.226190+00:00", "email": "contact@picoterie.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:03:50.255685+00:00", "email": "reservation@marketpub.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:03:54.744088+00:00", "email": "hi@mystore.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:04:13.548131+00:00", "email": "contact@butchersteakhouse.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:04:24.573179+00:00", "email": "contact@bvmlesboucherstraiteurs.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:04:29.962334+00:00", "email": "contact@lotrelieu.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:04:40.734147+00:00", "email": "contact@plusquuntraiteur.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:04:44.683183+00:00", "email": "info@chateaugrandluce.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:04:49.622551+00:00", "email": "contact@storydeveloppement.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:05:16.824532+00:00", "email": "contact@lepetitluce.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:05:26.541587+00:00", "email": "contact@kameleon-traiteur.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:05:31.604785+00:00", "email": "votre@email.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:05:35.460154+00:00", "email": "magasin@banette.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:06:54.013832+00:00", "email": "info@aubergelaherse.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:06:59.269908+00:00", "email": "chateaudun@brithotel.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:00.639715+00:00", "email": "info@aubergelaherse.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:08.755419+00:00", "email": "chateaudun@brithotel.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:09.167884+00:00", "email": "contact@casa-pizza.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:12.102420+00:00", "email": "contact@casa-pizza.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:14.186479+00:00", "email": "contact@boulangerie-ange.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:17.177657+00:00", "email": "contact@boulangerie-ange.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:26.137132+00:00", "email": "info@lesaintjacques.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:26.659471+00:00", "email": "info@lesaintjacques.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:31.294180+00:00", "email": "mairie@ville-mainvilliers.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:31.497015+00:00", "email": "mairie@ville-mainvilliers.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:07:35.236272+00:00", "email": "omar-terirt@hotmail.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:07:39.834882+00:00", "email": "omar-terirt@hotmail.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:07:40.582453+00:00", "email": "abichou@my.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:07:44.809812+00:00", "email": "abichou@my.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:08:04.255257+00:00", "email": "contact@groupemontana.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:08:13.815250+00:00", "email": "contact@foodbooking.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:08:35.453989+00:00", "email": "contact@groupemontana.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:08:42.248501+00:00", "email": "contact@lapizzadudimanchesoir.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:08:45.973369+00:00", "email": "zhouweijuan2911@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:08:46.385588+00:00", "email": "contact@foodbooking.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:08:52.390862+00:00", "email": "info@aubergelaherse.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:08:58.402734+00:00", "email": "chateaudun@brithotel.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:09:00.725234+00:00", "email": "contact@restaurant-malar.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:09:04.234773+00:00", "email": "contact@lesjardinsdevillennes.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:09:09.715258+00:00", "email": "contact@casa-pizza.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:09:12.626195+00:00", "email": "contact@bordsdeseine.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:09:18.599879+00:00", "email": "contact@boulangerie-ange.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:09:18.821097+00:00", "email": "contact@lesvoiles.net", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:09:22.314018+00:00", "email": "contact@lesturgeon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:09:28.414595+00:00", "email": "info@lesaintjacques.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:09:31.769012+00:00", "email": "mairie@ville-mainvilliers.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:09:37.023318+00:00", "email": "abichou@my.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:09:37.546830+00:00", "email": "contact@lasarucia.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-06-25T11:09:52.657907+00:00", "email": "contact@groupemontana.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:09:56.316165+00:00", "email": "contact@foodbooking.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:10:04.803777+00:00", "email": "contact@lapizzadudimanchesoir.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:10:15.206987+00:00", "email": "contact@restaurant-malar.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:10:19.630810+00:00", "email": "contact@lesjardinsdevillennes.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:10:23.421470+00:00", "email": "contact@bordsdeseine.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:10:27.270704+00:00", "email": "contact@lesvoiles.net", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:10:32.479463+00:00", "email": "contact@lesturgeon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:10:36.436543+00:00", "email": "contact@lasarucia.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:11:52.896478+00:00", "email": "mymail@mailservice.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-25T11:16:00.812708+00:00", "email": "mymail@mailservice.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-06-25T11:17:21.869698+00:00", "email": "mymail@mailservice.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}

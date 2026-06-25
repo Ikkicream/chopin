@@ -28,11 +28,12 @@ SUFFIT pour gérer les webhooks (`/clients/{uuid}/webhooks`), pas besoin d'auth 
   (`event_type|status|event`, normalise tirets ET espaces) + recipient (`recipient|email|to`).
   Mapping : `clicked` humain→`prm` (proxy ignoré), `opened`→horodatage, `Hard bounce`/`List Unsub`/
   `Complaint`/`clicked_unsub`→blacklist + sortie pool. API redémarrée.
-- **RESTE à valider** : 1 vrai clic de bout en bout pour confirmer le FORMAT exact du payload Sweego
-  (champ + valeur event_type). L'envoi auto du BAT a été **refusé par le classifier** (outbound
-  email) → **user doit envoyer le BAT depuis l'UI** (`POST /api/sites/lcr/mass-campaigns/bat` →
-  camille@leclientroi.com), cliquer, puis vérifier table `sweego_events` (god_mode.duckdb) +
-  apparition en lead. Ajuster le mapping si le payload diffère.
+- **✅ VALIDÉ 2026-06-25 (vrai clic)** : BAT envoyé (`transaction_id 2717d86d`), clic réel →
+  webhook reçu (success_count 2) → `camille@leclientroi.com` promue **lead `prm` dans
+  /acquisition** + ajoutée au pool. **Format payload Sweego CONFIRMÉ** : `event_type` =
+  **`email_clicked`** / **`email_opened`** (champ recipient présent), pas `clicked`/`opened` du
+  config webhook. Le récepteur durci les gère déjà (`== "email_clicked"` + `startswith`).
+  Reste : nettoyer le lead de test `camille@leclientroi.com` du pool + acquisition quand on veut.
 - ⚠️ Sweego note : webhook `clicked_unsub` « coming soon » côté Sweego (visible en logs en attendant).
 
 ### 🧹 Cleanup pool : 1×/nuit (3h) → HORAIRE + robuste
