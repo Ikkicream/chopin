@@ -3354,8 +3354,11 @@ async def api_sweego_webhook(request: Request):
                     email_opened (humain)→horodatage seul, reste→ignoré.
     """
     data = await request.json()
-    event_type = (data.get("event_type") or "").lower().replace("-", "_")
-    email = (data.get("recipient") or "").strip().lower()
+    # event_type peut arriver sous plusieurs clés/formats : Sweego envoie 'clicked',
+    # 'clicked-human/-proxy', 'opened-human', 'Hard bounce', 'List Unsub', 'clicked_unsub'…
+    raw_et = (data.get("event_type") or data.get("status") or data.get("event") or "")
+    event_type = str(raw_et).strip().lower().replace("-", "_").replace(" ", "_")
+    email = (data.get("recipient") or data.get("email") or data.get("to") or "").strip().lower()
     if not email or "@" not in email:
         return {"ok": False, "error": "no recipient"}
 
@@ -3363,21 +3366,22 @@ async def api_sweego_webhook(request: Request):
     # site detect via campaign_id (on génère lcr-… / mkd-… dans sweego_backend)
     site = "mkd" if str(campaign_id).lower().startswith("mkd") else "lcr"
 
-    # email_opened : ne promeut rien, et on ignore les ouvertures proxy (bots/prefetch)
-    is_proxy_open = bool((data.get("open") or {}).get("proxy"))
+    # Proxy = bot / scanner de sécurité / prefetch → ce n'est PAS un humain, on ne promeut pas.
+    is_proxy_open = bool((data.get("open") or {}).get("proxy")) or ("proxy" in event_type)
 
-    # action → état cible (mirror Emelia)
-    state_map = {
-        "email_clicked": "prm",
-        "hard_bounce": "blacklisted",
-        "list_unsub": "blacklisted",
-        "complaint": "blacklisted",
-        "email_opened": None,
-        "delivered": None,
-        "email_sent": None,
-        "soft_bounce": None,
-    }
-    target_state = state_map.get(event_type, None)
+    # action → état cible. Noms Sweego normalisés (underscores) + tolérance aux variantes.
+    if "unsub" in event_type:                       # list_unsub, clicked_unsub → désinscription
+        target_state = "blacklisted"
+    elif event_type.startswith("clicked") or event_type == "email_clicked":
+        target_state = None if is_proxy_open else "prm"   # clic HUMAIN → lead
+    elif event_type.startswith("opened") or event_type == "email_opened":
+        target_state = None                         # ouverture → horodatage seul, pas de promo
+    elif "hard_bounce" in event_type or event_type == "hardbounce":
+        target_state = "blacklisted"
+    elif "complaint" in event_type:
+        target_state = "blacklisted"
+    else:                                           # delivered, sent, soft_bounce, *_proxy…
+        target_state = None
 
     # === Audit log des events Sweego (table créée à la volée) ===
     try:
@@ -4765,10 +4769,10 @@ async def api_enrichment_run(request: Request):
 def api_pool_depletion(site: str, threshold: int = 10):
     """Alerte secteur épuisé pour ce site."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from contacts_pool_backend import check_pool_depletion
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from god_mode_backend import SECTORS_GOD_MODE as SECTORS
-    return {"depleted": check_pool_depletion(site, SECTORS, threshold=threshold)}
+    from contacts_pool_backend import check_pool_depletion, pool_sectors
+    from god_mode_backend import SECTORS_GOD_MODE
+    sectors = pool_sectors() or SECTORS_GOD_MODE  # secteurs RÉELS du pool, pas la liste scrapable figée
+    return {"depleted": check_pool_depletion(site, sectors, threshold=threshold)}
 
 
 @app.get("/api/sites/{site}/pool/sector-availability")
@@ -4776,9 +4780,10 @@ def api_pool_sector_availability(site: str):
     """Dispo de pioche par secteur canonique (mêmes filtres que pick_for_campaign).
     Alimente la Vision : compteurs réels par secteur, triés décroissant."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from contacts_pool_backend import count_available_for_sector
-    from god_mode_backend import SECTORS_GOD_MODE as SECTORS
-    rows = [{"sector": s_, "available": count_available_for_sector(site, s_)} for s_ in SECTORS]
+    from contacts_pool_backend import count_available_for_sector, pool_sectors
+    from god_mode_backend import SECTORS_GOD_MODE
+    sectors = pool_sectors() or SECTORS_GOD_MODE  # secteurs RÉELS du pool, pas la liste scrapable figée
+    rows = [{"sector": s_, "available": count_available_for_sector(site, s_)} for s_ in sectors]
     rows.sort(key=lambda r: r["available"], reverse=True)
     return {"sectors": rows, "total_available": sum(r["available"] for r in rows)}
 

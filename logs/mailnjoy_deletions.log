@@ -6578,3 +6578,6 @@
 {"ts": "2026-06-24T20:56:53.429994+00:00", "email": "contact@sidon-construction.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
 {"ts": "2026-06-24T20:57:04.227328+00:00", "email": "contact@dreossiconsulting.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
 {"ts": "2026-06-24T20:57:14.224448+00:00", "email": "contact@auzus-immobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-24T21:00:27.612858+00:00", "email": "contact@epim-immobilier.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-06-24T21:00:32.130973+00:00", "email": "selftest@example.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-06-24T21:00:37.253044+00:00", "email": "camille@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}

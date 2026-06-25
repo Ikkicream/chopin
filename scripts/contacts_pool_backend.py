@@ -714,6 +714,39 @@ def count_available_for_sector(site_code: str, sector: str, cleaned_within_days:
     return int(n or 0)
 
 
+def pool_sectors(min_count: int = 1) -> list[str]:
+    """Secteurs RÉELLEMENT présents dans le pool (non blacklistés), triés par fréquence desc.
+
+    Source de vérité = la donnée, pas la liste scrapable figée SECTORS_GOD_MODE (qui sert au
+    scraping Serper et ne reflète pas la taxonomie importée). Utilisé par la Vision pour des
+    compteurs par secteur cohérents avec ce qu'on a vraiment en base.
+    """
+    c = _conn(read_only=True)
+    try:
+        rows = c.execute(
+            "SELECT sectors::VARCHAR AS s, COUNT(*) AS n FROM contacts "
+            "WHERE COALESCE(global_blacklisted, FALSE) = FALSE "
+            "AND sectors IS NOT NULL AND sectors::VARCHAR NOT IN ('', '[]', 'null') "
+            "GROUP BY 1"
+        ).fetchall()
+    finally:
+        c.close()
+    # sectors est un tableau JSON ("[\"immobilier\"]") — on agrège les tokens par fréquence.
+    freq: dict[str, int] = {}
+    for raw, n in rows:
+        try:
+            vals = json.loads(raw)
+        except Exception:
+            vals = [raw]
+        if not isinstance(vals, list):
+            vals = [vals]
+        for v in vals:
+            tok = str(v).strip().lower()
+            if tok:
+                freq[tok] = freq.get(tok, 0) + int(n or 0)
+    return [s for s, n in sorted(freq.items(), key=lambda kv: kv[1], reverse=True) if n >= min_count]
+
+
 def check_pool_depletion(site_code: str, sectors: list[str], threshold: int = 10) -> list[dict]:
     """Pour chaque secteur, compte les contacts dispo. Retourne ceux < threshold."""
     out = []

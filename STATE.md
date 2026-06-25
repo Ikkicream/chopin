@@ -4,7 +4,56 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-24 (Hub campagnes multi-canal + agent délivrabilité + scheduler + stats unifiées)
+2026-06-25 (Webhook Sweego RÉSOLU + tracking clics→leads + cleanup horaire + Vision secteurs réels)
+
+## 🔝 REPRISE 2026-06-25 — Webhook Sweego (clics→leads), cleanup pool, Vision
+
+### ✅ Webhook Sweego ENFIN débloqué (clic → lead dans /acquisition)
+**Le blocage depuis le départ = mauvais `uuid_client`.** Le bon (compte CACAR Holding,
+`technique@leclientroi.com`) = **`bd0d7413-26ff-414c-9e31-232382ff1512`**. L'`Api-Key` du `.env`
+SUFFIT pour gérer les webhooks (`/clients/{uuid}/webhooks`), pas besoin d'auth user. (L'ancien
+`5fe41d8d-…` était un mauvais uuid → 403.)
+- **Tracking clic/ouverture DÉJÀ activé + vérifié** sur `leclientroi.com` (`tracking_click_enabled`,
+  `tracking_open_enabled`, `is_verified` = true). Aucun DNS / aucune action dev nécessaire.
+- **Mapping event_type_ids Sweego (channel email=1, sms=2) :** 1=Delivered, 2=Soft bounce,
+  3=Hard bounce, 4=List Unsub, 5=Complaint, 6=Sent, **9=clicked**, 10=clicked_unsub, 11=opened.
+  Body create = `events:[{event_channel, event_type_ids:[…], domain_uuids:[…]}]` (les 3 requis).
+  Domain uuids : leclientroi.com=`f68f25ef-b658-470e-9c0e-59ca66e90634`,
+  news.leclientroi.app=`f15130f6-…`, news.leclientroi.email=`ee50d85f-…`.
+- **Webhook créé : `genesis-prm`** (uuid `f3ac5b86-88ac-4408-8851-c006efb804f9`, ENABLED) →
+  `https://api.cheffer.email/api/sweego/webhook?token=<WEBHOOK_TOKEN_1>`, events
+  [9,11,3,4,5,10] sur les 3 domaines. Le webhook **`prod`** (→ app.leclientroi.com, 12k succès)
+  est intact ; les deux reçoivent.
+- **Récepteur durci** (`api.py` `/api/sweego/webhook`) : résolution robuste event_type
+  (`event_type|status|event`, normalise tirets ET espaces) + recipient (`recipient|email|to`).
+  Mapping : `clicked` humain→`prm` (proxy ignoré), `opened`→horodatage, `Hard bounce`/`List Unsub`/
+  `Complaint`/`clicked_unsub`→blacklist + sortie pool. API redémarrée.
+- **RESTE à valider** : 1 vrai clic de bout en bout pour confirmer le FORMAT exact du payload Sweego
+  (champ + valeur event_type). L'envoi auto du BAT a été **refusé par le classifier** (outbound
+  email) → **user doit envoyer le BAT depuis l'UI** (`POST /api/sites/lcr/mass-campaigns/bat` →
+  camille@leclientroi.com), cliquer, puis vérifier table `sweego_events` (god_mode.duckdb) +
+  apparition en lead. Ajuster le mapping si le payload diffère.
+- ⚠️ Sweego note : webhook `clicked_unsub` « coming soon » côté Sweego (visible en logs en attendant).
+
+### 🧹 Cleanup pool : 1×/nuit (3h) → HORAIRE + robuste
+`scripts/nightly_cleanup.py` : (a) `count_unverified()` (avant/après) passe par le retry anti-lock
+(`_retry_lock`) — corrige le crash 2026-06-21 ; (b) un verrou pool persistant = SKIP propre (exit 0,
+pas d'alerte) ; cron PM2 `genesis-nightly-cleanup` `0 3 * * *` → **`0 * * * *`** (`pm2 save` fait).
+Le drain couvre TOUT le pool (le param `site` n'est qu'un label de log, `list_for_cleanup` est
+global). Les ~859 jamais-vérifiés ont été drainés → pool **3762 contacts dont 3647 mailnjoy-valid,
+0 jamais-vérifié**. Le drainer continu `genesis-mailnjoy-drain` ne couvre QUE le scrape
+(`scrappe_pending`), PAS le pool import → c'est l'horaire qui couvre les imports.
+
+### 📊 Vision /site/{site}/vision : secteurs réels (faux 0 corrigés)
+La page utilisait `SECTORS_GOD_MODE` (liste scrapable figée : garagiste, plombier…) qui ne matche
+pas la taxonomie importée (immobilier 936, banque, industrie…). Nouvelle `pool_sectors()` dans
+`contacts_pool_backend.py` (secteurs RÉELS du pool, triés par fréquence) ; endpoints
+`sector-availability` + `depletion-alert` branchés dessus. UI inchangée (affiche ce que l'API
+renvoie). API redémarrée.
+
+### 🧠 claude-mem installé
+`npx claude-mem install` + `start` (v13.8.0, plugin `/root/.claude/plugins/`, worker port 37700,
+auto-memory native conservée). Données dans `~/.claude-mem`.
 
 ## 🔝 REPRISE 2026-06-24 (soir) — Hub de campagnes multi-canal
 
