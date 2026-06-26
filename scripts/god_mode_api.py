@@ -29,6 +29,32 @@ def require_admin(
     return user
 
 
+def require_site_access(
+    site: str,
+    x_session_token: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    """Autorise un admin/superadmin (accès total) OU un user métier ayant accès à `{site}`.
+    L'isolation cross-site est garantie en amont par le middleware (un user ne peut atteindre
+    que /api/god-mode/{ses_sites}/*). Décision produit : un commercial peut piloter le scrapper
+    de SON site (toggle + scrape), pas celui d'un autre."""
+    token = x_session_token
+    if not token and authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+    user = gm.verify_admin(token)
+    if user:
+        return user
+    try:
+        import auth_backend as ab
+        sess = ab.verify_session(token)
+    except Exception:
+        sess = None
+    if sess and site in (sess.get("sites") or []):
+        return sess
+    raise HTTPException(status_code=403, detail="Accès refusé pour ce site")
+
+
 def _check_site(site: str):
     if site not in gm.VALID_SITES:
         raise HTTPException(status_code=400, detail=f"Site invalide: {site}")
@@ -40,7 +66,7 @@ def _ip(request: Request) -> str:
 
 # ── State + Toggle ────────────────────────────────────────────────────────────
 @router.get("/{site}/state")
-def state(site: str, user=Depends(require_admin)):
+def state(site: str, user=Depends(require_site_access)):
     _check_site(site)
     s = gm.get_state(site)
     if not s:
@@ -49,7 +75,7 @@ def state(site: str, user=Depends(require_admin)):
 
 
 @router.post("/{site}/toggle")
-async def toggle(site: str, request: Request, user=Depends(require_admin)):
+async def toggle(site: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     body = await request.json()
     enabled = bool(body.get("enabled", False))
@@ -61,13 +87,13 @@ async def toggle(site: str, request: Request, user=Depends(require_admin)):
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 @router.get("/{site}/settings")
-def settings_get(site: str, user=Depends(require_admin)):
+def settings_get(site: str, user=Depends(require_site_access)):
     _check_site(site)
     return gm.get_settings(site)
 
 
 @router.put("/{site}/settings")
-async def settings_put(site: str, request: Request, user=Depends(require_admin)):
+async def settings_put(site: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     body = await request.json()
     daily_quota = int(body.get("daily_quota", 35))
@@ -84,14 +110,14 @@ async def settings_put(site: str, request: Request, user=Depends(require_admin))
 
 # ── Context check ─────────────────────────────────────────────────────────────
 @router.get("/{site}/context-check")
-def context_check(site: str, user=Depends(require_admin)):
+def context_check(site: str, user=Depends(require_site_access)):
     _check_site(site)
     return gm.context_check(site)
 
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 @router.get("/{site}/logs")
-def logs(site: str, limit: int = 200, user=Depends(require_admin)):
+def logs(site: str, limit: int = 200, user=Depends(require_site_access)):
     _check_site(site)
     return {"logs": gm.list_logs(site, limit=min(limit, 1000))}
 
@@ -99,13 +125,13 @@ def logs(site: str, limit: int = 200, user=Depends(require_admin)):
 # ── Prospects ─────────────────────────────────────────────────────────────────
 @router.get("/{site}/prospects")
 def prospects_list(site: str, status: Optional[str] = None, sector: Optional[str] = None,
-                   limit: int = 500, user=Depends(require_admin)):
+                   limit: int = 500, user=Depends(require_site_access)):
     _check_site(site)
     return {"prospects": gm.list_prospects(site, status=status, sector=sector, limit=min(limit, 2000))}
 
 
 @router.post("/{site}/prospects/{prospect_id}/status")
-async def prospect_set_status(site: str, prospect_id: str, request: Request, user=Depends(require_admin)):
+async def prospect_set_status(site: str, prospect_id: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     body = await request.json()
     status = body.get("status")
@@ -120,7 +146,7 @@ async def prospect_set_status(site: str, prospect_id: str, request: Request, use
 
 # ── Templates ─────────────────────────────────────────────────────────────────
 @router.get("/{site}/templates")
-def templates_list(site: str, user=Depends(require_admin)):
+def templates_list(site: str, user=Depends(require_site_access)):
     _check_site(site)
     state = gm.get_state(site)
     settings = gm.get_settings(site)
@@ -134,7 +160,7 @@ def templates_list(site: str, user=Depends(require_admin)):
 
 
 @router.get("/{site}/templates/{sector}")
-def template_get(site: str, sector: str, user=Depends(require_admin)):
+def template_get(site: str, sector: str, user=Depends(require_site_access)):
     _check_site(site)
     # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
     if not sector or not sector.strip():
@@ -146,7 +172,7 @@ def template_get(site: str, sector: str, user=Depends(require_admin)):
 
 
 @router.post("/{site}/templates/{sector}/generate")
-async def template_generate(site: str, sector: str, request: Request, user=Depends(require_admin)):
+async def template_generate(site: str, sector: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
     if not sector or not sector.strip():
@@ -164,7 +190,7 @@ async def template_generate(site: str, sector: str, request: Request, user=Depen
 
 
 @router.put("/{site}/templates/{sector}/html")
-async def template_update_html(site: str, sector: str, request: Request, user=Depends(require_admin)):
+async def template_update_html(site: str, sector: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
     if not sector or not sector.strip():
@@ -182,7 +208,7 @@ async def template_update_html(site: str, sector: str, request: Request, user=De
 
 
 @router.put("/{site}/templates/{sector}/subject")
-async def template_update_subject(site: str, sector: str, request: Request, user=Depends(require_admin)):
+async def template_update_subject(site: str, sector: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
     if not sector or not sector.strip():
@@ -202,7 +228,7 @@ async def template_update_subject(site: str, sector: str, request: Request, user
 
 
 @router.post("/{site}/templates/{sector}/lock")
-async def template_lock(site: str, sector: str, request: Request, user=Depends(require_admin)):
+async def template_lock(site: str, sector: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
     if not sector or not sector.strip():
@@ -217,7 +243,7 @@ async def template_lock(site: str, sector: str, request: Request, user=Depends(r
 
 
 @router.post("/{site}/templates/{sector}/unlock")
-async def template_unlock(site: str, sector: str, request: Request, user=Depends(require_admin)):
+async def template_unlock(site: str, sector: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     # 2026-05-22 : sector libre (plus de check strict) — permet n'importe quel secteur métier ou query custom
     if not sector or not sector.strip():
@@ -230,7 +256,7 @@ async def template_unlock(site: str, sector: str, request: Request, user=Depends
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 @router.get("/{site}/serper/credits")
-def serper_credits(site: str, user=Depends(require_admin)):
+def serper_credits(site: str, user=Depends(require_site_access)):
     _check_site(site)
     import god_mode_agents as gm_agents
     bal = gm_agents.serper_balance()
@@ -240,7 +266,7 @@ def serper_credits(site: str, user=Depends(require_admin)):
 
 
 @router.get("/{site}/stats/timeseries")
-def stats_timeseries(site: str, date_from: Optional[str] = None, date_to: Optional[str] = None, user=Depends(require_admin)):
+def stats_timeseries(site: str, date_from: Optional[str] = None, date_to: Optional[str] = None, user=Depends(require_site_access)):
     _check_site(site)
     from datetime import date as d, timedelta
     today = d.today()
@@ -252,7 +278,7 @@ def stats_timeseries(site: str, date_from: Optional[str] = None, date_to: Option
 
 
 @router.get("/{site}/stats")
-def stats(site: str, user=Depends(require_admin)):
+def stats(site: str, user=Depends(require_site_access)):
     _check_site(site)
     return gm.stats(site)
 
@@ -263,7 +289,7 @@ import god_mode_agents as gm_agents
 
 
 @router.post("/{site}/scrape")
-async def scrape(site: str, request: Request, user=Depends(require_admin)):
+async def scrape(site: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     state = gm.get_state(site)
     if not state or not state.get("enabled"):
@@ -281,17 +307,34 @@ async def scrape(site: str, request: Request, user=Depends(require_admin)):
     max_per_city = max(1, min(int(body.get("max_per_city", body.get("max_results", 10))), 50))
     global_cap = max(1, min(int(body.get("global_cap", 1000)), 5000))
 
+    # ── Quota mensuel de scrape (garde-fou produit) ────────────────────────────
+    # Un user métier est plafonné à gm.SCRAPE_MONTHLY_CAP contacts gardés/mois
+    # (tous sites confondus). Le superadmin n'est pas limité. On clampe en plus le
+    # global_cap au restant pour ne pas dépasser le plafond sur ce seul scrape.
+    if user.get("role") != "superadmin":
+        q = gm.scrape_quota_status(user["user_id"])
+        if q["remaining"] <= 0:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Quota mensuel de scrape atteint ({q['used']}/{q['limit']} contacts ce mois-ci). Réessaie le mois prochain.",
+            )
+        global_cap = min(global_cap, q["remaining"])
+
     gm.log_action(site, user["username"], user["user_id"], "start_scrape",
                   resource="sector", resource_id=sector,
                   payload={"sector": sector, "cities": cities, "cities_count": len(cities or []),
                            "max_per_city": max_per_city, "global_cap": global_cap}, ip=_ip(request))
 
-    captured_user = {"username": user["username"], "user_id": user["user_id"]}
+    captured_user = {"username": user["username"], "user_id": user["user_id"], "role": user.get("role")}
 
     def run():
         try:
-            gm_agents.scrape_sector(site, sector, cities=cities, max_per_city=max_per_city,
-                                    global_cap=global_cap, username=captured_user["username"])
+            res = gm_agents.scrape_sector(site, sector, cities=cities, max_per_city=max_per_city,
+                                          global_cap=global_cap, username=captured_user["username"])
+            # Compteur de quota mensuel : on additionne les contacts réellement gardés.
+            if captured_user.get("role") != "superadmin":
+                kept = (res or {}).get("kept_total") or (res or {}).get("valid") or 0
+                gm.record_scrape_usage(captured_user["user_id"], kept)
         except Exception as e:
             gm.log_action(site, captured_user["username"], captured_user["user_id"], "scrape_error",
                           resource="sector", resource_id=sector, payload={"error": str(e)}, success=False, error=str(e))
@@ -327,7 +370,7 @@ import god_mode_scheduler as gm_sched
 
 
 @router.post("/{site}/campaigns/validate")
-async def campaign_validate(site: str, request: Request, user=Depends(require_admin)):
+async def campaign_validate(site: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     body = await request.json()
     sector = body.get("sector")
@@ -339,7 +382,7 @@ async def campaign_validate(site: str, request: Request, user=Depends(require_ad
 
 
 @router.post("/{site}/campaigns/schedule")
-async def campaign_schedule(site: str, request: Request, user=Depends(require_admin)):
+async def campaign_schedule(site: str, request: Request, user=Depends(require_site_access)):
     _check_site(site)
     body = await request.json()
     sector = body.get("sector")
@@ -358,7 +401,7 @@ async def campaign_schedule(site: str, request: Request, user=Depends(require_ad
 
 
 @router.get("/{site}/campaigns")
-def campaigns_list(site: str, user=Depends(require_admin)):
+def campaigns_list(site: str, user=Depends(require_site_access)):
     _check_site(site)
     return {"campaigns": gm.list_campaigns(site)}
 
@@ -368,12 +411,12 @@ import workflow_geo
 
 
 @router.get("/geo/regions")
-def geo_regions(user=Depends(require_admin)):
+def geo_regions(user=Depends(require_site_access)):
     return {"regions": workflow_geo.list_regions()}
 
 
 @router.get("/geo/departments")
-def geo_departments(region: Optional[str] = None, user=Depends(require_admin)):
+def geo_departments(region: Optional[str] = None, user=Depends(require_site_access)):
     return {"departments": workflow_geo.list_departments(region_code=region)}
 
 
@@ -382,7 +425,7 @@ def geo_cities(
     dept: Optional[str] = None,
     region: Optional[str] = None,
     min_pop: int = 10000,
-    user=Depends(require_admin),
+    user=Depends(require_site_access),
 ):
     cities = workflow_geo.list_cities(dept_code=dept, region_code=region, min_pop=min_pop)
     return {"cities": cities, "count": len(cities)}
@@ -411,7 +454,7 @@ def performance(
     site: str,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    user=Depends(require_admin),
+    user=Depends(require_site_access),
 ):
     """Agrégats Workflow par secteur et par ville.
 
@@ -603,7 +646,7 @@ def performance(
 
 # ── Run manuel du workflow_runner sur un département ─────────────────────────
 @router.post("/{site}/workflow-run")
-async def workflow_run(site: str, request: Request, user=Depends(require_admin)):
+async def workflow_run(site: str, request: Request, user=Depends(require_site_access)):
     """Lance workflow_runner en background sur un département choisi.
     Body: {"dept": "75", "scrape_quota": 12, "dry_run": false}
     """
@@ -642,5 +685,5 @@ async def workflow_run(site: str, request: Request, user=Depends(require_admin))
 
 # ── Sectors meta ──────────────────────────────────────────────────────────────
 @router.get("/meta/sectors")
-def meta_sectors(user=Depends(require_admin)):
+def meta_sectors(user=Depends(require_site_access)):
     return {"sectors": gm.SECTORS_GOD_MODE, "cities_top50": gm.TOP_50_INSEE}

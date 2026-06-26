@@ -5384,6 +5384,12 @@ async def api_campaign_action(site: str, cid: str, action: str):
     if action == "cancel":
         ce.set_status(cid, "cancelled"); return {"ok": True, "status": "cancelled"}
     if action == "send-now":
+        # Envoi manuel : vérifie les crédits d'envoi et alerte l'admin si bas/épuisés.
+        try:
+            import credit_alerts
+            credit_alerts.check_and_alert()
+        except Exception:
+            pass
         return ce.dispatch_campaign(cid, _d.today())
     return {"ok": False, "error": f"action inconnue: {action}"}
 

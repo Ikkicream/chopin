@@ -663,6 +663,80 @@ def serper_usage(site_code: str = None) -> dict:
     return {"used_today": int(used_today), "used_month": int(used_month), "used_year": int(used_year), "used_total": int(used_total), "calls_total": int(calls_total)}
 
 
+# ── Quota de scrape mensuel par user ──────────────────────────────────────────
+# Garde-fou produit (2026-06-26) : un user métier (commercial) est plafonné à
+# SCRAPE_MONTHLY_CAP contacts GARDÉS (scrapés + insérés dans le pool) par mois
+# calendaire, tous sites confondus. Le superadmin (Camille) n'est pas concerné.
+SCRAPE_MONTHLY_CAP = 5000
+_SCRAPE_QUOTA_INIT = False
+
+
+def _ensure_scrape_quota_table() -> None:
+    global _SCRAPE_QUOTA_INIT
+    if _SCRAPE_QUOTA_INIT:
+        return
+    c = _conn()
+    try:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS scrape_quota_usage (
+                user_id    VARCHAR NOT NULL,
+                year_month VARCHAR NOT NULL,   -- 'YYYY-MM'
+                used       INTEGER DEFAULT 0,  -- contacts gardés ce mois
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, year_month)
+            )
+        """)
+        _SCRAPE_QUOTA_INIT = True
+    finally:
+        c.close()
+
+
+def scrape_quota_status(user_id: str, cap: int = SCRAPE_MONTHLY_CAP) -> dict:
+    """Usage de scrape du mois courant pour un user. {used, limit, remaining, year_month}."""
+    _ensure_scrape_quota_table()
+    ym = date.today().strftime("%Y-%m")
+    c = _conn()
+    try:
+        row = c.execute(
+            "SELECT used FROM scrape_quota_usage WHERE user_id=? AND year_month=?",
+            [user_id, ym],
+        ).fetchone()
+    finally:
+        c.close()
+    used = int(row[0]) if row else 0
+    return {"used": used, "limit": cap, "remaining": max(0, cap - used), "year_month": ym}
+
+
+def record_scrape_usage(user_id: str, n: int) -> None:
+    """Incrémente le compteur mensuel de `n` contacts gardés (best-effort, read-modify-write)."""
+    if not user_id or not n or n <= 0:
+        return
+    _ensure_scrape_quota_table()
+    ym = date.today().strftime("%Y-%m")
+    try:
+        c = _conn()
+        try:
+            row = c.execute(
+                "SELECT used FROM scrape_quota_usage WHERE user_id=? AND year_month=?",
+                [user_id, ym],
+            ).fetchone()
+            if row:
+                c.execute(
+                    "UPDATE scrape_quota_usage SET used = used + ?, updated_at = CURRENT_TIMESTAMP "
+                    "WHERE user_id=? AND year_month=?",
+                    [int(n), user_id, ym],
+                )
+            else:
+                c.execute(
+                    "INSERT INTO scrape_quota_usage (user_id, year_month, used) VALUES (?, ?, ?)",
+                    [user_id, ym, int(n)],
+                )
+        finally:
+            c.close()
+    except Exception:
+        pass
+
+
 # ── Stats ─────────────────────────────────────────────────────────────────────
 def stats(site_code: str) -> dict:
     today = date.today()

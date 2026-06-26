@@ -4,7 +4,32 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-26 (Isolation multi-tenant RENFORCÉE — fuite cross-site fermée + enrich phone cliqueurs + admin email + remind-later 2FA)
+2026-06-26 (Quota scrape 5000/mois/user + alerte Telegram crédits d'envoi bas/épuisés)
+
+## 🔝 REPRISE 2026-06-26 (suite) — Quota scrape mensuel + alerte crédits d'envoi
+
+**Demande user :** (1) plafonner les users à **5000 scrappe/mois**, (2) **alerte admin quand
+il n'y a plus de crédit d'envoi**. Choix validés : quota = contacts GARDÉS/mois, canal alerte =
+Telegram (déjà câblé), seuils = bas + épuisé.
+
+**FAIT :**
+- **Quota scrape (`god_mode_backend.py`)** : nouvelle table `scrape_quota_usage`
+  (user_id, year_month, used, PK) + helpers `scrape_quota_status(user_id)` /
+  `record_scrape_usage(user_id, n)`. Cap = `SCRAPE_MONTHLY_CAP = 5000`, par user, tous sites.
+- **Enforcement (`god_mode_api.py` POST `/{site}/scrape`)** : si `role != superadmin` →
+  refuse (429) quand `remaining<=0`, sinon **clampe `global_cap` au restant**. En fin de scrape
+  (thread `run`), `record_scrape_usage(user_id, kept_total)` additionne les contacts réellement
+  gardés. **Le superadmin (Camille) n'est PAS limité.**
+- **Alerte crédits (`scripts/credit_alerts.py` NOUVEAU)** : surveille les soldes LIVE Emelia
+  (`fetch_live_balance`) + Mailnjoy (`get_credit`). Niveaux `low`/`empty` (seuils Emelia<50,
+  Mailnjoy<100). Anti-spam : alerte seulement au franchissement d'un palier (état
+  `memory/credit_alerts.json`), réarme au retour `ok`. Envoi Telegram (TELEGRAM_BOT_TOKEN/CHAT_ID).
+- **Branchements** : `campaign_engine.dispatch_due()` (cron 8h30) + endpoint send-now
+  (`api.py`) appellent `credit_alerts.check_and_alert()` avant l'envoi (best-effort).
+- Vérifié : `py_compile` OK sur les 5 fichiers ; `scrape_quota_status` → 5000 dispo ;
+  logique de seuils OK. (Pas d'envoi Telegram réel déclenché pendant les tests.)
+- ⚠️ Sweego n'expose pas de solde lisible → seuls Emelia + Mailnjoy sont surveillés (les 2
+  crédits LIVE du pipeline d'envoi). API à redémarrer pour activer (`pm2 restart genesis-dashboard`).
 
 ## 🔝 REPRISE 2026-06-26 — Isolation multi-tenant (faille cross-site fermée)
 
@@ -25,6 +50,11 @@ de données, pas cosmétique.**
   `/api/campaigns` (filtre par préfixe de nom `lcr-`/`mkd-`). `_CONNECTOR_SITE` mappe connecteur→site.
 - **Front** : `/view` ET `/campaigns` (pages globales cross-site) réservées superadmin → un user
   métier est redirigé vers `/site/{son_site}/dashboard|campaigns`. Garde de rendu anti-flash.
+- **Scrapper god-mode ouvert aux users métier sur LEUR site** : tout le router `god_mode_api.py`
+  était `Depends(require_admin)` → un commercial avait 403 partout (toggle/scrape inertes, scrapper
+  mort alors qu'il est dans la nav Commercial). Remplacé par `require_site_access` (admin OU user
+  avec accès au `{site}`) sur les 28 endpoints. Décision user : un commercial peut scraper SON site
+  (consomme des crédits Serper/Basile), pas un autre (middleware bloque). Vérifié : lcr→200, mkd→403.
 - ⚠️ Limite connue : l'isolation détecte les codes site par scan de segments — robuste pour des
   codes distinctifs (lcr/mkd/tst), à revoir si un futur endpoint embarque un code site hors position
   de scope. Pas de silo de données séparé par tenant (pas nécessaire pour « un user ne voit que son

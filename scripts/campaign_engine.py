@@ -330,6 +330,12 @@ def _save_params(cid: str, params: dict) -> None:
 def dispatch_due(today: _date | None = None) -> dict:
     """Cron quotidien : dispatch toutes les campagnes actives dues aujourd'hui."""
     today = today or _date.today()
+    # Avant d'envoyer : vérifie les crédits d'envoi et alerte l'admin (Telegram) si bas/épuisés.
+    try:
+        import credit_alerts
+        credit_alerts.check_and_alert()
+    except Exception:  # noqa: BLE001
+        pass
     _ensure_table()
     c = _conn()
     try:
