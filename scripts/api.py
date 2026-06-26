@@ -89,6 +89,20 @@ _AUTH_OPEN_PATHS = {
 }
 _ADMIN_PREFIXES = ("/api/auth/users", "/api/auth/logs", "/api/enrichment/run")
 
+# Codes site connus (isolation multi-tenant). Chargé une fois depuis le registre, fallback statique.
+_KNOWN_SITE_CODES: set | None = None
+
+
+def _known_site_codes() -> set:
+    global _KNOWN_SITE_CODES
+    if _KNOWN_SITE_CODES is None:
+        try:
+            from scripts.sites_config import load_all_sites
+            _KNOWN_SITE_CODES = set(load_all_sites().keys()) or {"lcr", "mkd", "tst"}
+        except Exception:
+            _KNOWN_SITE_CODES = {"lcr", "mkd", "tst"}
+    return _KNOWN_SITE_CODES
+
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
@@ -139,14 +153,22 @@ async def auth_middleware(request: Request, call_next):
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=403, content={"error": "admin role required"})
 
-    # Isolation multi-tenant : un user n'accède qu'à SES sites (superadmin = tous).
-    # Couvre tous les endpoints /api/sites/{site}/* en un seul point de contrôle.
-    if path.startswith("/api/sites/"):
-        parts = path.split("/")
-        site = parts[3] if len(parts) > 3 else ""
-        if site and sess.get("role") not in _SUPER and site not in (sess.get("sites") or []):
+    # Isolation multi-tenant GÉNÉRALE : un user n'accède qu'à SES sites (superadmin = tous).
+    # On détecte un code site dans N'IMPORTE quel segment d'URL OU le query param `site`,
+    # pas seulement /api/sites/{site}/* — sinon /api/crm/{site}, /api/dashboard/{site},
+    # /api/seo-ahrefs/{site}, /api/agents/{site}/*, etc. fuitent les données d'un autre client.
+    if sess.get("role") not in _SUPER:
+        codes = _known_site_codes()
+        user_sites = set(sess.get("sites") or [])
+        seen = {seg for seg in path.split("/") if seg in codes}
+        q_site = request.query_params.get("site")
+        if q_site and q_site in codes:
+            seen.add(q_site)
+        forbidden = sorted(seen - user_sites)
+        if forbidden:
             from fastapi.responses import JSONResponse
-            return JSONResponse(status_code=403, content={"error": f"access denied for site '{site}'"})
+            return JSONResponse(status_code=403,
+                content={"error": f"access denied for site '{forbidden[0]}'"})
 
     # Attache la session au request pour les handlers
     request.state.session = sess
@@ -201,7 +223,7 @@ def get_runs():
 # ── /api/campaigns ────────────────────────────────────────────────────────────
 
 @app.get("/api/campaigns")
-def get_campaigns():
+def get_campaigns(request: Request):
     try:
         env = load_env()
         key = env.get("EMELIA_API_KEY", "")
@@ -239,6 +261,13 @@ def get_campaigns():
                 "replyRate":   round(replied / total * 100, 1) if total else 0,
                 "bounceRate":  round(bounced / total * 100, 1) if total else 0,
             })
+        # Isolation : un non-superadmin ne voit que les campagnes de SON site (convention de
+        # nommage `lcr-…` / `mkd-…`). Les campagnes non préfixées par un de ses sites sont masquées.
+        sess = getattr(request.state, "session", None)
+        if sess and sess.get("role") not in ("admin", "superadmin"):
+            user_sites = [s.lower() for s in (sess.get("sites") or [])]
+            enriched = [c for c in enriched
+                        if any((c.get("name") or "").lower().startswith(s) for s in user_sites)]
         return {"campaigns": enriched}
     except Exception as e:
         return {"campaigns": [], "error": str(e)}
@@ -369,10 +398,17 @@ def get_crm():
 LEADS_LOG = BASE_DIR / "data" / "leads-log.json"
 
 @app.get("/api/budget")
-def get_budget(site: str = ""):
+def get_budget(request: Request, site: str = ""):
     import sys
     sys.path.insert(0, str(BASE_DIR))
     from scripts.cost_tracker import get_summary, PRICING
+
+    # Isolation : un non-superadmin ne voit QUE le budget de son site (il en a exactement 1).
+    sess = getattr(request.state, "session", None)
+    if sess and sess.get("role") not in ("admin", "superadmin"):
+        user_sites = sess.get("sites") or []
+        if user_sites:
+            site = user_sites[0]
 
     try:
         week  = get_summary(7)
@@ -648,8 +684,8 @@ def get_services():
 # ── /api/connectors ───────────────────────────────────────────────────────────
 
 @app.get("/api/connectors")
-def get_connectors():
-    """Vérifie la disponibilité de chaque connecteur (clé API + connexion réseau)."""
+def get_connectors(request: Request):
+    """Vérifie la disponibilité de chaque connecteur, filtré par les sites de l'utilisateur."""
     env = load_env()
     results = {}
 
@@ -716,7 +752,7 @@ def get_connectors():
     claude_key = env.get("ANTHROPIC_API_KEY", "")
     results["claude"] = {"ok": bool(claude_key), "label": "Claude / Anthropic", "key_set": bool(claude_key), "env_var": "ANTHROPIC_API_KEY"}
 
-    return {"connectors": results, "checkedAt": datetime.now(timezone.utc).isoformat()}
+    return _scope_connectors({"connectors": results, "checkedAt": datetime.now(timezone.utc).isoformat()}, request)
 
 
 # ── /api/connectors/health — vrai ping live des APIs (cache 5 min) ────────────
@@ -813,9 +849,26 @@ def _ping_connector(name: str, env: dict) -> dict:
     return {"status": "missing_key", "kind": "external"}
 
 
+# Connecteurs propres à un site (les autres sont mutualisés). Sert à l'isolation multi-tenant.
+_CONNECTOR_SITE = {"emdash": "lcr", "wordpress": "mkd", "tally_lcr": "lcr", "tally_mkd": "mkd"}
+
+
+def _scope_connectors(payload: dict, request) -> dict:
+    """Masque les connecteurs d'un site auquel l'utilisateur n'a pas accès (superadmin = tout)."""
+    sess = getattr(getattr(request, "state", None), "session", None)
+    if not sess or sess.get("role") in ("admin", "superadmin"):
+        return payload
+    sites = set(sess.get("sites") or [])
+    conns = payload.get("connectors") or {}
+    out = dict(payload)
+    out["connectors"] = {n: v for n, v in conns.items()
+                         if _CONNECTOR_SITE.get(n) is None or _CONNECTOR_SITE[n] in sites}
+    return out
+
+
 @app.get("/api/connectors/health")
-def api_connectors_health(force: bool = False):
-    """Retourne le statut santé live de tous les connecteurs (cache 5 min)."""
+def api_connectors_health(request: Request, force: bool = False):
+    """Retourne le statut santé live de tous les connecteurs (cache 5 min), filtré par les sites de l'utilisateur."""
     import time as _t
     # Cache hit ?
     if not force and CONNECTORS_HEALTH_CACHE.exists():
@@ -824,7 +877,7 @@ def api_connectors_health(force: bool = False):
             age = _t.time() - cached.get("_ts", 0)
             if age < CONNECTORS_HEALTH_TTL_S:
                 cached["_cache_age_s"] = int(age)
-                return cached
+                return _scope_connectors(cached, request)
         except Exception:
             pass
 
@@ -849,7 +902,7 @@ def api_connectors_health(force: bool = False):
         CONNECTORS_HEALTH_CACHE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
     except Exception:
         pass
-    return payload
+    return _scope_connectors(payload, request)
 
 
 # ── /api/site/{site} ──────────────────────────────────────────────────────────
@@ -1762,8 +1815,9 @@ def get_analytics(site: str = "lcr"):
 # ── Health Check ──────────────────────────────────────────────────────────────
 
 @app.get("/api/health-check")
-async def api_health_check():
-    """Check health of all configured sites: HTTP, SSL, sitemap, robots.txt."""
+async def api_health_check(request: Request):
+    """Check health of all configured sites: HTTP, SSL, sitemap, robots.txt.
+    Filtré par les sites de l'utilisateur (un non-superadmin ne voit QUE ses sites)."""
     # Sites to check
     sites = [
         {"code": "lcr", "name": "LeClientROI", "url": "https://leclientroi.com"},
@@ -1780,6 +1834,12 @@ async def api_health_check():
                     sites.append(s)
         except Exception:
             pass
+
+    # Isolation multi-tenant : un non-superadmin ne reçoit QUE ses sites.
+    sess = getattr(request.state, "session", None)
+    if sess and sess.get("role") not in ("admin", "superadmin"):
+        allowed = set(sess.get("sites") or [])
+        sites = [s for s in sites if s.get("code") in allowed]
 
     results = check_all_sites(sites)
     return {"sites": results, "checked_at": datetime.now(timezone.utc).isoformat()}

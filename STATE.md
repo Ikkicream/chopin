@@ -4,7 +4,31 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-25 (Webhook Sweego RÉSOLU + tracking clics→leads + cleanup horaire + Vision secteurs réels)
+2026-06-26 (Isolation multi-tenant RENFORCÉE — fuite cross-site fermée + enrich phone cliqueurs + admin email + remind-later 2FA)
+
+## 🔝 REPRISE 2026-06-26 — Isolation multi-tenant (faille cross-site fermée)
+
+**Problème (signalé user, confirmé) :** un commercial scoppé LCR voyait des données/alertes MKD
+(alerte « WordPress (MKD) », « MKDgroupe » dans /view). Cause : l'isolation n'était posée QUE sur
+`/api/sites/{site}/*` ; tous les autres endpoints à site (`/api/crm/{site}`, `/api/dashboard/{site}`,
+`/api/seo-ahrefs/{site}`, `/api/agents/{site}/*`…) **fuyaient** (200 au lieu de 403). **Vraie fuite
+de données, pas cosmétique.**
+
+**Corrigé + VÉRIFIÉ (token commercial réel) :**
+- **Middleware (`api.py`) — isolation GÉNÉRALE** : détecte un code site (`_known_site_codes()` =
+  registre `sites_config`, fallback `{lcr,mkd,tst}`) dans **n'importe quel** segment d'URL OU le
+  query `?site=`, et renvoie **403** si pas dans `sess["sites"]` (superadmin bypass). Remplace
+  l'ancien check `/api/sites/` only. Testé : tous endpoints MKD → 403, son site → 200.
+- **Agrégés filtrés par session** (helper `_scope_connectors` + filtres) :
+  `/api/connectors/health`, `/api/connectors` (masquent emdash=LCR / wordpress=MKD / tally_* selon
+  les sites), `/api/health-check` (ne check QUE ses sites), `/api/budget` (force son site),
+  `/api/campaigns` (filtre par préfixe de nom `lcr-`/`mkd-`). `_CONNECTOR_SITE` mappe connecteur→site.
+- **Front** : `/view` ET `/campaigns` (pages globales cross-site) réservées superadmin → un user
+  métier est redirigé vers `/site/{son_site}/dashboard|campaigns`. Garde de rendu anti-flash.
+- ⚠️ Limite connue : l'isolation détecte les codes site par scan de segments — robuste pour des
+  codes distinctifs (lcr/mkd/tst), à revoir si un futur endpoint embarque un code site hors position
+  de scope. Pas de silo de données séparé par tenant (pas nécessaire pour « un user ne voit que son
+  site ») — l'enforcement middleware + filtrage agrégé suffit.
 
 ## 🔝 REPRISE 2026-06-25 — Webhook Sweego (clics→leads), cleanup pool, Vision
 
