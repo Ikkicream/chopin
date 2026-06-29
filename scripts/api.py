@@ -131,6 +131,12 @@ async def auth_middleware(request: Request, call_next):
     if path == "/api/sweego/click":
         return await call_next(request)
 
+    # Prise de RDV publique (type Calendly) : page + créneaux + soumission. Pas de session
+    # (lien public partagé). Les handlers valident le site + le créneau ; aucune donnée
+    # sensible n'est exposée (lecture seule des créneaux, écriture d'un RDV uniquement).
+    if path.startswith("/api/book/"):
+        return await call_next(request)
+
     # Endpoints de test interne loopback-only (dryrun non destructif + test-batch run synchrone)
     if path.endswith("/cleanup/dryrun") or path.endswith("/cleanup/test-batch"):
         client_host = (request.client.host if request.client else "")
@@ -5392,6 +5398,102 @@ async def api_campaign_action(site: str, cid: str, action: str):
             pass
         return ce.dispatch_campaign(cid, _d.today())
     return {"ok": False, "error": f"action inconnue: {action}"}
+
+
+# ── Prise de RDV publique (type Calendly/TidyCal) ───────────────────────────────
+def _booking_site_ok(site: str) -> bool:
+    return site in _known_site_codes()
+
+
+@app.get("/api/book/{site}", response_class=HTMLResponse)
+def book_page(site: str):
+    """Page publique de prise de RDV (HTML autonome). Lien partageable."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    if not _booking_site_ok(site):
+        return HTMLResponse("<h1>Site introuvable</h1>", status_code=404)
+    import booking_backend as bb, booking_page as bp
+    cfg = bb.get_settings(site)
+    return HTMLResponse(bp.render_page(site, cfg))
+
+
+@app.get("/api/book/{site}/config")
+def book_config(site: str):
+    """Motifs + jours réservables + meta (consommé par la page publique)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    if not _booking_site_ok(site):
+        return {"reasons": [], "days": [], "error": "site introuvable"}
+    import booking_backend as bb
+    cfg = bb.get_settings(site)
+    return {"reasons": cfg.get("reasons", []), "days": bb.available_days(site, cfg),
+            "slot_minutes": cfg.get("slot_minutes"), "brand_color": cfg.get("brand_color"),
+            "label": cfg.get("from_name"), "logo_url": cfg.get("logo_url"),
+            "website_url": cfg.get("website_url"), "description": cfg.get("description")}
+
+
+@app.get("/api/book/{site}/slots")
+def book_slots(site: str, date: str):
+    """Créneaux libres pour un jour donné (YYYY-MM-DD)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    if not _booking_site_ok(site):
+        return {"slots": [], "error": "site introuvable"}
+    import booking_backend as bb
+    return {"slots": bb.available_slots(site, date)}
+
+
+@app.post("/api/book/{site}/submit")
+async def book_submit(site: str, request: Request):
+    """Crée le RDV (valide motif + créneau) puis envoie email + SMS de confirmation."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    if not _booking_site_ok(site):
+        return {"ok": False, "error": "site introuvable"}
+    import booking_backend as bb
+    body = await request.json()
+    res = bb.create_booking(
+        site, body.get("reason", ""), body.get("slot_start", ""),
+        body.get("name", ""), body.get("email", ""), body.get("phone", ""), body.get("message", ""),
+    )
+    if not res.get("ok"):
+        return res
+    notif = bb.send_confirmations(res["booking"], res["config"])
+    return {"ok": True, "id": res["booking"]["id"], "notif": notif}
+
+
+# ── Back-office RDV (authentifié, isolé par site via middleware) ────────────────
+@app.get("/api/sites/{site}/booking/settings")
+def booking_settings_get(site: str):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import booking_backend as bb
+    return bb.get_settings(site)
+
+
+@app.put("/api/sites/{site}/booking/settings")
+async def booking_settings_put(site: str, request: Request):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import booking_backend as bb
+    patch = await request.json()
+    return bb.update_settings(site, patch)
+
+
+@app.get("/api/sites/{site}/booking/list")
+def booking_list(site: str, limit: int = 200):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import booking_backend as bb
+    return {"bookings": bb.list_bookings(site, limit)}
+
+
+@app.get("/api/sites/{site}/booking/unread-count")
+def booking_unread(site: str):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import booking_backend as bb
+    return {"count": bb.unread_count(site)}
+
+
+@app.post("/api/sites/{site}/booking/{bid}/status")
+async def booking_set_status(site: str, bid: str, request: Request):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import booking_backend as bb
+    body = await request.json()
+    return bb.set_status(site, bid, body.get("status", "answered"))
 
 
 @app.get("/api/sites/{site}/cleanup/counts")

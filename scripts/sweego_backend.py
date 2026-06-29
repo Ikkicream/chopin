@@ -108,6 +108,76 @@ def send_campaign(campaign_id: str, subject: str, html_str: str,
         return {"ok": False, "error": str(e)}
 
 
+# ── Transactionnel (RDV, confirmations…) ───────────────────────────────────────
+def send_transactional_email(subject: str, html_str: str, to_email: str,
+                             to_name: str | None = None, from_email: str | None = None,
+                             from_name: str | None = None, text: str | None = None,
+                             campaign_id: str = "transac") -> dict:
+    """Envoi transactionnel 1 destinataire (campaign-type=transac). {ok, transaction_id|error}."""
+    if not to_email or "@" not in to_email:
+        return {"ok": False, "error": "destinataire invalide"}
+    if not subject or not subject.strip():
+        return {"ok": False, "error": "sujet requis"}
+    sender = _from()
+    if from_email:
+        sender = {"email": from_email, "name": from_name or sender.get("name", "")}
+    elif from_name:
+        sender["name"] = from_name
+    rcpt = {"email": to_email}
+    if to_name:
+        rcpt["name"] = to_name
+    body = {
+        "provider": "email",
+        "campaign-type": "transac",
+        "campaign-id": campaign_id or "transac",
+        "subject": subject,
+        "from": sender,
+        "recipients": [rcpt],
+        "message-html": html_str,
+        "message-txt": text or html_to_text(html_str),
+        "dry-run": False,
+    }
+    try:
+        r = requests.post(SWEEGO_URL + "/send", headers=_headers(), json=body, timeout=30)
+        if r.status_code == 200:
+            d = r.json()
+            return {"ok": True, "transaction_id": d.get("transaction_id")}
+        return {"ok": False, "error": f"sweego {r.status_code}: {r.text[:300]}"}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)}
+
+
+def send_sms(to_phone: str, text: str, from_name: str | None = None,
+             campaign_id: str = "transac") -> dict:
+    """Envoi SMS transactionnel 1 destinataire via Sweego (provider=sms). Best-effort.
+
+    Numéro attendu au format E.164 (ex. +33612345678). {ok, transaction_id|error}."""
+    phone = (to_phone or "").strip().replace(" ", "")
+    if not phone:
+        return {"ok": False, "error": "téléphone manquant"}
+    # Normalisation FR basique : 06… → +336…
+    if phone.startswith("0") and len(phone) == 10:
+        phone = "+33" + phone[1:]
+    body = {
+        "provider": "sms",
+        "campaign-type": "transac",
+        "campaign-id": campaign_id or "transac",
+        "recipients": [{"phone": phone}],
+        "message-txt": text,
+        "dry-run": False,
+    }
+    if from_name:
+        body["from"] = {"name": from_name[:11]}   # sender alphanumérique SMS : 11 car max
+    try:
+        r = requests.post(SWEEGO_URL + "/send", headers=_headers(), json=body, timeout=30)
+        if r.status_code == 200:
+            d = r.json()
+            return {"ok": True, "transaction_id": d.get("transaction_id")}
+        return {"ok": False, "error": f"sweego {r.status_code}: {r.text[:300]}"}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)}
+
+
 # ── Stats ─────────────────────────────────────────────────────────────────────
 _ENGAGE_FIELDS = ["sent", "accepted", "bounced", "hardbounce", "softbounce", "complaints",
                   "rejected", "undelivered", "list_unsubscribe", "nb_openers", "nb_openings",

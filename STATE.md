@@ -4,7 +4,66 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-26 (Quota scrape 5000/mois/user + alerte Telegram crédits d'envoi bas/épuisés)
+2026-06-29 (Prise de RDV publique par site type Calendly — page + email/SMS confirmation, back-office créneaux)
+
+## 🔝 REPRISE 2026-06-29 — Prise de RDV publique (type Calendly/TidyCal)
+
+**Demande user :** lien public de prise de RDV par site, le prospect choisit un motif
+(démo/question/partenariat), un créneau parmi ceux ouverts en back-office, saisit ses coords →
+**email + SMS de confirmation**. Belle page. Condition : URL testée + email démo réellement envoyé.
+
+**FAIT + TESTÉ bout-en-bout :**
+- **`booking_backend.py` (NOUVEAU)** : tables `booking_settings` (config JSON/site, seed défaut :
+  Lun-Ven 9-12/14-18, créneaux 30 min, 3 motifs) + `bookings`. Helpers `get_settings`/
+  `update_settings`, `available_days`/`available_slots` (filtre passé + déjà réservé, tz Europe/Paris),
+  `create_booking` (valide motif + créneau libre), `list_bookings`, `send_confirmations`.
+- **`booking_page.py` (NOUVEAU)** : page HTML autonome (CSS inline, responsive, wizard motif→jour→
+  créneau→coords), JS vanilla consommant les endpoints.
+- **`sweego_backend.py`** : `send_transactional_email` (campaign-type=transac, 1 destinataire) +
+  `send_sms` (provider=sms, normalise 06→+336, best-effort). Domaine expéditeur = leclientroi.com
+  (seul vérifié Sweego) même pour MKD.
+- **`api.py`** : endpoints PUBLICS (exemptés middleware, comme /sweego/click) `GET /api/book/{site}`
+  (HTML), `/config`, `/slots`, `POST /submit` ; back-office AUTHENTIFIÉ `GET|PUT /api/sites/{site}/
+  booking/settings`, `GET .../booking/list`.
+- **UI** : page `/site/{code}/booking` (édite réglages, motifs, dispos hebdo, lien public copiable,
+  liste RDV) + entrée sidebar « Rendez-vous » (Commercial). Build Next OK, UI restart OK.
+- ✅ **TEST RÉEL** : `GET /api/book/lcr` → 200 ; config/slots OK ; `POST /submit` (démo,
+  afchain.camille@gmail.com) → RDV `ba6ba218` créé + **Sweego transaction_id 56bfbd93-…
+  (email.ok:true)**. Créneau retiré des dispos après réservation + double-booking refusé. **(1 RDV
+  de test reste dans la liste back-office LCR — pas de endpoint delete pour l'instant.)**
+- ⚠️ **SMS pas testé en réel** (pas de numéro de test, coût) : payload Sweego `provider:sms`
+  best-effort, non bloquant. À valider avec un vrai numéro. ⚠️ Lien public = `https://api.cheffer.email/
+  api/book/{site}` (sous /api/ car servi par FastAPI). API à redémarrée faite.
+- **MAJ 2026-06-29 (retour user)** : page publique enrichie — **logo** (champ `logo_url`, fallback nom
+  du site), **favicon + lien site** (`website_url`, favicon Google s2), **description** (texte d'intro).
+  Défauts pré-remplis depuis `sites_config` (url, primary_color, rag_context.business_description).
+  Back-office **séparé en 2 onglets** : « Configuration » (identité + réglages + motifs + dispos) et
+  « Rendez-vous » (formulaires reçus). Build Next OK, restart OK, rendu vérifié (couleur #0066FF,
+  desc + favicon + lien présents).
+- **MAJ 2026-06-29 (retour user #2)** : onglets inversés (**Rendez-vous** en 1er + défaut, Configuration
+  2e). Système **lu/non-lu** : statut `bookings.status` (`confirmed`=à traiter → `answered`=répondu).
+  Endpoints `GET .../booking/unread-count` + `POST .../booking/{id}/status`. Helpers `unread_count` /
+  `set_status`. UI : badge « Nouveau » + point rouge + bouton « Marquer répondu » par RDV ; **pastille
+  rouge dans la sidebar** sur l'item « Rendez-vous » (nb non-répondus, poll 45s + refresh navigation,
+  injectée dans `nav-main.tsx` via champ `badge`). La pastille ne décroît QUE sur « répondu ». Testé :
+  unread 2→1 après set_status answered. Build + restart OK.
+- **MAJ 2026-06-29 (retour user #3)** : champ `hero_image_url` = **image de fond derrière l'en-tête**
+  (voile teinté couleur de marque via color-mix + text-shadow pour lisibilité, ancrée à gauche/cover).
+  Champ éditable en back-office (carte Identité). Couleur LCR passée du bleu #0066FF au **violet pastel
+  `#a78bfa`** (charte). Persisté pour lcr via `update_settings`. ⚠️ Bug corrigé : l'upsert DuckDB
+  `INSERT…ON CONFLICT…CURRENT_TIMESTAMP` plantait (BinderException) → remplacé par read-modify-write
+  (SELECT puis UPDATE/INSERT). Rendu vérifié : `--brand:#a78bfa`, `head has-hero`, bg image OK.
+- **MAJ 2026-06-29 (sécurité RDV)** : durcissement injection.
+  • **XSS email** (vraie faille) : le `name` du prospect était interpolé NON-échappé dans
+    `_confirmation_html` → `html.escape()` sur name/label/reason_label. Testé : `<script>` → `&lt;script&gt;`.
+  • **Email regex stricte** (`_EMAIL_RE`, ≤254 car) côté backend (`create_booking`) + côté page (bouton
+    bloqué + message « email invalide »). Testé live : `<script>…`@ et `pasunemail` → refus, aucun envoi.
+  • **Bornage entrées** : name≤120, message≤2000, phone nettoyé `[0-9+ ().-]`≤30 (anti-payload + anti-injection SMS).
+  • **Couleur** : `_safe_color` (hex only) sur email + page → anti-injection CSS via `--brand`.
+  • **DOM** : motifs rendus via `textContent`/`createTextNode` (plus d'`innerHTML` avec la config).
+  • Back-office = React (auto-échappé) ; page publique ne reflète aucune saisie. SQL = paramétré partout.
+
+## 🔝 REPRISE 2026-06-26 (suite) — Quota scrape mensuel + alerte crédits d'envoi
 
 ## 🔝 REPRISE 2026-06-26 (suite) — Quota scrape mensuel + alerte crédits d'envoi
 
