@@ -7498,3 +7498,4 @@
 {"ts": "2026-06-26T17:06:35.235089+00:00", "email": "john.smith@example.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
 {"ts": "2026-06-26T17:06:42.478761+00:00", "email": "info@agenceterminus.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-06-29T21:00:05.768996+00:00", "email": "gilles@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-06-30T10:00:04.770765+00:00", "email": "gilles@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
