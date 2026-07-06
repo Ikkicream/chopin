@@ -7500,3 +7500,10 @@
 {"ts": "2026-06-29T21:00:05.768996+00:00", "email": "gilles@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
 {"ts": "2026-06-30T10:00:04.770765+00:00", "email": "gilles@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
 {"ts": "2026-07-01T16:00:05.358620+00:00", "email": "camille@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-06T10:00:07.697926+00:00", "email": "l.clinkemaillie@cdg62.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-06T10:00:11.897012+00:00", "email": "m.helin@lievin.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-06T10:00:19.019084+00:00", "email": "jeonjungkook@gmai.com", "decision": "invalid", "status": "VALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-06T11:00:18.131386+00:00", "email": "jeonjungkook@gmai.com", "decision": "invalid", "status": "VALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-06T11:00:28.089621+00:00", "email": "directionexploitation@kyrielys.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-06T12:00:07.173955+00:00", "email": "hrezaiguia@ville-douai.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-06T12:00:11.623820+00:00", "email": "l.clinkemaillie@cdg62.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
