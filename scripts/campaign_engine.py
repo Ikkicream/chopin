@@ -72,8 +72,6 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
     channel = (channel or "").lower()
     if channel not in VALID_CHANNELS:
         return {"ok": False, "error": f"canal invalide: {channel}"}
-    if channel == "maildoso":
-        return {"ok": False, "error": "Maildoso pas encore disponible (warmup en cours)"}
     if not name or not message_id or not subject or not sectors or target_size < 1:
         return {"ok": False, "error": "name, message_id, subject, sectors, target_size requis"}
 
@@ -315,6 +313,29 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
             except Exception:
                 pass
         return {"ok": True, "sent": added}
+
+    if channel == "maildoso":
+        import maildoso_backend as md
+        from contacts_pool_backend import mark_pushed_to_emelia
+        campaign_id = f"{site}-{camp['id']}-{today.isoformat()}"
+        res = md.send_batch(campaign_id, camp["subject"], msg["html"], contacts,
+                            site=site, utm_campaign=utm_campaign)
+        if not res.get("ok"):
+            return res
+        ok_emails = set(res.get("sent_emails", []))
+        for ct in contacts:
+            if ct.get("email") in ok_emails:
+                try:
+                    mark_pushed_to_emelia(ct["id"], site, campaign_id, "")
+                except Exception:
+                    pass
+        # Ramp-up : ajuste les caps/jour des boîtes après chaque campagne (idempotent/jour)
+        try:
+            import maildoso_ramp
+            maildoso_ramp.adjust_caps(site)
+        except Exception:
+            pass
+        return {"ok": True, "sent": res.get("sent", 0)}
 
     return {"ok": False, "error": f"canal non supporté: {channel}"}
 

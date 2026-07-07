@@ -1175,3 +1175,27 @@ Entités (cf. mémoire reference_legal_entities) : LCR=HUMANETICS LABS (SARL, SI
 - #8 `/security-review` (déclenché par user)
 - #23-25 Sweego : reroute production + déploiement + CNAME tracking
 - Validation visuelle par le user de la page cleanup (filtre Mailnjoy + Progress bar + drain end-to-end)
+
+## REPRISE 2026-07-07 — Connecteur Maildoso branché (3e canal Cheffer) ✅
+
+### Fait
+- **Maildoso opérationnel** : warmup fini (dispo prévue ~07/07, tenu). 4 boîtes actives `j.durand|j.juste|j.bernard|j.nguyen@leclient-roi.com` (domaine AVEC tiret, ≠ leclientroi.com), réputation Microsoft "high", domaine ACTIVE depuis 23/06.
+- ⚠️ **L'API REST Maildoso ne fait PAS d'envoi** (infra only : domaines/boîtes/warmup). **Envoi = SMTP** `smtp.maildoso.com:587`, IMAP `imap.horus.maildoso.com:993`, réponses agrégées sur `leclientroi@maildoso.email`.
+- **Doc** : skill `.claude/skills/maildoso/SKILL.md` + `openapi.json` local (spec complet analysé + endpoints testés live).
+- **Secrets** : `.env` → `MAILDOSO_API_TOKEN`, `MAILDOSO_SMTP_PASSWORD` (commun aux 4 boîtes). Backup `.env.bak-maildoso-20260707`.
+- **Nouveau module `scripts/maildoso_backend.py`** : vérif API (`/v1/user/me`), sync boîtes → table `mailboxes` (god_mode.duckdb, `password_ref` pas de mdp en clair), envoi SMTP avec rotation (boîte la moins sollicitée), cap 25/jour/boîte, jitter 15-60s entre envois, log table `maildoso_sent`, List-Unsubscribe. CLI : `verify|sync|mailboxes|test <email>`.
+- **Canal activé** : `campaign_engine.py` (déblocage create_campaign + branche maildoso dans `_send_batch` avec `mark_pushed` précis via `sent_emails`), `deliverability_agent.py` DAILY_CAP maildoso 300→**100** (4×25, domaine jeune — remonter plus tard), `api.py` `/channels` → enabled dynamique (compte les boîtes actives). PM2 `genesis-dashboard` restarted OK.
+- **Tests réels** : email test + template LCR `agence-marketing/first` («votre mix canal») envoyés à afchain.camille@gmail.com via SMTP (boîtes j.nguyen puis j.durand). Les 2 partis OK (rfc_msgid en base `maildoso_sent`).
+
+### Restes Maildoso
+- Camille doit confirmer réception des 2 emails (vérifier spam/Promotions Gmail).
+- Séquenceur complet (relances, threading, IMAP poller réponses/bounces, suppression list) : spec dans `routeur_doc/cold-email-engine.md` — non implémenté, le canal actuel = envoi one-shot par campagne unifiée.
+- Remonter les caps (25→40/boîte) après ~2 semaines de prod propre.
+- 6 slots de boîtes Maildoso encore dispo dans l'abonnement (10 payées, 4 utilisées).
+
+### MAJ 2026-07-07 (soir) — Ramp-up auto + card canal fiable
+- **Délivrabilité confirmée** : template LCR reçu par Camille en **inbox Gmail** (pas spam). Délai de remise ~20 min (file d'attente sortante Maildoso — normal, ne pas s'inquiéter d'un « rien reçu » immédiat).
+- **Cap canal maildoso DYNAMIQUE** : `deliverability_agent.channel_caps` lit désormais la somme des `daily_cap` des boîtes actives (table `mailboxes`) — plus de 100 en dur. Le planning des campagnes et la card Cheffer suivent tout seuls.
+- **Nouveau `scripts/maildoso_ramp.py`** : montée en charge auto, appelée en fin de chaque dispatch maildoso (`campaign_engine._send_batch`), idempotente 1×/boîte/jour, journalisée dans `maildoso_ramp_log`. Règle : fenêtre 3 j sur `maildoso_sent` ; >10 % erreurs SMTP → cap −10 (min 10) ; 0 erreur + dernier jour actif ≥ 60 % du cap → cap +5 (max 40) ; sinon inchangé. CLI : `maildoso_ramp.py status|run`.
+- **/channels enrichi** (maildoso) : `mailboxes`, `per_mailbox_cap`, `remaining_today` + note honnête. **Card du wizard** (`campaign-wizard.tsx`) affiche : cap/jour, « N boîtes × cap/j », badge « X restants aujourd'hui » (vert/rouge). `pnpm build` + restart genesis-ui OK (piège : `.next` avait des fichiers root → `chown -R autoblog` avant build).
+- **Mail-tester 7.5/10** (test-cheffer0707b) : SPF pass, DKIM pass (signé par le relais Maildoso `s=out401500`, 2048 bits), DMARC pass (p=reject aligné), IP de sortie 169.255.56.72 (pool pinkproof) clean sur 23 blocklists. Pénalités : **leclient-roi.com listé ABUSE SURBL (−1.9, à délister sur surbl.org)** + réécriture du relais (GCDT) : text/plain converti en HTML-only sans balise `<html>`, header List-Unsubscribe supprimé. Si plain text pur voulu : couper le tracking via `PUT /v1/user/domains/tracking`.

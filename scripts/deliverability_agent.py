@@ -14,7 +14,20 @@ from __future__ import annotations
 from datetime import date as _date, timedelta
 
 # Plafonds d'envoi/jour PLATS par canal (validés user 2026-06-24).
-DAILY_CAP = {"emelia": 30, "sweego": 1000, "maildoso": 300}
+# Maildoso : cap DYNAMIQUE = somme des daily_cap des boîtes actives (table mailboxes),
+# ajusté après chaque campagne par maildoso_ramp.py ; la valeur ici n'est qu'un fallback
+# si la table est illisible.
+DAILY_CAP = {"emelia": 30, "sweego": 1000, "maildoso": 100}
+
+
+def _maildoso_live_cap(site: str) -> int:
+    """Somme des caps/jour des boîtes Maildoso actives du site (0 si aucune)."""
+    try:
+        import maildoso_backend as md
+        return sum(m.get("daily_cap") or 0 for m in md.list_mailboxes(site)
+                   if m.get("status") == "active")
+    except Exception:
+        return DAILY_CAP["maildoso"]
 
 # Fenêtre d'étalement raisonnable par canal : au-delà → mauvais canal (suggère un autre).
 # Pensée pour : Emelia = petits lots ciblés ; Sweego = volume ; Maildoso = intermédiaire.
@@ -25,7 +38,7 @@ def channel_caps(site: str, channel: str) -> dict:
     """Plafond d'envoi par jour pour un canal (plat). `plateau` = cap stable,
     `ramp` = [plateau] (pas de montée progressive — cap fixe)."""
     channel = (channel or "").lower()
-    cap = DAILY_CAP.get(channel, 0)
+    cap = _maildoso_live_cap(site) if channel == "maildoso" else DAILY_CAP.get(channel, 0)
     return {"channel": channel, "ramp": [cap], "plateau": cap,
             "max_days": MAX_DAYS.get(channel, 30)}
 

@@ -5230,12 +5230,21 @@ def api_mass_campaigns_stats(site: str, date_start: str = "", date_end: str = ""
 # ── Campagnes unifiées multi-canal (hub) ────────────────────────────────────────
 @app.get("/api/sites/{site}/channels")
 def api_campaign_channels(site: str):
-    """Canaux d'envoi disponibles + cap/jour live. Maildoso désactivé (warmup en cours)."""
+    """Canaux d'envoi disponibles + cap/jour live."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import deliverability_agent as da
     import sweego_backend as sw
     emelia_caps = da.channel_caps(site, "emelia")
     sweego_ok = bool(sw._env().get("SWEEGO_API_KEY"))
+    try:
+        import maildoso_backend as md
+        maildoso_boxes = [m for m in md.list_mailboxes(site) if m.get("status") == "active"]
+        maildoso_cap = sum(m.get("daily_cap") or 0 for m in maildoso_boxes)
+        maildoso_left = md.remaining_quota_today(site)
+    except Exception:
+        maildoso_boxes, maildoso_cap, maildoso_left = [], 0, 0
+    _caps = sorted({m.get("daily_cap") or 0 for m in maildoso_boxes})
+    _per_box = (f"{_caps[0]}" if len(_caps) == 1 else f"{_caps[0]}–{_caps[-1]}") if _caps else "0"
     return {"channels": [
         {"key": "emelia", "label": "Cold email", "sub": "Emelia",
          "enabled": (emelia_caps.get("plateau") or 0) > 0,
@@ -5245,8 +5254,11 @@ def api_campaign_channels(site: str):
          "enabled": sweego_ok, "daily_cap": da.channel_caps(site, "sweego").get("plateau"),
          "note": "Newsletters / annonces en volume."},
         {"key": "maildoso", "label": "Cold email maison", "sub": "Maildoso",
-         "enabled": False, "daily_cap": 0, "available_at": "2026-07-07",
-         "note": "Séquenceur maison — warmup en cours, dispo ~07/07."},
+         "enabled": bool(maildoso_boxes) and maildoso_cap > 0, "daily_cap": maildoso_cap,
+         "mailboxes": len(maildoso_boxes), "per_mailbox_cap": _per_box,
+         "remaining_today": maildoso_left,
+         "note": f"Envoi SMTP maison — {len(maildoso_boxes)} boîtes @leclient-roi.com en rotation, "
+                 f"{_per_box}/jour par boîte (montée auto après chaque campagne propre)."},
     ]}
 
 
