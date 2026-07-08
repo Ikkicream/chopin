@@ -169,6 +169,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
                    per_city: int = PER_CITY, max_pages: int = MAX_PAGES,
                    max_seconds: int = MAX_RUN_SECONDS,
                    target_contacts: int = TARGET_CONTACTS,
+                   valid_baseline: int = 0,
                    progress_cb=None, should_stop=None) -> dict:
     """Scrape EN CONTINU (Serper + Basile) un périmètre, secteur(s) × villes (pop≥10k).
 
@@ -246,7 +247,11 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
             "site": site, "region": region, "region_name": region_name,
             "sectors": sectors, "depts_total": len(all_depts),
             "depts_done": sorted(done_set), "status": cum["status"],
-            "valid": cum["valid"], "message": cum["message"],
+            # `valid` CUMULÉ (runs précédents de la région + ce run) pour que la reprise
+            # calcule remaining = target − valid sans re-scraper. `target_contacts` ici
+            # est le RELIQUAT de ce run ; on persiste le plafond TOTAL région pour la reprise.
+            "valid": valid_baseline + cum["valid"], "message": cum["message"],
+            "target_contacts": valid_baseline + target_contacts,
         })
 
     emit()
@@ -567,9 +572,23 @@ def daily_retry(site: str) -> dict:
             sp.unlink()
     except Exception:
         pass
+    # Respecte le plafond du run interrompu : on reprend avec le RELIQUAT (le compteur
+    # `valid` repart de 0 à chaque run). Plafond atteint → rien à reprendre (0 = illimité,
+    # donc on ne passe JAMAIS un reliquat nul).
+    target = int(prog.get("target_contacts") or 0)
+    remaining = 0
+    if target > 0:
+        remaining = target - int(prog.get("valid") or 0)
+        if remaining <= 0:
+            write_progress(site, {**prog, "status": "done",
+                                  "message": "plafond de contacts atteint (retry)"})
+            return {"ok": True, "skipped": "plafond de contacts déjà atteint",
+                    "region": prog.get("region")}
     res = run_autoscrape(site, prog.get("sectors") or [], region=prog.get("region"),
                          region_name=prog.get("region_name"),
                          depts_done=prog.get("depts_done") or [],
+                         target_contacts=remaining,
+                         valid_baseline=int(prog.get("valid") or 0),
                          progress_cb=lambda s: write_status(site, s),
                          should_stop=lambda: sp.exists())
     return {"ok": True, "resumed": True, "region": prog.get("region"), "status": res.get("status")}

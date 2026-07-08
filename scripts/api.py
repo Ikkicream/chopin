@@ -5265,19 +5265,42 @@ def api_campaign_channels(site: str):
 @app.post("/api/sites/{site}/campaigns/target-count")
 async def api_campaign_target_count(site: str, request: Request):
     """Nb de contacts éligibles (Mailnjoy valid < 6 mois) pour des secteurs donnés.
-    Body: {sectors:[...], cleaned_within_days?}."""
+    Body: {sectors:[...], regions?:[...], depts?:[...], cleaned_within_days?}."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import contacts_pool_backend as pool
     body = await request.json()
     sectors = body.get("sectors") or []
+    regions = body.get("regions") or []
+    depts = body.get("depts") or []
     days = int(body.get("cleaned_within_days") or 180)
     per = {}
     seen_total = 0
     for sec in sectors:
-        n = pool.count_available_for_sector(site, sec, cleaned_within_days=days)
+        n = pool.count_available_for_sector(site, sec, cleaned_within_days=days,
+                                            regions=regions, depts=depts)
         per[sec] = n
         seen_total += n
     return {"by_sector": per, "total": seen_total, "cleaned_within_days": days}
+
+
+@app.get("/api/sites/{site}/campaigns/messages")
+def api_campaign_messages(site: str):
+    """Messages sélectionnables pour une campagne, groupés : Templates (newsletters),
+    Messages validés, Cold emails (par secteur)."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import html_templates_backend as htb
+    return htb.campaign_message_options(site)
+
+
+@app.get("/api/sites/{site}/campaigns/message-preview")
+def api_campaign_message_preview(site: str, id: str = ""):
+    """HTML d'un message (quelle que soit sa source) pour l'aperçu du wizard."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import html_templates_backend as htb
+    msg = htb.resolve_campaign_message(site, id)
+    if not msg or not msg.get("html"):
+        return {"ok": False, "error": "message introuvable"}
+    return {"ok": True, "html": msg["html"], "name": msg.get("name")}
 
 
 @app.post("/api/sites/{site}/campaigns/plan")
@@ -5307,7 +5330,7 @@ async def api_campaign_suggest_subject(site: str, request: Request):
     body = await request.json()
     html = body.get("html")
     if not html and body.get("message_id"):
-        msg = htb.get_version(site, body["message_id"])
+        msg = htb.resolve_campaign_message(site, body["message_id"])
         html = msg["html"] if msg else ""
     if not html:
         return {"ok": False, "error": "html ou message_id requis"}
@@ -5336,7 +5359,7 @@ async def api_campaign_preview_lint(site: str, request: Request):
     body = await request.json()
     html = body.get("html")
     if not html and body.get("message_id"):
-        msg = htb.get_version(site, body["message_id"])
+        msg = htb.resolve_campaign_message(site, body["message_id"])
         html = msg["html"] if msg else ""
     if not html:
         return {"ok": False, "error": "html ou message_id requis"}
@@ -5346,7 +5369,8 @@ async def api_campaign_preview_lint(site: str, request: Request):
 @app.post("/api/sites/{site}/campaigns")
 async def api_campaign_create(site: str, request: Request):
     """Crée + planifie une campagne unifiée. Refuse si cadence infaisable.
-    Body: {name, channel, message_id, subject, sectors:[...], target_size, schedule_start}."""
+    Body: {name, channel, message_id, subject, sectors:[...], regions?:[...], depts?:[...],
+    target_size, schedule_start}."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import campaign_engine as ce
     body = await request.json()
@@ -5356,7 +5380,8 @@ async def api_campaign_create(site: str, request: Request):
         site, (body.get("name") or "").strip(), (body.get("channel") or "").lower(),
         (body.get("message_id") or "").strip(), (body.get("subject") or "").strip(),
         body.get("sectors") or [], int(body.get("target_size") or 0),
-        (body.get("schedule_start") or "").strip(), by=by)
+        (body.get("schedule_start") or "").strip(), by=by,
+        regions=body.get("regions") or [], depts=body.get("depts") or [])
 
 
 @app.get("/api/sites/{site}/campaigns")

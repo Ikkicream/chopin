@@ -433,12 +433,19 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                         # DUAL-WRITE pool 2026-05-22 : insert aussi dans contacts.duckdb
                         try:
                             import contacts_pool_backend as _cpb
+                            try:
+                                from workflow_geo import resolve_city_geo
+                                _geo = resolve_city_geo(city)
+                            except Exception:
+                                _geo = {"dept": None, "region": None}
                             _pool_cid = _cpb.create_in_pool({
                                 "email":      vres["email"],
                                 "societe":    title,
                                 "tel":        phone,
                                 "website":    website,
                                 "city":       city,
+                                "dept_code":   _geo.get("dept"),
+                                "region_code": _geo.get("region"),
                                 "sectors":    [sector] if sector else None,
                                 "email_score":              vres["score"],
                                 "email_validation_reasons": vres["reasons"],

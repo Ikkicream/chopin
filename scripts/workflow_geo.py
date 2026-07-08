@@ -45,6 +45,64 @@ def list_departments(region_code: str | None = None) -> list[dict]:
     return deps
 
 
+import re as _re
+
+# Suffixe d'arrondissement ajouté par le scrapper (« Paris 13e », « Lyon 3e »,
+# « Marseille 8e », « Paris 1er », « … 2ème »). On le retire pour retomber sur la
+# commune-mère indexée (« paris », « lyon », « marseille »).
+_ARRDT_RE = _re.compile(r"\s+\d{1,2}\s*(?:er|e|ere|eme|ème)$", _re.IGNORECASE)
+
+
+def _norm_city(name: str) -> str:
+    s = (name or "").strip().lower()
+    for a, b in (("é", "e"), ("è", "e"), ("ê", "e"), ("ë", "e"), ("à", "a"), ("â", "a"),
+                 ("î", "i"), ("ï", "i"), ("ô", "o"), ("û", "u"), ("ü", "u"), ("ç", "c"),
+                 ("œ", "oe"), ("-", " "), ("'", " "), ("’", " ")):
+        s = s.replace(a, b)
+    s = " ".join(s.split())
+    s = _ARRDT_RE.sub("", s).strip()  # « paris 13e » -> « paris »
+    return s
+
+
+@lru_cache(maxsize=1)
+def _city_geo_index() -> dict:
+    """Nom de ville normalisé → {dept, region}. Les grandes villes écrasent les petites
+    homonymes (on trie par population croissante avant d'indexer)."""
+    idx = {}
+    for c in sorted(_cities(), key=lambda x: x.get("pop") or 0):
+        idx[_norm_city(c["name"])] = {"dept": c["dept"], "region": c["region"]}
+    return idx
+
+
+@lru_cache(maxsize=1)
+def _dept_region_index() -> dict:
+    return {d["code"]: d["region_code"] for d in _departments()}
+
+
+def region_of_dept(dept_code: str | None) -> str | None:
+    return _dept_region_index().get(dept_code or "")
+
+
+def resolve_city_geo(city: str | None, postal_code: str | None = None) -> dict:
+    """Résout (dept_code, region_code) depuis un code postal (prioritaire) ou un nom de
+    ville (communes ≥10k hab). Renvoie {"dept": ..., "region": ...} avec None si inconnu."""
+    dept = None
+    cp = (postal_code or "").strip()
+    if len(cp) == 5 and cp.isdigit():
+        d2 = cp[:2]
+        if d2 == "20":  # Corse : hors périmètre, on ne devine pas 2A/2B
+            d2 = None
+        elif d2 in ("97", "98"):
+            d2 = cp[:3]
+        if d2 and d2 in _dept_region_index():
+            dept = d2
+    if not dept and city:
+        hit = _city_geo_index().get(_norm_city(city))
+        if hit:
+            return {"dept": hit["dept"], "region": hit["region"]}
+    return {"dept": dept, "region": region_of_dept(dept)}
+
+
 def list_cities(dept_code: str | None = None, region_code: str | None = None,
                 min_pop: int = 10000) -> list[dict]:
     """Villes filtrées par dept/region et population min."""

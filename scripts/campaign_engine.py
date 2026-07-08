@@ -66,7 +66,8 @@ def _ensure_table():
 # ── CRUD ─────────────────────────────────────────────────────────────────────
 def create_campaign(site: str, name: str, channel: str, message_id: str, subject: str,
                     sectors: list[str], target_size: int, schedule_start: str,
-                    by: str = "ui") -> dict:
+                    by: str = "ui", regions: list[str] | None = None,
+                    depts: list[str] | None = None) -> dict:
     """Crée + planifie une campagne. Valide la faisabilité via deliverability_agent.
     Refuse si le canal est invalide, la cible vide, ou la cadence infaisable."""
     channel = (channel or "").lower()
@@ -96,6 +97,11 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
     except Exception:
         utm_campaign = cid
     params = {"utm_campaign": utm_campaign}
+    # Ciblage géographique optionnel (codes région / département INSEE)
+    if regions:
+        params["regions"] = [str(r) for r in regions if r]
+    if depts:
+        params["depts"] = [str(d) for d in depts if d]
     _ensure_table()
     c = _conn()
     try:
@@ -201,13 +207,16 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
             return {"ok": True, "done": True, "sent": 0}
         return {"ok": True, "sent": 0, "note": "rien prévu aujourd'hui"}
 
-    # Pioche les contacts éligibles (Mailnjoy valid < 6 mois) sur tous les secteurs
+    # Pioche les contacts éligibles (Mailnjoy valid < 6 mois) sur tous les secteurs,
+    # restreinte aux zones géo de la campagne si définies (params.regions / params.depts)
     import contacts_pool_backend as pool
     site = camp["site_code"]
+    geo = camp.get("params") or {}
     contacts: list[dict] = []
     seen = set()
     for sec in camp.get("sectors", []):
-        for ct in pool.pick_for_campaign(site, sec, limit=n - len(contacts)):
+        for ct in pool.pick_for_campaign(site, sec, limit=n - len(contacts),
+                                         regions=geo.get("regions"), depts=geo.get("depts")):
             if ct.get("email") and ct["email"] not in seen:
                 seen.add(ct["email"]); contacts.append(ct)
         if len(contacts) >= n:
@@ -243,8 +252,8 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
     channel = camp["channel"]
     site = camp["site_code"]
     import html_templates_backend as htb
-    msg = htb.get_version(site, camp["message_id"])
-    if not msg:
+    msg = htb.resolve_campaign_message(site, camp["message_id"])
+    if not msg or not msg.get("html"):
         return {"ok": False, "error": "message introuvable"}
     # utm_campaign unique de la campagne (attribution GA4)
     utm_campaign = (camp.get("params") or {}).get("utm_campaign") or camp["id"]

@@ -108,6 +108,57 @@ def delete_version(site: str, vid: str) -> None:
         c.close()
 
 
+# ── Message unifié pour une campagne (3 sources) ─────────────────────────────────
+# Le wizard campagne peut piocher dans : Templates (structures/newsletters),
+# Messages validés (versions), ou Cold emails (email_templates, par secteur).
+# On encode la source dans le message_id : "struct:<name>" | "cold:<sector>:<kind>" | "ver:<id>".
+def campaign_message_options(site: str) -> dict:
+    """Liste groupée des messages sélectionnables pour une campagne."""
+    groups = []
+    structs = [{"id": f"struct:{s['name']}",
+                "name": s["name"].replace("leclientroi-newsletter-", "")}
+               for s in list_structures()]
+    if structs:
+        groups.append({"key": "template", "label": "Templates (newsletters, avec images)", "items": structs})
+    versions = [{"id": f"ver:{v['id']}", "name": v["name"], "sub": v.get("source") or ""}
+                for v in list_versions(site)]
+    if versions:
+        groups.append({"key": "version", "label": "Messages validés", "items": versions})
+    try:
+        import email_templates_backend as etb
+        cold = []
+        for s in etb.list_sectors(site):
+            emails = etb.get_sector(site, s["sector"])
+            first = next((e for e in emails if e["kind"] == "first"), None)
+            if first:
+                cold.append({"id": f"cold:{s['sector']}:first",
+                             "name": s["sector"], "sub": first.get("subject") or ""})
+        if cold:
+            groups.append({"key": "cold", "label": "Cold emails (texte, par secteur)", "items": cold})
+    except Exception:
+        pass
+    return {"groups": groups}
+
+
+def resolve_campaign_message(site: str, mid: str) -> dict | None:
+    """Résout un message_id (quelle que soit sa source) en {html, name}."""
+    if not mid:
+        return None
+    if mid.startswith("struct:"):
+        html = get_structure(mid[len("struct:"):])
+        return {"html": html, "name": mid[len("struct:"):]} if html else None
+    if mid.startswith("cold:"):
+        try:
+            _, sector, kind = mid.split(":", 2)
+        except ValueError:
+            return None
+        import email_templates_backend as etb
+        t = etb._get_one(site, sector, kind)
+        return {"html": t["body_html"], "name": f"Cold — {sector}"} if t else None
+    vid = mid[len("ver:"):] if mid.startswith("ver:") else mid
+    return get_version(site, vid)
+
+
 if __name__ == "__main__":
     print("structures:", list_structures())
 

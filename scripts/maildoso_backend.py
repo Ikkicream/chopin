@@ -224,10 +224,39 @@ def _record_sent(site, campaign_id, mailbox, to_email, subject, rfc_msgid, statu
 
 
 # ── Envoi SMTP ───────────────────────────────────────────────────────────────────
+def _split_name(full: str) -> tuple[str, str]:
+    parts = (full or "").split()
+    return (parts[0] if parts else "", " ".join(parts[1:]) if len(parts) > 1 else "")
+
+
+def _apply_tokens(s: str, contact: dict | None, mb: dict) -> str:
+    """Remplace les variables {{...}} des templates par les données du contact / de la boîte.
+    Nettoie les salutations vides (« Bonjour , » → « Bonjour, ») quand le prénom manque."""
+    if not s:
+        return s
+    c = contact or {}
+    exp_first, exp_last = _split_name(mb.get("sender_name", ""))
+    repl = {
+        "prenom": c.get("prenom") or "", "firstname": c.get("prenom") or "", "firstName": c.get("prenom") or "",
+        "nom": c.get("nom") or "", "lastname": c.get("nom") or "", "lastName": c.get("nom") or "",
+        "entreprise": c.get("societe") or c.get("entreprise") or "", "societe": c.get("societe") or "",
+        "company": c.get("societe") or "",
+        "ville": c.get("city") or c.get("ville") or "", "city": c.get("city") or "",
+        "expediteur_prenom": exp_first, "expediteur_nom": exp_last,
+    }
+    import re as _re
+    unsub = f"mailto:{mb['email']}?subject=desinscription"
+    s = s.replace("{{UNSUBSCRIBE_LINK}}", unsub).replace("{{unsubscribe}}", unsub)
+    s = _re.sub(r"\{\{\s*([A-Za-z_]+)\s*\}\}", lambda m: repl.get(m.group(1), m.group(0)), s)
+    # Salutation sans prénom : « Bonjour , » / « Bonjour  , » → « Bonjour, »
+    s = _re.sub(r"Bonjour\s+,", "Bonjour,", s)
+    return s
+
+
 def send_email(to_email: str, subject: str, text: str | None = None, html: str | None = None,
                site: str = SITE_DEFAULT, campaign_id: str | None = None,
                to_name: str | None = None, mailbox: dict | None = None,
-               in_reply_to: str | None = None) -> dict:
+               in_reply_to: str | None = None, contact: dict | None = None) -> dict:
     """Envoie UN email via une boîte Maildoso (rotation auto si `mailbox` non fourni).
 
     text/html : au moins un des deux. Cold email → préférer text seul.
@@ -250,6 +279,11 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
     if not text and html:
         from sweego_backend import html_to_text
         text = html_to_text(html)
+
+    # Personnalisation par destinataire ({{prenom}}, {{entreprise}}, {{expediteur_*}}, désinscription…)
+    subject = _apply_tokens(subject, contact, mb)
+    text = _apply_tokens(text, contact, mb)
+    html = _apply_tokens(html, contact, mb) if html else html
 
     msg = EmailMessage()
     msg["From"] = f"{mb['sender_name']} <{mb['email']}>"
@@ -288,12 +322,11 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
     `recipients` : emails (str) ou dicts contacts ({email, prenom?, nom?}).
     S'arrête proprement quand toutes les boîtes ont atteint leur cap.
     {ok, sent, errors[], exhausted?}."""
-    if utm_campaign or True:
-        try:
-            from utm_tagging import tag_links
-            html_str = tag_links(html_str, "maildoso", "email", utm_campaign or campaign_id or "lcr-cold")
-        except Exception:
-            pass
+    try:
+        from utm_tagging import tag_links
+        html_str = tag_links(html_str, "maildoso", "email", utm_campaign or campaign_id or "lcr-cold")
+    except Exception:
+        pass
     from sweego_backend import html_to_text
     text = html_to_text(html_str)
 
@@ -302,7 +335,7 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
     items = [it for it in items if it.get("email") and "@" in it["email"]]
     for i, it in enumerate(items):
         res = send_email(it["email"], subject, text=text, html=html_str, site=site,
-                         campaign_id=campaign_id,
+                         campaign_id=campaign_id, contact=it,
                          to_name=f"{it.get('prenom', '')} {it.get('nom', '')}".strip() or None)
         if res.get("ok"):
             sent += 1

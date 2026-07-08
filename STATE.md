@@ -1199,3 +1199,46 @@ Entités (cf. mémoire reference_legal_entities) : LCR=HUMANETICS LABS (SARL, SI
 - **Nouveau `scripts/maildoso_ramp.py`** : montée en charge auto, appelée en fin de chaque dispatch maildoso (`campaign_engine._send_batch`), idempotente 1×/boîte/jour, journalisée dans `maildoso_ramp_log`. Règle : fenêtre 3 j sur `maildoso_sent` ; >10 % erreurs SMTP → cap −10 (min 10) ; 0 erreur + dernier jour actif ≥ 60 % du cap → cap +5 (max 40) ; sinon inchangé. CLI : `maildoso_ramp.py status|run`.
 - **/channels enrichi** (maildoso) : `mailboxes`, `per_mailbox_cap`, `remaining_today` + note honnête. **Card du wizard** (`campaign-wizard.tsx`) affiche : cap/jour, « N boîtes × cap/j », badge « X restants aujourd'hui » (vert/rouge). `pnpm build` + restart genesis-ui OK (piège : `.next` avait des fichiers root → `chown -R autoblog` avant build).
 - **Mail-tester 7.5/10** (test-cheffer0707b) : SPF pass, DKIM pass (signé par le relais Maildoso `s=out401500`, 2048 bits), DMARC pass (p=reject aligné), IP de sortie 169.255.56.72 (pool pinkproof) clean sur 23 blocklists. Pénalités : **leclient-roi.com listé ABUSE SURBL (−1.9, à délister sur surbl.org)** + réécriture du relais (GCDT) : text/plain converti en HTML-only sans balise `<html>`, header List-Unsubscribe supprimé. Si plain text pur voulu : couper le tracking via `PUT /v1/user/domains/tracking`.
+
+### MAJ 2026-07-08 — SURBL delisting soumis ✅ / page anti-spam À PUBLIER ⚠️
+- Demande de removal SURBL ABUSE pour `leclient-roi.com` soumise et reçue par SURBL (« request has been received »). Dossier : `routeur_doc/surbl_delisting_leclient-roi.md`.
+- ⚠️ **URGENT — prochaine session LCR** : publier la page « Politique anti-spam » sur leclientroi.com (URL déclarée à SURBL : `/politique-anti-spam`). Instructions complètes + contenu exact : `routeur_doc/TODO_page_politique_anti-spam_lcr.md`. Les reviewers vérifient le lien sous 24-72 h.
+- Ensuite : surveiller le délisting (`dig +short leclient-roi.com.multi.surbl.org` — vide = délisté) puis relancer un mail-tester (score attendu ~9.4).
+
+### MAJ 2026-07-08 — Remplacement complet des templates LCR (zip Camille) ✅
+- **Backup préalable** : `backups/templates_lcr_backup_2026-07-08.json` (30 email_templates + 9 html_templates). Sources du zip archivées dans `routeur_doc/leclientroi-emails/` (avec `cold-emails-complet.md` : objets B + noms d'expéditeurs proposés).
+- **html_templates (messages validés)** : 9 supprimés → **16 nouveaux** : 8 newsletters HTML (liens leclientroi.com pré-tagués **plan de taggage /site/lcr/tag : utm_source=newsletter&utm_medium=email&utm_campaign=newsletter-<secteur>** — le tag d'envoi respecte les liens déjà tagués) + 8 cold emails convertis en HTML simple (source `cold-email`, liens NON pré-tagués → tag à l'envoi : maildoso/coldemail selon canal).
+- **email_templates (cold)** : 30 supprimés (10 secteurs × first/relance1/relance2) → **8 nouveaux** kind=first, tous `valid=True`. Secteurs mappés sur les codes canoniques du pool : agences→agence-marketing, artisans→artisan, boutiques→retail, fleuristes→fleuriste, immobilier, lelead, opticiens→opticien, plombiers→plombier.
+- **Validateur mis à jour** (`email_generator.validate_email`) : le CTA de RDV accepte désormais TidyCal OU le **booking interne Cheffer** (`api.cheffer.email/api/book/…`) — les nouveaux cold emails utilisent le booking Cheffer. Restart dashboard OK.
+- Nouveaux templates : variables `{{prenom}} {{entreprise}} {{ville}} {{expediteur_prenom}} {{expediteur_nom}}` (convention séquenceur Maildoso, ≠ `{{firstName}}` Emelia) — à mapper quand le séquenceur maison sera construit. Objets B (A/B testing) archivés dans le md, pas de champ en base.
+
+### MAJ 2026-07-08 (soir) — Scraping auto + ciblage géo campagnes + review ✅
+**1. Orchestrateur scraping auto EN DUR** (`scripts/autoscrape_plan.py`, cron `*/30 7-21 * * *`) :
+- Parcourt les 12 régions métropole dans l'ordre EXACT du select scrapper (11 IDF → … → 93 PACA), 1000 contacts/région, département par département (réutilise `autoscrape_backend.run_autoscrape`). Secteur **immobilier** seul actif ; secteurs suivants pré-écrits mais COMMENTÉS dans `PLAN_SECTORS` (validation manuelle avant activation, cf. demande Camille).
+- `tick` (cron, instantané) lance `work` (détaché, run bloquant d'une région). Reprise auto après blocage Serper (throttle 1h), saute les depts finis. État : `memory/autoscrape/lcr-plan.json`. CLI : `tick|work|status|pause|resume|reset`. **Lancé le 08/07 18:16, tourne (IDF en cours).**
+
+**2. Ciblage géographique des campagnes** (secteur + région ET/OU département, +/− dans le wizard) :
+- `contacts_pool_backend._geo_clause` + params `regions`/`depts` sur `pick_for_campaign` et `count_available_for_sector` (OR entre zones). `campaign_engine.create_campaign` stocke les zones dans `params` JSON, `dispatch` filtre dessus. `api.py` : `/campaigns/target-count` et `/campaigns` acceptent `regions`/`depts`.
+- Wizard (`campaign-wizard.tsx`) : composant `GeoTargeting` à l'étape Cible — ajout/retrait de zones (région entière 🗺️ ou département 📍) via +/−, compteur live filtré, récap. Vide = France entière. Build + restart OK.
+- **Prérequis résolu** : `contacts.dept_code`/`region_code` étaient à ~NULL. Ajout `workflow_geo.resolve_city_geo` (CP prioritaire, sinon nom de ville ≥10k) ; Serper dual-write (`god_mode_agents`) remplit désormais dept/region ; **backfill fait** (726 dept+region, 2886 region ; immobilier : 879 ciblables, 380 IDF, 90 dept 92).
+
+**3. Review (agent) — 2 bugs corrigés** :
+- HIGH : `_norm_city` ne gérait pas les arrondissements (« Paris 13e » → NULL geo → exclus du ciblage). Corrigé (regex suffixe arrondissement → commune-mère). ⚠️ **Reste à faire** : re-run backfill après la 1re région (le run live a chargé l'ancien code → contacts Paris de CE run ont un geo NULL ; `resolve_city_geo("Paris 13e")` les corrigera).
+- MEDIUM : reprise multi-cycle dépassait le plafond 1000 (`valid` persisté était par-run, pas cumulé). Corrigé via `valid_baseline` → `valid` persisté cumulé, `remaining = target − valid` correct.
+- LOW notés (non bloquants) : TOCTOU sent_today Maildoso (OK en envoi séquentiel), addZone filtre depts sur state async (redondance inoffensive, OR-semantics), homonymes communes → plus grande (tradeoff CP-first).
+
+### MAJ 2026-07-08 (nuit) — Correction placement templates/messages + refonte UX (retour Camille)
+Erreur de la session précédente corrigée : j'avais mis newsletters ET cold emails dans « Messages validés » (versions), cassant le bloc-éditeur et mélangeant les canaux.
+- **Cold emails** retirés de Messages validés → restent uniquement sur la page **Cold email** (`email_templates`, 8 secteurs). Envoi via Campagnes (canal Maildoso).
+- **8 newsletters (avec images)** → déplacées en **Templates** (structures, fichiers `structures/leclientroi-newsletter-<secteur>.html`), en **HTML brut NON taggé** (le pré-tag `utm_source=newsletter` empêchait le tag correct au moment de l'envoi selon le canal — le tagueur respecte les liens déjà taggés). Anciennes structures archivées dans `structures/_archive/` (14, récupérables).
+- **Bloc-éditeur** (`newsletter-editor.tsx`) : `parseBlocks`/`rebuildHtml` détectent désormais le conteneur `table.wrap` (newsletters) en plus de `table.email-container` (+ fallback heuristique table 600px). Les newsletters sont éditables bloc par bloc (clic texte/image, réordonner) — fini le « Aucun bloc détecté ».
+- **Section Templates** (`newsletters/page.tsx`) : multiselect texte → **galerie de cartes avec aperçu image** (iframe rendu scalé) + boutons Éditer/Tester. Messages validés = sortie de l'édition d'un template.
+- **Envoi** : bouton « Masse » retiré des messages + **dialog « Envoyer en masse · Sweego » supprimé**. Tout envoi passe par **Campagnes** (choix du canal + tags UTM auto selon canal). Build + restart genesis-ui OK.
+
+### MAJ 2026-07-08 (nuit +1) — Sélecteur de message campagne unifié (retour Camille : "0 option")
+Bug : le wizard campagne ne piochait que dans `html_templates` (versions), désormais vide → aucun message sélectionnable, et les cold emails introuvables.
+- **Résolveur unifié** (`html_templates_backend`) : `campaign_message_options(site)` (liste groupée) + `resolve_campaign_message(site, mid)`. message_id encode la source : `struct:<name>` (Templates/newsletters), `ver:<id>` (Messages validés), `cold:<sector>:first` (email_templates).
+- **API** : `GET /campaigns/messages` (groupes) + `GET /campaigns/message-preview?id=` (HTML). suggest-subject, preview-lint et `campaign_engine._send_batch` utilisent le résolveur (au lieu de `get_version` seul).
+- **Wizard** (`campaign-wizard.tsx`) étape Message : 3 groupes sélectionnables — 🖼️ Templates (8), ✅ Messages validés, ✉️ Cold emails par secteur (8). Aperçu via le résolveur. Upload/texte créent une version (`ver:<id>`).
+- **Personnalisation Maildoso** (`maildoso_backend._apply_tokens`) : {{prenom}}/{{firstName}}, {{nom}}, {{entreprise}}/{{societe}}, {{ville}}/{{city}}, {{expediteur_prenom/nom}} (depuis la boîte), {{UNSUBSCRIBE_LINK}}/{{unsubscribe}} → mailto ; salutation vide nettoyée (« Bonjour , » → « Bonjour, »). Appliqué par destinataire dans `send_batch`. Évite d'envoyer les tokens bruts pour les cold emails.
+- Build + restart genesis-dashboard + genesis-ui OK. Scrape immobilier toujours en cours (271 contacts, dept 95).

@@ -600,14 +600,37 @@ SOURCE_RANK_SQL = """
 """
 
 
+def _geo_clause(regions: list[str] | None, depts: list[str] | None) -> tuple[str, list]:
+    """Fragment SQL + params du ciblage géographique optionnel.
+
+    OR entre les zones : un contact matche s'il est dans UN des départements choisis
+    OU dans UNE des régions choisies. Sans critère → pas de clause (France entière).
+    Les contacts sans dept_code/region_code sont exclus dès qu'un critère géo est posé."""
+    regions = [r for r in (regions or []) if r]
+    depts = [d for d in (depts or []) if d]
+    if not regions and not depts:
+        return "", []
+    conds, params = [], []
+    if depts:
+        conds.append(f"c.dept_code IN ({','.join('?' * len(depts))})")
+        params += depts
+    if regions:
+        conds.append(f"c.region_code IN ({','.join('?' * len(regions))})")
+        params += regions
+    return f"AND ({' OR '.join(conds)})", params
+
+
 def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
                       cooldown_global_days: int = COOLDOWN_GLOBAL_DAYS,
                       cooldown_same_site_days: int = COOLDOWN_SAME_SITE_DAYS,
-                      cleaned_within_days: int = 180) -> list[dict]:
+                      cleaned_within_days: int = 180,
+                      regions: list[str] | None = None,
+                      depts: list[str] | None = None) -> list[dict]:
     """Algorithme de pioche : retourne les N meilleurs contacts pour une campagne.
 
     Filtres :
       - sector dans contacts.sectors
+      - regions/depts (optionnel) : dept_code ou region_code dans les zones ciblées
       - NOT global_blacklisted
       - Mailnjoy décision 'valid' ET vérifié il y a < cleaned_within_days (récence, défaut 6 mois)
       - state IS NULL (jamais utilisé par ce site) OR state = 'cold_email'
@@ -617,6 +640,7 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
     Tri : source (tally>serper>csv>manual), email_score desc, updated_at desc
     """
     cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
+    geo_sql, geo_params = _geo_clause(regions, depts)
     q = f"""
         SELECT c.id, c.email, c.prenom, c.nom, c.societe, c.tel, c.website,
                c.city, c.dept_code, c.region_code, c.sectors,
@@ -630,6 +654,7 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
         WHERE
             c.global_blacklisted = FALSE
             AND c.sectors::VARCHAR LIKE ?
+            {geo_sql}
             -- enrichissement data.gouv : on écarte les entités enrichies ET exclues
             -- (fermées, administrations, diffusion partielle). Les non-enrichis (e.* NULL)
             -- passent normalement : on ne bloque pas le flux faute d'enrichissement.
@@ -658,7 +683,7 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
     """
     c = _conn(read_only=True)
     try:
-        rows = c.execute(q, [site_code, f"%{sector}%", cutoff, site_code, limit]).fetchall()
+        rows = c.execute(q, [site_code, f"%{sector}%", *geo_params, cutoff, site_code, limit]).fetchall()
     finally:
         c.close()
     cols = ["id", "email", "prenom", "nom", "societe", "tel", "website",
@@ -675,9 +700,12 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
     return out
 
 
-def count_available_for_sector(site_code: str, sector: str, cleaned_within_days: int = 180) -> int:
+def count_available_for_sector(site_code: str, sector: str, cleaned_within_days: int = 180,
+                               regions: list[str] | None = None,
+                               depts: list[str] | None = None) -> int:
     """Count des contacts disponibles pour pioche dans un secteur (filtres identiques à pick_for_campaign)."""
     cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
+    geo_sql, geo_params = _geo_clause(regions, depts)
     q = f"""
         SELECT COUNT(*)
         FROM contacts c
@@ -688,6 +716,7 @@ def count_available_for_sector(site_code: str, sector: str, cleaned_within_days:
         WHERE
             c.global_blacklisted = FALSE
             AND c.sectors::VARCHAR LIKE ?
+            {geo_sql}
             AND COALESCE(e.excluded, FALSE) = FALSE
             -- N'ENVOYER QU'AUX EMAILS NETTOYÉS : Mailnjoy décision 'valid' uniquement
             -- (exclut error/risky/pending et les jamais-vérifiés NULL).
@@ -708,7 +737,7 @@ def count_available_for_sector(site_code: str, sector: str, cleaned_within_days:
     """
     c = _conn(read_only=True)
     try:
-        n = c.execute(q, [site_code, f"%{sector}%", cutoff, site_code]).fetchone()[0]
+        n = c.execute(q, [site_code, f"%{sector}%", *geo_params, cutoff, site_code]).fetchone()[0]
     finally:
         c.close()
     return int(n or 0)

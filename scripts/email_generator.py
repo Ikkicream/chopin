@@ -158,12 +158,15 @@ def validate_email(subject: str, body_html: str) -> list[str]:
     if words > 150:
         errors.append(f"corps > 150 mots ({words})")
 
-    # Compter les ancres <a> vers TidyCal (1 attendu), pas les occurrences de l'URL.
-    cta = len(re.findall(r'href="[^"]*tidycal\.com/1rr6kv1', body_html))
+    # Compter les CTA de prise de RDV (1 attendu) : TidyCal (historique) OU le booking
+    # interne Cheffer (api.cheffer.email/api/book/… ou lien texte brut équivalent).
+    cta = len(re.findall(r'href="[^"]*(?:tidycal\.com/1rr6kv1|api\.cheffer\.email/api/book)', body_html))
     if cta == 0:
-        errors.append("CTA TidyCal absent")
+        cta = len(re.findall(r'(?:tidycal\.com/1rr6kv1|api\.cheffer\.email/api/book)', body_html))
+    if cta == 0:
+        errors.append("CTA prise de RDV absent (TidyCal ou booking Cheffer)")
     elif cta > 1:
-        errors.append(f"plus d'1 CTA TidyCal ({cta})")
+        errors.append(f"plus d'1 CTA prise de RDV ({cta})")
 
     if EMOJI_RE.search(subject):
         errors.append("emoji dans l'objet")
