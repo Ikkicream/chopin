@@ -132,8 +132,8 @@ def md_to_html(md):
     return "\n".join(result)
 
 
-def publish_emdash(title, slug, content_md):
-    """Create + publish on Emdash CMS."""
+def publish_emdash(title, slug, content_md, art):
+    """Create + publish on Emdash CMS. `art` = l'article de la file (pour l'image à la une)."""
     headers = {"Authorization": f"Bearer {EMDASH_TOKEN}", "Content-Type": "application/json"}
     blocks = md_to_portable_text(content_md)
 
@@ -206,7 +206,7 @@ def main():
     print(f"[publish] {art['id']} -> {site.upper()} -- {title}")
 
     if site == "lcr":
-        ok, url_or_err, post_id = publish_emdash(title, slug, content_md)
+        ok, url_or_err, post_id = publish_emdash(title, slug, content_md, art)
     elif site == "mkd":
         ok, url_or_err, post_id = publish_wordpress(title, slug, content_md)
     else:

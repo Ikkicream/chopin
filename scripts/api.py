@@ -4037,6 +4037,24 @@ def get_marketing_overview(site: str):
     except Exception as e:
         out["sweego"] = {"configured": False, "error": str(e)}
 
+    # ── Maildoso (cold email maison) ──
+    try:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        import maildoso_backend as md
+        boxes = [b for b in md.list_mailboxes(site) if b.get("status") == "active"]
+        st = md.stats(site)
+        s = st["sent"]; err = st["errors"]
+        # Pas de tracking ouverture/clic en SMTP → opens/clicks = None (affichés « — »).
+        out["maildoso"] = {
+            "configured": bool(boxes), "no_tracking": True,
+            "mailboxes": len(boxes),
+            "sent": s, "opens": None, "clicks": None, "replies": None, "bounces": err,
+            "open_rate": None, "click_rate": None, "reply_rate": None,
+            "bounce_rate": round(err / (s + err) * 100, 1) if (s + err) else 0,
+        }
+    except Exception as e:  # noqa: BLE001
+        out["maildoso"] = {"configured": False, "error": str(e)}
+
     return out
 
 

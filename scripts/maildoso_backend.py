@@ -201,6 +201,20 @@ def _increment_sent(email: str):
         c.close()
 
 
+def stats(site: str = SITE_DEFAULT) -> dict:
+    """Compteurs d'envoi Maildoso pour un site (table maildoso_sent).
+    Maildoso = SMTP : pas de tracking d'ouverture/clic natif → seuls sent/errors sont connus."""
+    _ensure_tables()
+    c = _conn()
+    try:
+        row = c.execute(
+            "SELECT COUNT(*) FILTER (WHERE status='sent'), COUNT(*) FILTER (WHERE status='error') "
+            "FROM maildoso_sent WHERE site_code=?", [site]).fetchone()
+    finally:
+        c.close()
+    return {"sent": int(row[0] or 0), "errors": int(row[1] or 0)}
+
+
 def remaining_quota_today(site: str = SITE_DEFAULT) -> int:
     _ensure_tables()
     c = _conn()

@@ -1265,3 +1265,29 @@ Bug : le BAT du wizard appelait `/mass-campaigns/bat` (Sweego) avec `htb.get_ver
 - Popup remplacée par une **vraie page** `app/site/[code]/guide/page.tsx` (URL `/site/<code>/guide`), liée depuis le pied de sidebar (`user-guide.tsx` = lien, plus de dialog). S'affiche avec la sidebar + auth (via ClientShell).
 - Sections avec **intro + « Cas pratique »** chacune : Connexion/sécurité, Menus (résumé), Notions & API connectées (pool, Serper/Basile, Mailnjoy, Maildoso/Sweego/Emelia, UTM/GA4, délivrabilité), Faire un scraping, Faire une campagne (+ **schéma des 3 canaux** Maildoso/Sweego/Emelia), Templates vs Cold emails, Nettoyage, Rendez-vous.
 - **Screenshots** : composant `<Shot img=... />` affiche `/public/guide/<x>.png` si présent, sinon un **schéma fidèle** en fallback. Playwright + Chromium installés dans `/root/guideshots` (deps apt OK). **login.png = vraie capture** (page publique). Les pages connectées (scrapper/campaigns/newsletters/cold-email/cleanup/booking/sidebar) : script `/root/guideshots/shoot-auth.js` PRÊT mais nécessite un **token de session légitime** — le classifier a (à juste titre) bloqué la création d'une session forgée. ⚠️ **À FAIRE** : obtenir le mot de passe du compte de test (user `test`, rôle commercial) pour capturer les vraies images, sinon les schémas restent affichés.
+
+### MAJ 2026-07-09 — Refonte UI (palette violet/crème + font) + dashboard emailing en datatable
+- ⚠️ **Saas UI NON installé** : c'est du Chakra UI + Emotion (CSS-in-JS), incompatible avec la stack (Next 16 / React 19 / **Tailwind v4 + shadcn**). L'installer casserait le reset CSS et doublonnerait le système de style. Refonte faite sur la stack existante (même philosophie que saas-ui : composants accessibles Radix/shadcn).
+- **Palette « violet & crème »** (`globals.css`, light) : fond crème chaud (`--background` oklch cream), cartes blanc cassé, `--accent`/sidebar en tint violet, `--primary` violet renforcé, bordures chaudes. Dark inchangé.
+- **Police** : Inter → **Plus Jakarta Sans** (`layout.tsx`, var `--font-sans`), plus premium ; JetBrains Mono conservé.
+- **Rapport emailing en DATATABLE** (`components/channel-perf-card.tsx`) : remplace les 2 cartes cramées par un tableau 1 ligne/canal — **Maildoso + Emelia + Sweego** — colonnes Envoyés · Ouvertures · Clics · Réponses · Bounces (valeur + taux, « — » si non dispo). Maildoso ajouté au backend (`/marketing/overview` + `maildoso_backend.stats(site)` depuis `maildoso_sent`) ; note « SMTP sans tracking » pour ouvertures/clics Maildoso.
+- login.png (guide) re-capturé avec le nouveau thème. Build + restart OK.
+
+### MAJ 2026-07-09 (suite) — Dashboard commercial : datatable emailing (bon composant), 10 dernières campagnes, scraper live, gating admin
+- **Bug corrigé** : la dashboard avait sa PROPRE copie locale de `ChannelPerfCard` (grille de cartes) → mes changements sur `components/channel-perf-card.tsx` ne s'y voyaient pas. Dashboard utilise maintenant `<ChannelPerfTable site>` (le vrai datatable 3 canaux : Maildoso + Emelia + Sweego). L'ancienne fonction locale est laissée inerte.
+- **10 dernières campagnes** (`RecentCampaignsCard`) : table (chaleur, campagne, canal, statut, envoyés/cible, date) via `/api/sites/{site}/campaigns`. **Code couleur + emoji d'urgence par ancienneté** (`campaignHeat`) : 🌱 frais (<1 sem, vert) · 🌶️ +1 sem (jaune) · 🌶️🌶️ +2 sem (ambre) · 🔥 +3 sem (orange) · 🔥🔥 très hot +4 sem (rouge).
+- **Card « Scraping en cours »** (`ScraperTile`) **à la place du KPI Domain Rating** : quand un scrape tourne (poll `/autoscrape/status` /5s), affiche région, dépt, ville, barre de progression contacts (valid/target), Serper/Basile, dépts a/b, villes c/d, doublons, examinés. Au repos → retombe sur Domain Rating (rien perdu).
+- **Gating rôle** : « Consommation API (30 j) » et « Dernières actions agents » masqués pour les non-admins (visibles seulement admin/superadmin), lus depuis `genesis_user.role` en localStorage.
+- Build + restart OK. Scrape immobilier Hauts-de-France en cours (55/990) → la card s'affiche en live.
+
+### MAJ 2026-07-09 — Fix publication blog (emdash) cassée + article LCR publié
+- Bug : `publish_agent.publish_emdash()` référençait une variable globale `art` inexistante → `NameError` à CHAQUE publication LCR (emdash). Les articles passaient en statut « publishing » puis crashaient sans jamais atteindre le CMS. Cause du « je pousse un article mais je le vois pas ».
+- Fix : `art` passé en paramètre à `publish_emdash(title, slug, content_md, art)` (+ appel màj). Compile OK.
+- Republié `art_20260503_lcr_002` « SMS géolocalisé : le guide pour booster votre TPE en 2026 » (2147 mots) → **published**, live : https://blog.leclientroi.com/posts/sms-geolocalise-le-guide-pour-booster-votre-tpe-en-2026 (HTTP 200). Les futures publications LCR fonctionnent de nouveau.
+- Rappel : la page Articles de Cheffer = file éditoriale interne (`memory/editorial/articles-queue.json`), publication réelle via API emdash (token admin). Blog LCR = blog.leclientroi.com.
+
+### MAJ 2026-07-09 — Backfill images à la une des articles publiés
+- Contrôle des 86 articles publiés (emdash blog LCR) → **12 sans image à la une**.
+- Générateur = **Google Imagen 3** (Vertex AI, `imagen_generate.py`) — PAS DeepSeek (DeepSeek écrit juste le prompt de scène). Générique demandé : personne regardant un téléphone, sans texte ni logo, 16:9, style doux violet/crème.
+- 8 variantes générées (2× n=4), uploadées en media emdash, attachées en rotation aux 12 posts via GET→PUT `/content/posts/{id}` (data.featured_image provider=external) + republish. **12/12 OK, 0 restant**.
+- Note : 8 images pour 12 posts (4 réutilisées) — possibilité de faire 12 uniques si demandé.
