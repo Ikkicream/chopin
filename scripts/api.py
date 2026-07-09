@@ -5156,8 +5156,8 @@ async def api_mass_campaign_bat(site: str, request: Request):
     email = (body.get("email") or "").strip()
     if not message_id or not subject or not email or "@" not in email:
         return {"ok": False, "error": "message_id, subject et email requis"}
-    msg = htb.get_version(site, message_id)
-    if not msg:
+    msg = htb.resolve_campaign_message(site, message_id)
+    if not msg or not msg.get("html"):
         return {"ok": False, "error": "message introuvable"}
     res = sw.send_campaign(f"{site}-bat-{message_id[:8]}", subject, msg["html"], [email], dry_run=False)
     return res
@@ -5392,22 +5392,57 @@ def api_campaigns_list(site: str):
     return {"campaigns": ce.list_campaigns(site)}
 
 
+def _send_bat(site: str, channel: str, message_id: str, subject: str, email: str) -> dict:
+    """BAT unifié : résout le message (Templates/structures, Cold, Messages validés) et
+    l'envoie à UNE adresse de test via le canal choisi. Personnalise avec un contact fictif
+    pour que les variables ({{prenom}}…) soient rendues comme à l'envoi réel."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import html_templates_backend as htb
+    channel = (channel or "").lower()
+    if not message_id or not subject or not email or "@" not in email:
+        return {"ok": False, "error": "message, objet et email requis"}
+    msg = htb.resolve_campaign_message(site, message_id)
+    if not msg or not msg.get("html"):
+        return {"ok": False, "error": "message introuvable"}
+    sample = {"prenom": "Camille", "nom": "Afchain", "societe": "Le Client ROI", "city": "Paris"}
+    try:
+        if channel == "maildoso":
+            import maildoso_backend as md
+            r = md.send_email(email, subject, html=msg["html"], site=site,
+                              campaign_id="bat", contact=sample)
+            if r.get("ok"):
+                return {"ok": True, "note": f"BAT Maildoso envoyé depuis {r.get('mailbox')}"}
+            return {"ok": False, "error": r.get("error") or "échec envoi Maildoso"}
+        # Sweego (masse) et Emelia (cold séquenceur tiers) : test via Sweego (domaine leclientroi.com).
+        import sweego_backend as sw
+        r = sw.send_campaign(f"{site}-bat", subject, msg["html"], [email], dry_run=False)
+        return r if isinstance(r, dict) else {"ok": True}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/sites/{site}/campaigns/bat")
+async def api_campaign_bat(site: str, request: Request):
+    """BAT avant création : envoie le message de test via le canal choisi.
+    Body: {channel, message_id, subject, email}."""
+    body = await request.json()
+    return _send_bat(site, (body.get("channel") or "").lower(),
+                     (body.get("message_id") or "").strip(),
+                     (body.get("subject") or "").strip(),
+                     (body.get("email") or "").strip())
+
+
 @app.post("/api/sites/{site}/campaigns/{cid}/bat")
 async def api_campaign_unified_bat(site: str, cid: str, request: Request):
-    """BAT : envoie le message de la campagne à une adresse de test (canal Sweego)."""
+    """BAT d'une campagne existante : envoie son message à une adresse de test, via son canal."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import campaign_engine as ce, sweego_backend as sw, html_templates_backend as htb
+    import campaign_engine as ce
     body = await request.json()
     email = (body.get("email") or "").strip()
-    if not email or "@" not in email:
-        return {"ok": False, "error": "email invalide"}
     camp = ce.get_campaign(cid)
     if not camp:
         return {"ok": False, "error": "campagne introuvable"}
-    msg = htb.get_version(site, camp["message_id"])
-    if not msg:
-        return {"ok": False, "error": "message introuvable"}
-    return sw.send_campaign(f"{site}-bat-{cid}", camp["subject"], msg["html"], [email], dry_run=False)
+    return _send_bat(site, camp.get("channel"), camp["message_id"], camp["subject"], email)
 
 
 @app.post("/api/sites/{site}/campaigns/{cid}/{action}")

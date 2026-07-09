@@ -34,10 +34,16 @@ TIMEOUT_S = int(os.environ.get("EMAILENS_TIMEOUT_S", "120"))
 # "low-contrast", souvent bruyantes sur des fonds dégradés) restent À CORRIGER mais non bloquantes.
 BLOCKING_CATEGORIES = ("templatevars", "links", "html", "spam")
 
-# Variables de fusion Emelia légitimes : non résolues au lint (Emelia les remplit à l'envoi).
-# On ne les compte donc PAS comme erreurs -> le check templateVars ne bloque que sur de VRAIES
-# variables inconnues (ex. faute de frappe {{prenom}} qui ne sera jamais remplie).
-ALLOWED_VARS = {"firstname", "lastname", "unsubscribe_link", "field1", "field2", "field3", "field4", "field5"}
+# Variables de fusion légitimes : non résolues au lint (remplies à l'envoi par le canal —
+# Emelia OU Maildoso/cold email). On ne les compte donc PAS comme erreurs -> le check
+# templateVars ne bloque que sur de VRAIES variables inconnues (faute de frappe).
+ALLOWED_VARS = {
+    # Emelia
+    "firstname", "lastname", "unsubscribe_link", "field1", "field2", "field3", "field4", "field5",
+    # Cold email maison / Maildoso (cf. maildoso_backend._apply_tokens)
+    "prenom", "nom", "entreprise", "societe", "company", "ville", "city",
+    "expediteur_prenom", "expediteur_nom", "unsubscribe",
+}
 _VAR_RE = re.compile(r"\{+\s*([A-Za-z0-9_]+)\s*\}+")
 
 

@@ -33,6 +33,51 @@ def _conn():
 _FN = "{{firstName}}"
 
 
+def _preheader(body_html: str) -> str:
+    """~90 premiers caractères de texte du corps (préheader ≥ 30 car. recommandé)."""
+    import re as _re
+    txt = _re.sub(r"<[^>]+>", " ", body_html or "")
+    txt = _re.sub(r"\{\{[^}]*\}\}", "", txt)  # retire les variables du préheader
+    txt = " ".join(txt.split())
+    return txt[:90]
+
+
+# Signature/footer conforme (CAN-SPAM / CNIL) ajouté aux cold emails.
+# NB : pas d'adresse postale en dur (à compléter par Camille) — on met société, contact,
+# téléphone et un lien de désinscription réel et détectable par le lint.
+_COLD_FOOTER = (
+    '<hr style="border:none;border-top:1px solid #eee;margin:22px 0 10px" />'
+    '<p style="font-size:12px;line-height:18px;color:#666666;margin:0">'
+    'Le Client ROI · <a href="https://leclientroi.com" style="color:#666666">leclientroi.com</a> · '
+    'contact@leclientroi.com · +33&nbsp;7&nbsp;44&nbsp;30&nbsp;66&nbsp;03<br />'
+    'Email professionnel envoyé par Le Client ROI. '
+    # href contient « unsubscribe » pour être détecté comme lien de désinscription (lint EN)
+    '<a href="mailto:contact@leclientroi.com?subject=unsubscribe" style="color:#666666">Me désinscrire</a>.'
+    '</p>'
+)
+
+
+def wrap_cold_email(body_html: str, subject: str = "") -> str:
+    """Emballe un corps de cold email (fragment) dans un document HTML conforme :
+    lang, charset, title, viewport, préheader caché, et footer désinscription/contact.
+    Rend le message valide au lint ET conforme à l'envoi. Idempotent (ne réemballe pas)."""
+    body = body_html or ""
+    if "<html" in body.lower():
+        return body  # déjà un document complet
+    pre = _preheader(body)
+    subj = (subject or "Le Client ROI").replace("<", "").replace(">", "")
+    return (
+        '<!doctype html>\n<html lang="fr">\n<head>\n'
+        '<meta charset="utf-8" />\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1" />\n'
+        f'<title>{subj}</title>\n</head>\n'
+        '<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#222222">\n'
+        f'<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#ffffff;font-size:1px">{pre}</div>\n'
+        '<div style="max-width:600px;margin:0 auto;padding:18px;font-size:15px;line-height:1.6">\n'
+        f'{body}\n{_COLD_FOOTER}\n</div>\n</body>\n</html>'
+    )
+
+
 def normalize_greeting(body_html: str) -> str:
     """Force la salutation au format `{{firstName}},` SANS « Bonjour » littéral devant :
     c'est la valeur poussée (greeting_first_name) qui porte la salutation complète

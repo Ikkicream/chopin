@@ -76,6 +76,11 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
     if not name or not message_id or not subject or not sectors or target_size < 1:
         return {"ok": False, "error": "name, message_id, subject, sectors, target_size requis"}
 
+    # Le message doit être résoluble MAINTENANT (évite une campagne qui échouera au dispatch).
+    import html_templates_backend as _htb
+    if not (_htb.resolve_campaign_message(site, message_id) or {}).get("html"):
+        return {"ok": False, "error": f"message introuvable: {message_id}"}
+
     try:
         start = _date.fromisoformat(schedule_start)
     except Exception:

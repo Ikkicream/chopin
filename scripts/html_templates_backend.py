@@ -154,7 +154,12 @@ def resolve_campaign_message(site: str, mid: str) -> dict | None:
             return None
         import email_templates_backend as etb
         t = etb._get_one(site, sector, kind)
-        return {"html": t["body_html"], "name": f"Cold — {sector}"} if t else None
+        if not t:
+            return None
+        # Emballage conforme (lang/charset/title/préheader + footer désinscription) —
+        # utilisé pour l'aperçu, le lint ET l'envoi, donc cohérent partout.
+        return {"html": etb.wrap_cold_email(t["body_html"], t.get("subject")),
+                "name": f"Cold — {sector}"}
     vid = mid[len("ver:"):] if mid.startswith("ver:") else mid
     return get_version(site, vid)
 
