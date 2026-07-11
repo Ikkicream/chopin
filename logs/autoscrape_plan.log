@@ -2143,3 +2143,774 @@
     "updated_at": 1783764002.4427288
   }
 }
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3695646) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3695646) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3695646) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3695646) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3695646) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 39,
+    "current_city": "Marquette-lez-Lille",
+    "examined": 192,
+    "valid": 50,
+    "rejected": 819,
+    "duplicates": 36,
+    "errors": 10,
+    "kept_total": 50,
+    "skipped_seen": 2749,
+    "valid_serper": 4,
+    "valid_basile": 46,
+    "target_contacts": 990,
+    "serper_available": 18505,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783760410.2834177,
+    "message": null,
+    "current_detail": "immobilier · Basile Marquette-lez-Lille",
+    "updated_at": 1783765652.7849064
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-11T11:00:02+00:00 run immobilier / Hauts-de-France (32) target=990 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769000) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769000) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769000) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-11T11:30:02+00:00 run immobilier / Hauts-de-France (32) target=990 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769052) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769052) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769052) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 12,
+    "current_city": "Croix",
+    "examined": 54,
+    "valid": 23,
+    "rejected": 268,
+    "duplicates": 19,
+    "errors": 3,
+    "kept_total": 23,
+    "skipped_seen": 958,
+    "valid_serper": 0,
+    "valid_basile": 23,
+    "target_contacts": 990,
+    "serper_available": 18004,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783769410.033311,
+    "message": null,
+    "current_detail": "immobilier · Basile Croix",
+    "updated_at": 1783771098.6600063
+  }
+}
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769052) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3843886) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769052) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3769052) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3806266) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 20,
+    "current_city": "Bailleul",
+    "examined": 103,
+    "valid": 33,
+    "rejected": 436,
+    "duplicates": 22,
+    "errors": 11,
+    "kept_total": 33,
+    "skipped_seen": 1449,
+    "valid_serper": 0,
+    "valid_basile": 33,
+    "target_contacts": 990,
+    "serper_available": 18004,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783769410.033311,
+    "message": null,
+    "current_detail": "immobilier · Serper 6 examinés",
+    "updated_at": 1783773000.2481909
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 39,
+    "current_city": "Marquette-lez-Lille",
+    "examined": 204,
+    "valid": 48,
+    "rejected": 833,
+    "duplicates": 35,
+    "errors": 11,
+    "kept_total": 48,
+    "skipped_seen": 2759,
+    "valid_serper": 2,
+    "valid_basile": 46,
+    "target_contacts": 990,
+    "serper_available": 18004,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783769410.033311,
+    "message": null,
+    "current_detail": "immobilier · Basile Marquette-lez-Lille",
+    "updated_at": 1783774520.4870071
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-11T13:30:01+00:00 run immobilier / Hauts-de-France (32) target=990 resume=True depts_done=['02']
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 12,
+    "current_city": "Croix",
+    "examined": 39,
+    "valid": 19,
+    "rejected": 156,
+    "duplicates": 7,
+    "errors": 5,
+    "kept_total": 19,
+    "skipped_seen": 977,
+    "valid_serper": 3,
+    "valid_basile": 16,
+    "target_contacts": 990,
+    "serper_available": 17299,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783776608.6273932,
+    "message": null,
+    "current_detail": "immobilier · Basile Croix",
+    "updated_at": 1783778293.0573049
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 25,
+    "current_city": "Haubourdin",
+    "examined": 108,
+    "valid": 19,
+    "rejected": 222,
+    "duplicates": 7,
+    "errors": 18,
+    "kept_total": 19,
+    "skipped_seen": 1809,
+    "valid_serper": 3,
+    "valid_basile": 16,
+    "target_contacts": 990,
+    "serper_available": 17299,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783776608.6273932,
+    "message": null,
+    "current_detail": "immobilier · Serper 3 examinés",
+    "updated_at": 1783780199.764239
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 37,
+    "current_city": "Douai",
+    "examined": 170,
+    "valid": 19,
+    "rejected": 287,
+    "duplicates": 7,
+    "errors": 30,
+    "kept_total": 19,
+    "skipped_seen": 2602,
+    "valid_serper": 3,
+    "valid_basile": 16,
+    "target_contacts": 990,
+    "serper_available": 17299,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783776608.6273932,
+    "message": null,
+    "current_detail": "immobilier · Basile Douai",
+    "updated_at": 1783781984.8798988
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 42,
+    "current_city": "Raismes",
+    "examined": 229,
+    "valid": 31,
+    "rejected": 334,
+    "duplicates": 7,
+    "errors": 35,
+    "kept_total": 31,
+    "skipped_seen": 2953,
+    "valid_serper": 15,
+    "valid_basile": 16,
+    "target_contacts": 990,
+    "serper_available": 17299,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783776608.6273932,
+    "message": null,
+    "current_detail": "immobilier · Basile Raismes",
+    "updated_at": 1783783784.7560384
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 50,
+    "current_city": "Gravelines",
+    "examined": 320,
+    "valid": 48,
+    "rejected": 408,
+    "duplicates": 7,
+    "errors": 43,
+    "kept_total": 48,
+    "skipped_seen": 3388,
+    "valid_serper": 32,
+    "valid_basile": 16,
+    "target_contacts": 990,
+    "serper_available": 17299,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783776608.6273932,
+    "message": null,
+    "current_detail": "immobilier · Serper 0 examinés",
+    "updated_at": 1783785495.3982046
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 2,
+    "current_dept": "60 Oise",
+    "cities_total": 93,
+    "cities_done": 55,
+    "current_city": "Creil",
+    "examined": 394,
+    "valid": 70,
+    "rejected": 457,
+    "duplicates": 7,
+    "errors": 48,
+    "kept_total": 70,
+    "skipped_seen": 3670,
+    "valid_serper": 54,
+    "valid_basile": 16,
+    "target_contacts": 990,
+    "serper_available": 17299,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783776608.6273932,
+    "message": null,
+    "current_detail": "immobilier · Serper 6 examinés",
+    "updated_at": 1783787332.5791974
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 2,
+    "current_dept": "60 Oise",
+    "cities_total": 93,
+    "cities_done": 59,
+    "current_city": "Compiègne",
+    "examined": 478,
+    "valid": 92,
+    "rejected": 522,
+    "duplicates": 7,
+    "errors": 52,
+    "kept_total": 92,
+    "skipped_seen": 3947,
+    "valid_serper": 76,
+    "valid_basile": 16,
+    "target_contacts": 990,
+    "serper_available": 17299,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783776608.6273932,
+    "message": null,
+    "current_detail": "immobilier · Serper 6 examinés",
+    "updated_at": 1783789089.7939649
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 2,
+    "current_dept": "60 Oise",
+    "cities_total": 93,
+    "cities_done": 61,
+    "current_city": "Noyon",
+    "examined": 526,
+    "valid": 110,
+    "rejected": 551,
+    "duplicates": 8,
+    "errors": 54,
+    "kept_total": 110,
+    "skipped_seen": 4085,
+    "valid_serper": 94,
+    "valid_basile": 16,
+    "target_contacts": 990,
+    "serper_available": 17299,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783776608.6273932,
+    "message": null,
+    "current_detail": "immobilier · Serper 0 examinés",
+    "updated_at": 1783790973.5692096
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-11T18:00:03+00:00 run immobilier / Hauts-de-France (32) target=938 resume=True depts_done=['02', '59']
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 2,
+    "current_dept": "60 Oise",
+    "cities_total": 39,
+    "cities_done": 9,
+    "current_city": "Clermont",
+    "examined": 68,
+    "valid": 9,
+    "rejected": 59,
+    "duplicates": 0,
+    "errors": 9,
+    "kept_total": 9,
+    "skipped_seen": 690,
+    "valid_serper": 9,
+    "valid_basile": 0,
+    "target_contacts": 938,
+    "serper_available": 16609,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783792811.8603027,
+    "message": null,
+    "current_detail": "immobilier · Basile Clermont",
+    "updated_at": 1783794511.4782941
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 3,
+    "current_dept": "62 Pas-de-Calais",
+    "cities_total": 39,
+    "cities_done": 13,
+    "current_city": "Calais",
+    "examined": 143,
+    "valid": 37,
+    "rejected": 96,
+    "duplicates": 2,
+    "errors": 13,
+    "kept_total": 37,
+    "skipped_seen": 929,
+    "valid_serper": 37,
+    "valid_basile": 0,
+    "target_contacts": 938,
+    "serper_available": 16609,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783792811.8603027,
+    "message": null,
+    "current_detail": "immobilier · Serper 14 examinés",
+    "updated_at": 1783796376.4642017
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 3,
+    "current_dept": "62 Pas-de-Calais",
+    "cities_total": 39,
+    "cities_done": 17,
+    "current_city": "Boulogne-sur-Mer",
+    "examined": 220,
+    "valid": 67,
+    "rejected": 150,
+    "duplicates": 3,
+    "errors": 17,
+    "kept_total": 67,
+    "skipped_seen": 1277,
+    "valid_serper": 67,
+    "valid_basile": 0,
+    "target_contacts": 938,
+    "serper_available": 16609,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783792811.8603027,
+    "message": null,
+    "current_detail": "immobilier · Basile Boulogne-sur-Mer",
+    "updated_at": 1783798176.0506814
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 3,
+    "current_dept": "62 Pas-de-Calais",
+    "cities_total": 39,
+    "cities_done": 19,
+    "current_city": "Longuenesse",
+    "examined": 230,
+    "valid": 71,
+    "rejected": 151,
+    "duplicates": 3,
+    "errors": 19,
+    "kept_total": 71,
+    "skipped_seen": 1278,
+    "valid_serper": 71,
+    "valid_basile": 0,
+    "target_contacts": 938,
+    "serper_available": 16609,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783792811.8603027,
+    "message": null,
+    "current_detail": "immobilier · Serper 9 examinés",
+    "updated_at": 1783799915.6861746
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 3,
+    "current_dept": "62 Pas-de-Calais",
+    "cities_total": 39,
+    "cities_done": 23,
+    "current_city": "Saint-Martin-Boulogne",
+    "examined": 300,
+    "valid": 82,
+    "rejected": 214,
+    "duplicates": 4,
+    "errors": 23,
+    "kept_total": 82,
+    "skipped_seen": 1664,
+    "valid_serper": 82,
+    "valid_basile": 0,
+    "target_contacts": 938,
+    "serper_available": 16609,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783792811.8603027,
+    "message": null,
+    "current_detail": "immobilier · Basile Saint-Martin-Boulogne",
+    "updated_at": 1783801725.1157944
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 3,
+    "current_dept": "62 Pas-de-Calais",
+    "cities_total": 39,
+    "cities_done": 29,
+    "current_city": "Oignies",
+    "examined": 360,
+    "valid": 101,
+    "rejected": 249,
+    "duplicates": 4,
+    "errors": 29,
+    "kept_total": 101,
+    "skipped_seen": 2069,
+    "valid_serper": 101,
+    "valid_basile": 0,
+    "target_contacts": 938,
+    "serper_available": 16609,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783792811.8603027,
+    "message": null,
+    "current_detail": "immobilier · Serper 10 examinés",
+    "updated_at": 1783803581.5989861
+  }
+}
