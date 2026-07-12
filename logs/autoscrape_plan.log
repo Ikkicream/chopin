@@ -3029,3 +3029,333 @@
   }
 }
 [plan] 2026-07-12T09:30:02+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T10:00:04+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T10:30:03+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T11:00:02+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1268854) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1268854) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1268854) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1268854) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T11:30:02+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T12:00:02+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1329376) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1329376) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1329376) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T12:30:03+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T13:00:03+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T13:30:02+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T14:00:02+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1446725) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1446725) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T14:30:02+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T15:00:03+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T15:30:03+00:00 run immobilier / Hauts-de-France (32) target=965 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (deleted) (PID 2741494) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T16:00:01+00:00 run immobilier / Hauts-de-France (32) target=926 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1565966) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1565966) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1565966) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T16:30:02+00:00 run immobilier / Hauts-de-France (32) target=926 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T17:00:02+00:00 run immobilier / Hauts-de-France (32) target=926 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635317) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635317) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635317) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635317) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635317) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635317) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1599458) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1599458) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635369) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635369) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635369) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1599458) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635369) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1599458) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635369) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1599458) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 10,
+    "current_city": "Wattrelos",
+    "examined": 31,
+    "valid": 14,
+    "rejected": 205,
+    "duplicates": 18,
+    "errors": 11,
+    "kept_total": 14,
+    "skipped_seen": 849,
+    "valid_serper": 0,
+    "valid_basile": 14,
+    "target_contacts": 926,
+    "serper_available": 15168,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783875612.489303,
+    "message": null,
+    "current_detail": "immobilier · Basile Wattrelos",
+    "updated_at": 1783877397.4661763
+  }
+}
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (deleted) (PID 2741494) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 16,
+    "current_city": "Denain",
+    "examined": 92,
+    "valid": 31,
+    "rejected": 369,
+    "duplicates": 25,
+    "errors": 12,
+    "kept_total": 31,
+    "skipped_seen": 1307,
+    "valid_serper": 5,
+    "valid_basile": 26,
+    "target_contacts": 926,
+    "serper_available": 15168,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783875612.489303,
+    "message": null,
+    "current_detail": "immobilier · Basile Denain",
+    "updated_at": 1783879147.6597173
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T18:30:02+00:00 run immobilier / Hauts-de-France (32) target=926 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635369) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1635369) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 24,
+    "current_city": "Valenciennes",
+    "examined": 215,
+    "valid": 61,
+    "rejected": 575,
+    "duplicates": 36,
+    "errors": 12,
+    "kept_total": 61,
+    "skipped_seen": 1914,
+    "valid_serper": 30,
+    "valid_basile": 31,
+    "target_contacts": 926,
+    "serper_available": 15168,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1783875612.489303,
+    "message": null,
+    "current_detail": "immobilier · Serper 2 examinés",
+    "updated_at": 1783882546.326213
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T19:30:02+00:00 run immobilier / Hauts-de-France (32) target=926 resume=True depts_done=['02']
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T20:00:03+00:00 run immobilier / Hauts-de-France (32) target=926 resume=True depts_done=['02']
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1844097) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1844097) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "launched": {
+    "sector": "immobilier",
+    "region": "Hauts-de-France (32)",
+    "resume": true
+  }
+}
+[plan] 2026-07-12T20:30:01+00:00 run immobilier / Hauts-de-France (32) target=926 resume=True depts_done=['02']
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 50727) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 50727) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 50727) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[plan] 2026-07-12T20:35:57+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
