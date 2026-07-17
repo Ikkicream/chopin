@@ -13094,4 +13094,1219 @@
 [serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
 [serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
 [serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "93",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Provence-Alpes-Côte d'Azur",
+    "depts_total": 6,
+    "depts_done": 2,
+    "current_dept": "06 Alpes-Maritimes",
+    "cities_total": 111,
+    "cities_done": 23,
+    "current_city": "Cagnes-sur-Mer",
+    "examined": 0,
+    "valid": 118,
+    "rejected": 492,
+    "duplicates": 59,
+    "errors": 3,
+    "kept_total": 118,
+    "skipped_seen": 0,
+    "valid_serper": 0,
+    "valid_basile": 118,
+    "target_contacts": 1000,
+    "serper_available": 0,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1784233802.5181594,
+    "message": null,
+    "current_detail": "immobilier · Basile Cagnes-sur-Mer",
+    "updated_at": 1784235396.5750418
+  }
+}
+
 [serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (deleted) (PID 2741494) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 198503) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "93",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Provence-Alpes-Côte d'Azur",
+    "depts_total": 6,
+    "depts_done": 4,
+    "current_dept": "83 Var",
+    "cities_total": 111,
+    "cities_done": 75,
+    "current_city": "Six-Fours-les-Plages",
+    "examined": 0,
+    "valid": 199,
+    "rejected": 1265,
+    "duplicates": 70,
+    "errors": 55,
+    "kept_total": 199,
+    "skipped_seen": 0,
+    "valid_serper": 0,
+    "valid_basile": 199,
+    "target_contacts": 1000,
+    "serper_available": 0,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1784233802.5181594,
+    "message": null,
+    "current_detail": "immobilier · Basile Six-Fours-les-Plages",
+    "updated_at": 1784237391.438655
+  }
+}
+
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (deleted) (PID 2741494) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 273440) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 273440) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 273440) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 273440) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 273440) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 273440) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[plan] 2026-07-16T22:21:46+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778870) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778870) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[scrape] place error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778928) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778870) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778870) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778870) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[scrape] place error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778870) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[scrape] place error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778928) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778870) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2778870) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 273440) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[plan] 2026-07-16T22:22:20+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+{
+  "ok": true,
+  "status": "done"
+}
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[plan] 2026-07-17T02:06:10+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[plan] 2026-07-17T02:31:00+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 526441) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 526441) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 526441) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[scrape] place error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 526441) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[scrape] place error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 526441) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[scrape] place error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 526441) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[serper_places] error: 400 Client Error: Bad Request for url: https://google.serper.dev/places
+[plan] 2026-07-17T02:37:40+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+[serper_places] error: HTTPSConnectionPool(host='google.serper.dev', port=443): Max retries exceeded with url: /places (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)')))
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3213206) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3213206) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3213206) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[serper_places] error: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+[plan] 2026-07-17T03:45:31+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+[scrape] place error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3183765) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[plan] 2026-07-17T03:49:55+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3539762) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3576532) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3539762) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3539762) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[plan] 2026-07-17T04:03:06+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+[scrape] place error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3503378) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3503378) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[plan] 2026-07-17T04:03:43+00:00 région non terminée (status=timeout) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "timeout"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
