@@ -20798,3 +20798,4 @@
 {"ts": "2026-07-23T07:05:17.257607+00:00", "email": "agence@renoult-habitat.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
 {"ts": "2026-07-23T07:05:20.933757+00:00", "email": "contact@regiparc.fr", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
 {"ts": "2026-07-23T07:05:27.475542+00:00", "email": "contact@templeimmo.com", "decision": "risky", "status": "VALID", "category": "SAFE", "reason": "acquisition import"}
+{"ts": "2026-07-23T10:00:05.942912+00:00", "email": "romeo@leclientroi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
