@@ -6692,16 +6692,21 @@ def api_scrape_live_activity(site: str, limit: int = 20):
             run_message = None
             # Match avec le scrape end (même sector, postérieur). Fenêtre large (12 h) car
             # un autoscrape région tourne longtemps — 1 seul run à la fois ⇒ pas de collision.
+            # NB : le scraper logge AUSSI une ligne action='scrape' PAR VILLE (payload sans
+            # 'scope'). Sans le filtre json, la 1re ville (quelques secondes après le start,
+            # souvent 0 partout) était prise pour la fin du run → « Région finie · 7s · 0 ».
             end_row = c.execute("""
                 SELECT created_at, payload, success
                 FROM god_mode_logs
                 WHERE site_code = ? AND action = 'scrape' AND resource_id = ?
                   AND created_at > ? AND created_at < ? + INTERVAL 12 HOUR
+                  AND json_extract_string(payload, '$.scope') IS NOT NULL
                 ORDER BY created_at ASC LIMIT 1
             """, [site, sector, start_at, start_at]).fetchone()
 
             end_at = None; scraped = 0; valid = 0; rejected = 0; errors = 0; status = "running"
             duplicates = 0; net = None; cleanup = None; skipped_seen = 0
+            valid_serper = None; valid_basile = None
             if end_row:
                 end_at, end_payload_raw, success = end_row
                 try:
@@ -6714,6 +6719,8 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 errors   = ep.get("errors", 0)
                 duplicates = ep.get("duplicates", 0)
                 skipped_seen = ep.get("skipped_seen", 0)
+                valid_serper = ep.get("valid_serper")
+                valid_basile = ep.get("valid_basile")
                 cleanup  = ep.get("cleanup")
                 # net = contacts gardés après Mailnjoy. Si pas de champ net (runs anciens),
                 # on dérive valid − supprimés ; sinon net = valid (pas de cleanup loggé).
@@ -6789,6 +6796,8 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 "status":        status,
                 "scraped":       scraped,
                 "valid":         valid,
+                "valid_serper":  valid_serper,
+                "valid_basile":  valid_basile,
                 "rejected":      rejected,
                 "duplicates":    duplicates,
                 "skipped_seen":  skipped_seen,

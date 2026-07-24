@@ -50,9 +50,16 @@ peut pas tourner seul.
   code sans tombstones) qui tenait le verrou DuckDB par à-coups. Orphelin tué, drain PM2
   recréé proprement (`pm2 delete` + `start`, pm2 save) — il logge enfin.
 
-**RESTE :** vérifier demain 07:05 que le cleanup ne supprime plus 100 % ; recharger Serper
-(il répond de nouveau par moments) ; l'UI Activité affiche 0 partout pour ces runs (colonnes
-basées sur `examined` Serper) — cosmétique.
+- **7e fix (analyse des rejetés, demande user)** : 55 % des 4 990 emails supprimés étaient des
+  FAUX POSITIFS (Mailnjoy disait VALID/SAFE, tués par l'attribut role/catchall). Décision user
+  2026-07-24 : les `contact@` sont de bons contacts cold-email → `classify_response` garde
+  désormais tout VALID+SAFE ; VALID/RISKY (catchall) toujours tué. 2 676 purgés du tombstone.
+  Doc : `docs/contact-acquisition.md §0ter`.
+
+**RESTE :** vérifier demain 07:05 que le cleanup ne supprime plus 100 % ; le plan immobilier est
+« done » sur les 12 régions mais les chiffres du 16/07 incluent des fantômes → envisager une
+relance du plan (les tombstones + reprise par ville rendent le re-scan quasi gratuit) ; l'UI
+Activité des anciens runs reste approximative — cosmétique.
 
 ## 🔝 REPRISE 2026-06-29 — Prise de RDV publique (type Calendly/TidyCal)
 

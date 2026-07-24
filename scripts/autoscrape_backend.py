@@ -507,6 +507,8 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
                       resource="sector", resource_id=sector_label,
                       payload={"sector": sector_label, "region": region, "region_name": region_name,
                                "scope": scope_label, "scraped": cum["examined"], "valid": cum["valid"],
+                               "valid_serper": cum.get("valid_serper", 0),
+                               "valid_basile": cum.get("valid_basile", 0),
                                "rejected": cum["rejected"], "duplicates": cum["duplicates"],
                                "skipped_seen": cum.get("skipped_seen", 0),
                                "errors": cum["errors"], "status": cum["status"],

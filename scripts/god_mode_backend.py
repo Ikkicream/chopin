@@ -341,7 +341,11 @@ def list_pending(site_code: str = None, limit: int = 500) -> list[dict]:
         params = []
         if site_code:
             q += " AND site_code = ?"; params.append(site_code)
-        q += " ORDER BY created_at ASC LIMIT ?"; params.append(limit)
+        # attempts ASC d'abord : les contacts FRAIS passent avant les chroniques en
+        # erreur (HTTP 500 Mailnjoy) qui monopolisaient chaque passe du drain.
+        # created_at DESC en secondaire : dans un même bucket, les scrapes du jour
+        # passent avant les vieux rows (sinon les chroniques resetés repassent devant).
+        q += " ORDER BY mailnjoy_attempts ASC, created_at DESC LIMIT ?"; params.append(limit)
         rows = c.execute(q, params).fetchall()
     finally:
         c.close()

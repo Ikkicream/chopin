@@ -5,6 +5,60 @@
 > quand utiliser quoi, l'UX proposée, et le mode opératoire pour le mettre en service.
 > Détails API Basile : `docs/basile-api.md`. Ciblage par site : `context/<site>/acquisition-context.md`.
 
+## 0. Indépendance des sources (vérifié live 2026-07-24)
+
+**Basile et Serper sont totalement indépendants l'un de l'autre.** Aucun des deux n'appelle
+l'autre ; ils partagent seulement la validation (Mailnjoy) et le pool en aval.
+
+| Question | Réponse | Preuve / mécanisme |
+|---|---|---|
+| Basile marche sans crédit Serper ? | **OUI** | `basile_backend` n'utilise que l'API Basile + fetch direct des sites web. Test 2026-07-24 : `count` 995 sociétés avec Serper « à 0 ». |
+| Serper marche sans Basile ? | **OUI** | `god_mode_agents.scrape_sector` n'importe rien de Basile. Sans `BASILE_KEY`, l'autoscrape tourne en Serper seul. |
+| L'autoscrape (`run_autoscrape`) | **Les 2 en parallèle par ville** | Serper d'abord, puis Basile, pour chaque ville. Si Serper renvoie 402/403/429 → `SERPER_BLOCKED_STATUS` → **Basile continue seul**. Si Basile est bloqué → Serper continue seul. Arrêt uniquement si LES DEUX sont morts. |
+| La reprise quotidienne (`daily_retry`, 06:00) | **Basile-seul OK depuis 2026-07-24** | Avant : un test Serper KO annulait TOUTE la reprise (Basile inclus). Corrigé : si Serper bloqué mais `BASILE_KEY` présente → reprise Basile seul. |
+| « Crédits Serper à 0 » dans l'UI | **Peut être FAUX** | L'estimation locale = snapshot `memory/seo/serper-balance.json` − conso `god_mode_serper_calls`. Snapshot périmé → affiche 0 alors que le solde live (`serper_balance()`, endpoint /account) en a. Le blocage réel ne se décide QUE sur les codes HTTP Serper. |
+
+**Pourquoi « tout était à 0 » du 17 au 24/07 malgré Basile** (post-mortem, détail dans STATE.md) :
+ce n'était PAS une dépendance à Serper. Trois bugs combinés : (1) les emails tués par Mailnjoy
+étaient re-scrapés chaque jour (aucune mémoire des rejets) → le nettoyage 07:05 supprimait 100 %
+du lot quotidien ; (2) la reprise repartait de la ville 1 du département (villes non persistées) ;
+(3) `fetch_email_from_site` gelait des heures sur certaines pages (regex quadratique) → le run
+mourait en timeout sans progresser. Basile tournait bien seul, mais ne produisait que des
+contacts aussitôt re-supprimés → 0 net visible.
+
+## 0bis. Garde-fous ajoutés le 2026-07-24
+
+- **`scrappe_rejected`** (god_mode.duckdb) : tombstone de tout email tué (Mailnjoy risky/invalid
+  ou drop validator). Consulté AVANT insertion (Serper + Basile) et AVANT tout check payant.
+  Backfill initial : 8 327 emails. Un email rejeté ne coûte plus jamais un crédit.
+- **Reprise intra-département** : `<site>-region-progress.json` persiste `cities_done`/`cities_dept`
+  ville par ville ; `daily_retry` et `autoscrape_plan.work` reprennent où le run s'est arrêté.
+- **`fetch_email_from_site`** : téléchargement streamé plafonné 2 Mo, filtre content-type,
+  extraction `_emails_in_text()` bornée (fenêtre autour de chaque `@`) — plus de gel possible.
+- **Drain Mailnjoy** : `list_pending` sert les contacts **jamais tentés d'abord** (les chroniques
+  HTTP 500 Mailnjoy passent en dernier et se parquent à 5 échecs). Le drain supprime aussi la
+  copie pool non vérifiée quand il tue un pending.
+- **Activité UI** : la ligne de fin de run logge `valid_serper`/`valid_basile` (visible sous
+  « Validés » : « S x · B y ») ; l'endpoint live-activity ne confond plus le log d'une ville
+  avec la fin du run (filtre `scope`).
+
+## 0ter. Classification Mailnjoy (révisée 2026-07-24)
+
+Analyse des 4 990 emails uniques supprimés : **55 % étaient des faux positifs** — verdict
+Mailnjoy VALID/SAFE mais tués par l'ancienne règle « attribut role/catchall/suspect = risky =
+kill » (décision 2026-05-22). Or les `contact@`/`agence@` sont le cœur de cible du cold-email
+B2B local (TPE sans email nominatif).
+
+**Nouvelle règle (`mailnjoy_check.classify_response`)** :
+| Verdict Mailnjoy | Décision | Note |
+|---|---|---|
+| INVALID / INCORRECT / SUSPECT / FULL, catégorie UNSAFE, spamtrap, disposable | **invalid** (kill) | inchangé |
+| **VALID + SAFE/VERY_SAFE** (même avec attribut role/catchall/suspect) | **valid** (gardé) | NOUVEAU — récupère les contact@ |
+| VALID + RISKY (catchall → bounce imprévisible) | risky (kill) | inchangé |
+
+2 676 faux positifs purgés du tombstone `scrappe_rejected` le 2026-07-24 — ils seront
+re-collectés au prochain passage du scraper sur leur territoire.
+
 ## 1. Pourquoi 2 outils
 
 | | **Serper** (`god_mode_agents.serper_places`) | **Basile** (`basile_backend.run_segment`) |

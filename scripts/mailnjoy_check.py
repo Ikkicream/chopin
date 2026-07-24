@@ -206,15 +206,19 @@ def classify_response(raw: dict) -> str:
     if attr("spamtrap") or attr("disposable"):
         return "invalid"
 
-    # RISKY (kill aussi selon décision user 2026-05-22)
+    # VALID/SAFE → GARDÉ, même avec attribut role/catchall/suspect (décision user
+    # 2026-07-24) : les contact@/agence@ sont le cœur de cible du cold-email B2B
+    # local. L'ancienne règle (attributs AVANT le verdict VALID/SAFE) a tué 2 735
+    # bons contacts en 2 mois — faux positifs massifs.
+    if status == "VALID" and category in ("VERY_SAFE", "SAFE"):
+        return "valid"
+
+    # RISKY (kill selon décision user 2026-05-22) : catégorie RISKY de Mailnjoy
+    # (catchall → bounce imprévisible) ou attribut à risque sans verdict SAFE.
     if category == "RISKY":
         return "risky"
     if attr("catchall") or attr("role") or attr("suspect"):
         return "risky"
-
-    # VALID
-    if status == "VALID" and category in ("VERY_SAFE", "SAFE"):
-        return "valid"
 
     # Cas non couverts → on est prudent
     return "risky"
