@@ -443,6 +443,76 @@ def email_in_pending(email: str) -> bool:
     return row is not None
 
 
+# ── Tombstones emails rejetés (anti-boucle scrape → kill → re-scrape) ─────────
+# Un email tué par Mailnjoy (risky/invalid) ou par le validator local est mémorisé
+# ici : les scrapers (Serper/Basile) le re-trouveront toujours dans leurs sources,
+# donc sans cette mémoire on ré-insère/re-check/re-supprime le même email chaque
+# jour en brûlant des crédits Mailnjoy.
+_REJECTED_INIT = False
+
+
+def _ensure_rejected_table() -> None:
+    global _REJECTED_INIT
+    if _REJECTED_INIT:
+        return
+    c = _conn()
+    try:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS scrappe_rejected (
+                email      VARCHAR PRIMARY KEY,
+                decision   VARCHAR,             -- risky | invalid | drop
+                reason     VARCHAR,
+                site_code  VARCHAR,
+                times_seen INTEGER DEFAULT 1,
+                first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_seen  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        _REJECTED_INIT = True
+    finally:
+        c.close()
+
+
+def email_rejected(email: str) -> bool:
+    """True si l'email a déjà été rejeté (Mailnjoy risky/invalid ou drop validator).
+    À consulter AVANT toute insertion pending/pool et avant tout check Mailnjoy."""
+    if not email:
+        return False
+    _ensure_rejected_table()
+    c = _conn_ro()
+    try:
+        row = c.execute("SELECT 1 FROM scrappe_rejected WHERE email = ? LIMIT 1",
+                        [email.strip().lower()]).fetchone()
+    finally:
+        c.close()
+    return row is not None
+
+
+def mark_email_rejected(email: str, decision: str, reason: str = "", site_code: str = "") -> None:
+    """Mémorise un rejet (best-effort). Ré-appel sur le même email → bump times_seen."""
+    if not email:
+        return
+    _ensure_rejected_table()
+    email = email.strip().lower()
+    try:
+        c = _conn()
+        try:
+            row = c.execute("SELECT 1 FROM scrappe_rejected WHERE email = ?", [email]).fetchone()
+            if row:
+                c.execute("""UPDATE scrappe_rejected
+                               SET times_seen = times_seen + 1, last_seen = CURRENT_TIMESTAMP,
+                                   decision = ?, reason = ?
+                               WHERE email = ?""", [decision, (reason or "")[:300], email])
+            else:
+                c.execute("""INSERT INTO scrappe_rejected (email, decision, reason, site_code)
+                             VALUES (?, ?, ?, ?)""",
+                          [email, decision, (reason or "")[:300], site_code or ""])
+        finally:
+            c.close()
+    except Exception:
+        pass
+
+
 def list_prospects(site_code: str, status: str = None, sector: str = None, limit: int = 500):
     c = _conn()
     try:

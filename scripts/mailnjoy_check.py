@@ -69,6 +69,33 @@ def _log_deletion(email: str, decision: str, mn_result: dict, reason: str) -> No
         f.write(line + "\n")
 
 
+def _delete_unverified_pool_copy(email: str) -> None:
+    """Supprime du pool (contacts.duckdb) la copie NON VÉRIFIÉE d'un email tué au drain.
+
+    Le scrape fait un dual-write pending + pool ; quand le drain tue le pending,
+    la copie pool restait « unverified » et le cleanup nocturne re-payait un crédit
+    Mailnjoy pour la re-checker. On ne touche jamais à un contact déjà vérifié ou
+    blacklisted."""
+    if not email:
+        return
+    try:
+        import duckdb
+        c = duckdb.connect(str(BASE_DIR / "data" / "contacts.duckdb"))
+        try:
+            rows = c.execute(
+                "SELECT id FROM contacts WHERE lower(email) = ? "
+                "AND (mailnjoy_check IS NULL OR LENGTH(mailnjoy_check) = 0) "
+                "AND (global_blacklisted IS NULL OR global_blacklisted = FALSE)",
+                [email.strip().lower()]).fetchall()
+            for (cid,) in rows:
+                c.execute("DELETE FROM contact_site_history WHERE contact_id = ?", [cid])
+                c.execute("DELETE FROM contacts WHERE id = ?", [cid])
+        finally:
+            c.close()
+    except Exception:
+        pass
+
+
 def is_configured() -> bool:
     """True si les credentials Mailnjoy sont remplis dans .env."""
     return bool(_load_env_var("MAILNJOY_ID")) and bool(_load_env_var("MAILNJOY_SECRET"))
@@ -232,6 +259,17 @@ def check_pending_queue(site_code: str | None = None, delay_ms: int = 200, max_r
         pid = row["id"]
         email = row["email"]
 
+        # Email déjà rejeté par le passé (tombstone) → on ne re-dépense PAS un
+        # crédit Mailnjoy : suppression directe du pending + de la copie pool.
+        try:
+            if gm.email_rejected(email):
+                gm.delete_pending(pid)
+                _delete_unverified_pool_copy(email)
+                stats["skipped"] += 1
+                continue
+        except Exception:
+            pass
+
         result = check_email_mailnjoy(email)
 
         # Crédit épuisé ou config foireuse : arrêt immédiat
@@ -265,10 +303,16 @@ def check_pending_queue(site_code: str | None = None, delay_ms: int = 200, max_r
         elif result["decision"] == "risky":
             _log_deletion(email, "risky", result.get("raw") or {}, "kill par décision user 2026-05-22")
             gm.delete_pending(pid)
+            gm.mark_email_rejected(email, "risky", mn_check.get("result") or "",
+                                   row.get("site_code") or "")
+            _delete_unverified_pool_copy(email)
             stats["risky"] += 1
         elif result["decision"] == "invalid":
             _log_deletion(email, "invalid", result.get("raw") or {}, "mailnjoy invalid")
             gm.delete_pending(pid)
+            gm.mark_email_rejected(email, "invalid", mn_check.get("result") or "",
+                                   row.get("site_code") or "")
+            _delete_unverified_pool_copy(email)
             stats["invalid"] += 1
         else:  # error
             gm.bump_pending_error(pid, result.get("error") or "unknown")

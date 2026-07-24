@@ -212,8 +212,36 @@ def serper_balance() -> dict:
 
 
 # ── Extraction emails depuis website ──────────────────────────────────────────
+# Cap de lecture par page : au-delà, on tronque. Sans ce cap, un site qui répond
+# un blob géant (vidéo, stream chunké sans fin, page de plusieurs Go) faisait
+# tourner r.text + la détection d'encodage pendant des HEURES et gelait tout
+# l'autoscrape (vu le 2026-07-24 : run figé 11 h/jour sur une ville).
+FETCH_MAX_BYTES = 2 * 1024 * 1024  # 2 Mo
+
+
+def _emails_in_text(text: str, max_at: int = 2000) -> list[str]:
+    """Extraction d'emails BORNÉE : regex appliquée sur une petite fenêtre autour
+    de chaque '@' (max `max_at`). `EMAIL_RE.findall(texte entier)` est QUADRATIQUE
+    sur les blobs sans '@' (JS minifié, base64) : des heures de CPU sur 2 Mo —
+    c'était le gel quotidien de l'autoscrape (stack figée sur findall)."""
+    out, pos, seen_at = [], 0, 0
+    while seen_at < max_at:
+        i = text.find("@", pos)
+        if i == -1:
+            break
+        seen_at += 1
+        window = text[max(0, i - 64): i + 190]
+        m = EMAIL_RE.search(window)
+        if m:
+            out.append(m.group(0))
+        pos = i + 1
+    return out
+
+
 def fetch_email_from_site(url: str, timeout: int = 6) -> str | None:
-    """Fetch homepage + /contact, extract first valid email."""
+    """Fetch homepage + /contact, extract first valid email.
+    Lecture STREAMÉE plafonnée à FETCH_MAX_BYTES et décodage sans détection
+    d'encodage coûteuse — un email ASCII se trouve très bien en utf-8/replace."""
     if not url:
         return None
     try:
@@ -223,21 +251,32 @@ def fetch_email_from_site(url: str, timeout: int = 6) -> str | None:
         seen = set()
         for u in candidates:
             try:
-                r = requests.get(u, timeout=timeout, headers={"User-Agent": "Mozilla/5.0 GodModeBot/1.0"})
-                if r.status_code == 200:
-                    matches = EMAIL_RE.findall(r.text)
-                    for m in matches:
-                        m_low = m.lower()
-                        # Filtre extensions images / fake
-                        if m_low.endswith((".png", ".jpg", ".gif", ".svg", ".webp")):
-                            continue
-                        if m_low.startswith(("noreply@", "no-reply@", "wordpress@", "example@")):
-                            continue
-                        if m_low in seen:
-                            continue
-                        seen.add(m_low)
-                        if gm.validate_email(m_low):
-                            return m_low
+                with requests.get(u, timeout=timeout, stream=True,
+                                  headers={"User-Agent": "Mozilla/5.0 GodModeBot/1.0"}) as r:
+                    if r.status_code != 200:
+                        continue
+                    ctype = (r.headers.get("Content-Type") or "").lower()
+                    if ctype and not any(t in ctype for t in ("text/", "html", "xml", "json")):
+                        continue  # binaire (image/vidéo/pdf…) : aucun email à y chercher
+                    chunks, size = [], 0
+                    for chunk in r.iter_content(chunk_size=65536):
+                        chunks.append(chunk)
+                        size += len(chunk)
+                        if size >= FETCH_MAX_BYTES:
+                            break
+                    text = b"".join(chunks).decode(r.encoding or "utf-8", errors="replace")
+                for m in _emails_in_text(text):
+                    m_low = m.lower()
+                    # Filtre extensions images / fake
+                    if m_low.endswith((".png", ".jpg", ".gif", ".svg", ".webp")):
+                        continue
+                    if m_low.startswith(("noreply@", "no-reply@", "wordpress@", "example@")):
+                        continue
+                    if m_low in seen:
+                        continue
+                    seen.add(m_low)
+                    if gm.validate_email(m_low):
+                        return m_low
             except Exception:
                 continue
         return None
@@ -385,10 +424,12 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                     # au lieu de crasher toute la ville (cf. autoscrape). Avec un petit retry.
                     try:
                         try:
-                            _dup = gm.email_recently_validated(email, days=30) or gm.email_in_pending(email)
+                            _dup = (gm.email_recently_validated(email, days=30)
+                                    or gm.email_in_pending(email) or gm.email_rejected(email))
                         except Exception:
                             time.sleep(0.5)
-                            _dup = gm.email_recently_validated(email, days=30) or gm.email_in_pending(email)
+                            _dup = (gm.email_recently_validated(email, days=30)
+                                    or gm.email_in_pending(email) or gm.email_rejected(email))
                         if _dup:
                             duplicates += 1
                             continue

@@ -181,6 +181,14 @@ def _validate_address(email: str) -> dict:
     """
     import sys as _sys
     _sys.path.insert(0, str(BASE_DIR / "scripts"))
+    # 0) tombstone (gratuit) : email déjà tué par Mailnjoy ou le validator par le
+    # passé → rejet immédiat, on ne re-dépense pas un crédit à chaque re-scrape.
+    try:
+        import god_mode_backend as _gm
+        if _gm.email_rejected(email):
+            return {"ok": False, "decision": "rejected_before", "reason": "tombstone scrappe_rejected"}
+    except Exception:
+        pass
     # 1) validator local (gratuit)
     try:
         from email_validator import validate_and_score

@@ -166,6 +166,7 @@ def _ordered_region_depts(region: str) -> list[dict]:
 
 def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | None = None,
                    region_name: str | None = None, depts_done: list | None = None,
+                   cities_done: list | None = None, cities_dept: str | None = None,
                    per_city: int = PER_CITY, max_pages: int = MAX_PAGES,
                    max_seconds: int = MAX_RUN_SECONDS,
                    target_contacts: int = TARGET_CONTACTS,
@@ -183,7 +184,10 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     - region : on enchaîne TOUS ses départements dans l'ordre du code, toutes les villes.
       À l'épuisement → statut 'done' message "Région <nom> finie."
     - dept (si pas de region) : mode mono-département (legacy).
-    `depts_done` (reprise) : départements déjà finis à sauter (retry quotidien)."""
+    `depts_done` (reprise) : départements déjà finis à sauter (retry quotidien).
+    `cities_done`/`cities_dept` (reprise) : villes déjà finies du dept en cours —
+    sans ça, chaque reprise repartait de la ville 1 du dept et re-scannait les
+    mêmes villes jusqu'au garde-temps sans jamais progresser."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from workflow_geo import metropole_cities as list_cities
     import god_mode_agents as agents
@@ -242,6 +246,9 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
             except Exception:
                 pass
 
+    # Villes finies du dept EN COURS (reprise intra-département).
+    city_progress = {"dept": cities_dept, "done": list(cities_done or [])}
+
     def persist_progress():
         write_progress(site, {
             "site": site, "region": region, "region_name": region_name,
@@ -252,6 +259,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
             # est le RELIQUAT de ce run ; on persiste le plafond TOTAL région pour la reprise.
             "valid": valid_baseline + cum["valid"], "message": cum["message"],
             "target_contacts": valid_baseline + target_contacts,
+            "cities_dept": city_progress["dept"], "cities_done": city_progress["done"],
         })
 
     emit()
@@ -290,8 +298,17 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
         cum["current_dept"] = f"{dcode} {d.get('name', '')}".strip()
         emit()
 
+        # Reprise intra-dept : villes déjà finies lors d'un run précédent de CE dept.
+        if city_progress["dept"] != dcode:
+            city_progress["dept"] = dcode
+            city_progress["done"] = []
+        skip_cities = set(city_progress["done"])
+        cum["cities_done"] += len(skip_cities & set(dept_cities[dcode]))
+
         seen_basile_cities: set[str] = set()  # évite d'appeler Basile N fois pour PARIS/LYON/MARSEILLE
         for city in dept_cities[dcode]:
+            if city in skip_cities:
+                continue
             if should_stop and should_stop():
                 cum["stopped"] = True; cum["status"] = "stopped"; break
             # Ne stoppe sur Serper seul que si Basile aussi indisponible
@@ -374,10 +391,14 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
 
             if not (serper_blocked() and not basile_available) and not (should_stop and should_stop()) and not target_reached():
                 cum["cities_done"] += 1
+                city_progress["done"].append(city)
+                persist_progress()  # reprise intra-dept : la ville ne sera pas re-scannée
             elif not target_reached():
                 pass  # city partielle : ne pas incrémenter cities_done
             else:
                 cum["cities_done"] += 1  # ville complète avant cible atteinte
+                city_progress["done"].append(city)
+                persist_progress()
             emit()
 
         # Si on est sorti de la ville-loop sur blocage total ou cible atteinte ou stop,
@@ -388,6 +409,8 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
             break
         done_set.add(dcode)
         cum["depts_done"] = len(done_set)
+        city_progress["dept"] = None
+        city_progress["done"] = []
         persist_progress()
         emit()
 
@@ -553,15 +576,17 @@ def daily_retry(site: str) -> dict:
     if prog.get("status") not in ("blocked_serper", "interrupted", "timeout", "stopped"):
         return {"ok": True, "skipped": f"statut '{prog.get('status')}' — rien à reprendre"}
 
-    # Test : un appel Serper bon marché. S'il est encore refusé → on retentera demain.
+    # Test : un appel Serper bon marché. S'il est encore refusé → Basile peut quand
+    # même reprendre SEUL (sinon un Serper mort gèlerait toute l'acquisition).
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import god_mode_agents as agents
+    import basile_backend as bb
     agents.SERPER_BLOCKED_STATUS = None
     try:
         agents.serper_places("restaurant Paris", location="Paris, France", num=1, site_code=site)
     except Exception:
         pass
-    if getattr(agents, "SERPER_BLOCKED_STATUS", None):
+    if getattr(agents, "SERPER_BLOCKED_STATUS", None) and not bb.BASILE_KEY:
         return {"ok": True, "still_blocked": True,
                 "status": agents.SERPER_BLOCKED_STATUS, "region": prog.get("region")}
 
@@ -587,6 +612,8 @@ def daily_retry(site: str) -> dict:
     res = run_autoscrape(site, prog.get("sectors") or [], region=prog.get("region"),
                          region_name=prog.get("region_name"),
                          depts_done=prog.get("depts_done") or [],
+                         cities_done=prog.get("cities_done") or [],
+                         cities_dept=prog.get("cities_dept"),
                          target_contacts=remaining,
                          valid_baseline=int(prog.get("valid") or 0),
                          progress_cb=lambda s: write_status(site, s),

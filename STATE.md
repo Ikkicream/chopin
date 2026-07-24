@@ -4,7 +4,55 @@
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
 ## Dernière mise à jour
-2026-06-29 (Prise de RDV publique par site type Calendly — page + email/SMS confirmation, back-office créneaux)
+2026-07-24 (Fix boucle infinie scrape→kill→re-scrape + gel quotidien autoscrape sur fetch_email_from_site)
+
+## 🔝 REPRISE 2026-07-24 — Scraping : boucle infinie Mailnjoy + gel 11 h/jour (FIXÉ)
+
+**Symptômes user :** (1) cleanup quotidien 07:05 supprimait 100 % des contacts depuis le 17/07
+(0 validés), (2) scrapes « vides » depuis que Serper est à 0 crédit, impression que Basile ne
+peut pas tourner seul.
+
+**Causes trouvées (3 bugs indépendants qui se combinaient) :**
+1. **Aucune mémoire des rejets** : un email tué par Mailnjoy (risky/invalid — décision user
+   2026-05-22 : risky = kill) était supprimé du pool sans trace. Basile/Serper le re-trouvaient
+   le lendemain → ré-insertion → re-check Mailnjoy (2 crédits/jour/email) → re-suppression.
+   ~50 emails tournaient en boucle depuis le 17/07 ; le lot quotidien du cleanup n'était QUE ça,
+   d'où 100 % supprimés.
+2. **Reprise sans mémoire des villes** : `daily_retry`/`autoscrape_plan` ne persistaient que
+   `depts_done` — chaque matin le dept 59 repartait de la ville 1 (jamais au-delà de ~40/54).
+3. **Gel 11 h/jour** : `fetch_email_from_site` (appelé aussi par Basile) faisait `r.text` sans
+   cap de taille → un site pathologique gelait le run de 06:15 à ~17:13 (state R, chardet/regex
+   sur blob géant). C'est LA raison des « timeout » quotidiens et de la non-progression.
+   Basile tournait bien SEUL (70 valid/jour) mais ne produisait que les loopers du bug 1.
+
+**Fixes déployés :**
+- **`scrappe_rejected`** (god_mode.duckdb) : tombstone des emails tués. Marqué par drain
+  (`mailnjoy_check.check_pending_queue`), cleanup (`cleanup_backend.run_cleanup`), imports
+  (`acquisition_backend._validate_address` → early-return gratuit `rejected_before`).
+  Consulté avant insertion (god_mode_agents + basile_backend ×2) et avant tout check payant.
+  **Backfill : 8 327 emails** depuis logs/mailnjoy_deletions.log + god_mode_logs.
+- **Drain** : supprime aussi la copie pool non vérifiée quand il tue un pending
+  (`_delete_unverified_pool_copy`) — c'était la fuite qui alimentait le cleanup du matin.
+- **Reprise intra-dept** : `run_autoscrape(cities_done=, cities_dept=)` + persistance par ville
+  dans `<site>-region-progress.json` ; branché dans `daily_retry` ET `autoscrape_plan.work`.
+- **`daily_retry`** : reprend en Basile-seul si Serper bloqué (avant : test Serper KO = rien).
+- **`fetch_email_from_site`** : stream + cap 2 Mo + filtre content-type + décodage utf-8/replace.
+- Pending `mailnjoy_attempts` ≥5 (194 rows invisibles au drain) resetés à 0 ; crédit Mailnjoy
+  vérifié : 1 036 125.
+- Run du 24/07 stoppé (figé depuis 06:15), progress patché (39 villes dept 59 done, valid=529),
+  retry relancé avec le nouveau code → reprise ville 40/54.
+
+- **4e bug (même session, plus tard)** : le vrai `fetch_email_from_site` gelait sur la REGEX
+  `EMAIL_RE.findall` (quadratique sur blobs sans `@`) — remplacée par `_emails_in_text()`
+  (fenêtre bornée autour de chaque `@`, testé : 2 Mo pathologique en 0,000 s vs heures).
+- **5e bug** : le drain PM2 était un zombie (« online » sans PID) ; le VRAI drain était un
+  process orphelin de 30 jours (PID 2741494, lancé 23/06, binaire python supprimé, ancien
+  code sans tombstones) qui tenait le verrou DuckDB par à-coups. Orphelin tué, drain PM2
+  recréé proprement (`pm2 delete` + `start`, pm2 save) — il logge enfin.
+
+**RESTE :** vérifier demain 07:05 que le cleanup ne supprime plus 100 % ; recharger Serper
+(il répond de nouveau par moments) ; l'UI Activité affiche 0 partout pour ces runs (colonnes
+basées sur `examined` Serper) — cosmétique.
 
 ## 🔝 REPRISE 2026-06-29 — Prise de RDV publique (type Calendly/TidyCal)
 

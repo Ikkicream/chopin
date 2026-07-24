@@ -15320,3 +15320,150 @@
   "done": true,
   "note": "plan terminé (tous secteurs actifs faits)"
 }
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 39,
+    "current_city": "Marquette-lez-Lille",
+    "examined": 5,
+    "valid": 0,
+    "rejected": 5,
+    "duplicates": 0,
+    "errors": 0,
+    "kept_total": 0,
+    "skipped_seen": 65,
+    "valid_serper": 0,
+    "valid_basile": 0,
+    "target_contacts": 471,
+    "serper_available": 49997,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1784883527.7092156,
+    "message": null,
+    "current_detail": "immobilier · Basile Marquette-lez-Lille",
+    "updated_at": 1784883547.8748071
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 1,
+    "current_dept": "59 Nord",
+    "cities_total": 93,
+    "cities_done": 45,
+    "current_city": "Vieux-Condé",
+    "examined": 107,
+    "valid": 1,
+    "rejected": 142,
+    "duplicates": 29,
+    "errors": 1,
+    "kept_total": 1,
+    "skipped_seen": 481,
+    "valid_serper": 1,
+    "valid_basile": 0,
+    "target_contacts": 471,
+    "serper_available": 49986,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1784885022.0259879,
+    "message": null,
+    "current_detail": "immobilier · Serper 18 examinés",
+    "updated_at": 1784885399.299501
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "32",
+    "region_name": "Hauts-de-France",
+    "dept": null,
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Région Hauts-de-France",
+    "depts_total": 5,
+    "depts_done": 3,
+    "current_dept": "62 Pas-de-Calais",
+    "cities_total": 93,
+    "cities_done": 73,
+    "current_city": "Longuenesse",
+    "examined": 619,
+    "valid": 34,
+    "rejected": 898,
+    "duplicates": 244,
+    "errors": 1,
+    "kept_total": 34,
+    "skipped_seen": 2422,
+    "valid_serper": 22,
+    "valid_basile": 12,
+    "target_contacts": 471,
+    "serper_available": 49986,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1784885022.0259879,
+    "message": null,
+    "current_detail": "immobilier · Serper 14 examinés",
+    "updated_at": 1784887198.445761
+  }
+}

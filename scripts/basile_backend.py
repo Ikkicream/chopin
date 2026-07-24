@@ -335,9 +335,10 @@ def run_segment(site: str, kind: str, filters: dict, *, sector: str | None = Non
                                         ("company_name", "contact_name", "email",
                                          "sector", "city")})
                     continue
-                # dédup léger avant insert (comme Serper)
+                # dédup léger avant insert (comme Serper) + tombstone des rejetés
                 if gm.email_recently_validated(prospect["email"], days=30) or \
-                   gm.email_in_pending(prospect["email"]):
+                   gm.email_in_pending(prospect["email"]) or \
+                   gm.email_rejected(prospect["email"]):
                     out["duplicates"] += 1
                     continue
                 gm.add_prospect_pending(site, prospect)
@@ -555,7 +556,8 @@ def run_dirigeant_segment(site: str, companies_filter: dict, *, sector: str | No
                             email_validation_reasons=vres["reasons"],
                             status=("manual_review" if vres["decision"] == "queue"
                                     else "mailnjoy_pending"))
-            if gm.email_recently_validated(vres["email"], days=30) or gm.email_in_pending(vres["email"]):
+            if gm.email_recently_validated(vres["email"], days=30) or \
+               gm.email_in_pending(vres["email"]) or gm.email_rejected(vres["email"]):
                 continue
             gm.add_prospect_pending(site, prospect)
             cid = cpb.create_in_pool({

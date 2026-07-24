@@ -197,7 +197,10 @@ def work() -> dict:
     print(f"[plan] {_now_iso()} run {sector} / {region[1]} ({region[0]}) "
           f"target={target} resume={ours} depts_done={depts_done}", flush=True)
     res = asb.run_autoscrape(SITE, [sector], region=region[0], region_name=region[1],
-                             depts_done=depts_done, target_contacts=target,
+                             depts_done=depts_done,
+                             cities_done=(prog.get("cities_done") or []) if ours else [],
+                             cities_dept=prog.get("cities_dept") if ours else None,
+                             target_contacts=target,
                              valid_baseline=baseline,
                              progress_cb=lambda s: asb.write_status(SITE, s),
                              should_stop=lambda: sp.exists())

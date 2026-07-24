@@ -193,6 +193,14 @@ def run_cleanup(mode: str, site: str = "lcr", days: int = 180, limit: int = 200,
                         c.execute("DELETE FROM contact_site_history WHERE contact_id = ?", [cid])
                         c.execute("DELETE FROM contacts WHERE id = ?", [cid])
                         stats["removed"] += 1
+                        # Tombstone : les scrapers re-trouveront cet email dans leurs
+                        # sources — sans mémoire du rejet on le ré-insère demain.
+                        try:
+                            import god_mode_backend as _gm
+                            _gm.mark_email_rejected(email, v.get("decision") or "invalid",
+                                                    v.get("reason") or "", site)
+                        except Exception:
+                            pass
                         _log(site, "cleanup_removed", email,
                              {"mode": mode, "decision": v.get("decision"), "reason": v.get("reason")}, True)
                     except Exception as e:  # noqa: BLE001
