@@ -20932,3 +20932,4 @@
 {"ts": "2026-07-24T13:54:11.724633+00:00", "email": "bruay-location@bethuneimmobilier.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
 {"ts": "2026-07-24T13:54:21.310025+00:00", "email": "albert@reflexenshome.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-07-24T13:54:44.734727+00:00", "email": "contact@experts-team.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-25T17:51:54.724970+00:00", "email": "contact@immobilieredubethunois.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
