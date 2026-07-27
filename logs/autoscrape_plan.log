@@ -15912,3 +15912,152 @@
   "done": true,
   "note": "plan terminé (tous secteurs actifs faits)"
 }
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": null,
+    "region_name": null,
+    "dept": "13",
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Dept 13",
+    "depts_total": 1,
+    "depts_done": 0,
+    "current_dept": "13 13",
+    "cities_total": 47,
+    "cities_done": 2,
+    "current_city": "Marseille 3e",
+    "examined": 72,
+    "valid": 40,
+    "rejected": 43,
+    "duplicates": 12,
+    "errors": 0,
+    "kept_total": 40,
+    "skipped_seen": 78,
+    "valid_serper": 33,
+    "valid_basile": 7,
+    "target_contacts": 500,
+    "serper_available": 49280,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785162344.5293458,
+    "message": null,
+    "current_detail": "immobilier · Serper 10 examinés",
+    "updated_at": 1785162592.6069517
+  }
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}

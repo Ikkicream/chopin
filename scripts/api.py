@@ -4914,6 +4914,131 @@ async def api_pool_change_state(site: str, contact_id: str, request: Request):
     return {"ok": ok}
 
 
+# ── Logo de contact (fiche client) : scrape du site web ou upload manuel ──────
+
+CONTACT_LOGOS_DIR = LOGOS_DIR / "contacts"
+CONTACT_LOGOS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _save_contact_logo(contact_id: str, raw: bytes) -> str:
+    """Convertit l'image en PNG (max 400px, ratio conservé), la stocke et
+    met à jour contacts.logo_url. Retourne l'URL servie."""
+    from PIL import Image
+    import io as _io
+    img = Image.open(_io.BytesIO(raw))
+    img = img.convert("RGBA")
+    w, h = img.size
+    if max(w, h) > 400:
+        ratio = 400 / max(w, h)
+        img = img.resize((max(1, int(w * ratio)), max(1, int(h * ratio))), Image.LANCZOS)
+    out = CONTACT_LOGOS_DIR / f"{contact_id}.png"
+    img.save(out, format="PNG", optimize=True)
+    url = f"/assets/logos/contacts/{contact_id}.png"
+    import duckdb as _dd
+    c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"))
+    try:
+        c.execute("UPDATE contacts SET logo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                  [url, contact_id])
+    finally:
+        c.close()
+    return url
+
+
+def _extract_logo_candidates(html: str, base_url: str) -> list[str]:
+    """Extrait les URLs candidates de logo depuis le HTML (og:image, icônes, <img> logo)."""
+    import re
+    from urllib.parse import urljoin
+    cands: list[str] = []
+    # og:image / twitter:image (les 2 ordres d'attributs)
+    for pat in (
+        r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+        r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+        r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']',
+    ):
+        cands += re.findall(pat, html, re.I)
+    # <img> dont src/class/alt évoque un logo
+    for m in re.finditer(r'<img[^>]+>', html, re.I):
+        tag = m.group(0)
+        if re.search(r'logo', tag, re.I):
+            src = re.search(r'src=["\']([^"\']+)["\']', tag)
+            if src:
+                cands.append(src.group(1))
+    # icônes (apple-touch-icon d'abord : plus grandes que favicon)
+    for pat in (
+        r'<link[^>]+rel=["\']apple-touch-icon[^"\']*["\'][^>]+href=["\']([^"\']+)["\']',
+        r'<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']apple-touch-icon[^"\']*["\']',
+        r'<link[^>]+rel=["\'](?:shortcut )?icon["\'][^>]+href=["\']([^"\']+)["\']',
+        r'<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\'](?:shortcut )?icon["\']',
+    ):
+        cands += re.findall(pat, html, re.I)
+    cands.append("/favicon.ico")
+    # absolutise + dédoublonne en conservant l'ordre
+    seen, out = set(), []
+    for u in cands:
+        if u.startswith("data:"):
+            continue
+        full = urljoin(base_url, u.strip())
+        if full not in seen:
+            seen.add(full)
+            out.append(full)
+    return out
+
+
+@app.post("/api/sites/{site}/pool/contacts/{contact_id}/fetch-logo")
+async def api_pool_contact_fetch_logo(site: str, contact_id: str, request: Request):
+    """Tente de récupérer le logo depuis le site web du contact
+    (og:image → <img> logo → apple-touch-icon → favicon)."""
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    website = (body.get("website") or "").strip()
+    import duckdb as _dd
+    if not website:
+        c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"), read_only=True)
+        try:
+            row = c.execute("SELECT website FROM contacts WHERE id = ?", [contact_id]).fetchone()
+        finally:
+            c.close()
+        website = (row[0] or "").strip() if row else ""
+    if not website:
+        return {"ok": False, "error": "Aucune URL de site renseignée pour ce contact."}
+    if not website.startswith(("http://", "https://")):
+        website = "https://" + website
+
+    import requests as _rq
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; ChefferBot/1.0)"}
+    try:
+        page = _rq.get(website, headers=headers, timeout=10, allow_redirects=True)
+        html = page.text or ""
+        base = page.url or website
+    except Exception as e:
+        return {"ok": False, "error": f"Site injoignable : {str(e)[:120]}"}
+
+    for cand in _extract_logo_candidates(html, base)[:8]:
+        try:
+            r = _rq.get(cand, headers=headers, timeout=10)
+            if r.status_code != 200 or not r.content or len(r.content) < 200:
+                continue
+            url = _save_contact_logo(contact_id, r.content)
+            return {"ok": True, "url": url, "source": cand}
+        except Exception:
+            continue
+    return {"ok": False, "error": "Aucun logo exploitable trouvé sur le site — importe une image PNG."}
+
+
+@app.post("/api/sites/{site}/pool/contacts/{contact_id}/logo")
+async def api_pool_contact_logo_upload(site: str, contact_id: str, file: UploadFile = File(...)):
+    """Upload manuel d'une image (PNG/JPG/WebP) pour la fiche du contact."""
+    try:
+        raw = await file.read()
+        url = _save_contact_logo(contact_id, raw)
+        return {"ok": True, "url": url}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 @app.post("/api/sites/{site}/pool/contacts/{contact_id}/blacklist")
 async def api_pool_blacklist(site: str, contact_id: str, request: Request):
     """Blacklist GLOBAL d'un contact (depuis l'UI Acquisition)."""
@@ -6353,7 +6478,8 @@ async def api_pool_contact_update(site: str, contact_id: str, request: Request):
     try:
         # Champs autorisés à update
         ALLOWED = {"prenom", "nom", "societe", "tel", "website", "city",
-                   "dept_code", "region_code", "postal_code"}
+                   "dept_code", "region_code", "postal_code",
+                   "logo_url", "client_since"}
         updates, params = [], []
         for k, v in body.items():
             if k in ALLOWED:

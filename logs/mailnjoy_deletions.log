@@ -20933,3 +20933,17 @@
 {"ts": "2026-07-24T13:54:21.310025+00:00", "email": "albert@reflexenshome.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-07-24T13:54:44.734727+00:00", "email": "contact@experts-team.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-07-25T17:51:54.724970+00:00", "email": "contact@immobilieredubethunois.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-27T14:30:38.446910+00:00", "email": "email@exemple.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:30:49.189492+00:00", "email": "contact@laparte-immobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:30:58.337283+00:00", "email": "kevin.orlandi@krushimmobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:31:35.507023+00:00", "email": "benjamin.benattar@cocoonimmo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:31:40.709837+00:00", "email": "agencedu148@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:31:49.820262+00:00", "email": "contact@cabinetgrandduc.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:32:48.557951+00:00", "email": "contact@estimation-immobiliere-marseille.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-27T14:32:58.416154+00:00", "email": "servicecommercial@pinatel.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:33:11.929565+00:00", "email": "ceprogimcolin@ceprogim-colin.immo", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:33:32.339902+00:00", "email": "axel@homeandseaimmobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:33:38.971034+00:00", "email": "votreadresse@mail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-27T14:33:45.434471+00:00", "email": "contact@greenhomeimmobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:34:04.524181+00:00", "email": "contact@cabinet-berthoz.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-27T14:34:11.535093+00:00", "email": "nmdv@immobiliere-lemarquis.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
