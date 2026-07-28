@@ -16096,3 +16096,404 @@
   "done": true,
   "note": "plan terminé (tous secteurs actifs faits)"
 }
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": null,
+    "region_name": null,
+    "dept": "69",
+    "sectors": [
+      "immobilier"
+    ],
+    "scope": "Dept 69",
+    "depts_total": 1,
+    "depts_done": 0,
+    "current_dept": "69 69",
+    "cities_total": 37,
+    "cities_done": 14,
+    "current_city": "Décines-Charpieu",
+    "examined": 351,
+    "valid": 93,
+    "rejected": 296,
+    "duplicates": 38,
+    "errors": 1,
+    "kept_total": 93,
+    "skipped_seen": 1623,
+    "valid_serper": 83,
+    "valid_basile": 10,
+    "target_contacts": 100,
+    "serper_available": 49257,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785232950.3443189,
+    "message": null,
+    "current_detail": "immobilier · Serper 31 examinés",
+    "updated_at": 1785234600.2382092
+  }
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": null,
+    "region_name": null,
+    "dept": "78",
+    "sectors": [
+      "restaurant"
+    ],
+    "scope": "Dept 78",
+    "depts_total": 1,
+    "depts_done": 0,
+    "current_dept": "78 78",
+    "cities_total": 42,
+    "cities_done": 5,
+    "current_city": "Vélizy-Villacoublay",
+    "examined": 281,
+    "valid": 79,
+    "rejected": 306,
+    "duplicates": 16,
+    "errors": 0,
+    "kept_total": 79,
+    "skipped_seen": 249,
+    "valid_serper": 71,
+    "valid_basile": 8,
+    "target_contacts": 85,
+    "serper_available": 48970,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785250100.2458768,
+    "message": null,
+    "current_detail": "restaurant · Serper 35 examinés",
+    "updated_at": 1785250801.1382184
+  }
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "11",
+    "region_name": "Île-de-France",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Île-de-France",
+    "depts_total": 8,
+    "depts_done": 0,
+    "current_dept": "75 Paris",
+    "cities_total": 285,
+    "cities_done": 14,
+    "current_city": "Paris 15e",
+    "examined": 356,
+    "valid": 226,
+    "rejected": 152,
+    "duplicates": 5,
+    "errors": 3,
+    "kept_total": 226,
+    "skipped_seen": 109,
+    "valid_serper": 210,
+    "valid_basile": 16,
+    "target_contacts": 1000,
+    "serper_available": 48888,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785254874.5396469,
+    "message": null,
+    "current_detail": "agence-marketing · Serper 0 examinés",
+    "updated_at": 1785256169.7168279
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "11",
+    "region_name": "Île-de-France",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Île-de-France",
+    "depts_total": 8,
+    "depts_done": 1,
+    "current_dept": "77 Seine-et-Marne",
+    "cities_total": 285,
+    "cities_done": 33,
+    "current_city": "Dammarie-les-Lys",
+    "examined": 953,
+    "valid": 477,
+    "rejected": 581,
+    "duplicates": 31,
+    "errors": 3,
+    "kept_total": 477,
+    "skipped_seen": 463,
+    "valid_serper": 456,
+    "valid_basile": 21,
+    "target_contacts": 1000,
+    "serper_available": 48888,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785254874.5396469,
+    "message": null,
+    "current_detail": "agence-marketing · Serper 0 examinés",
+    "updated_at": 1785257998.8673987
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "11",
+    "region_name": "Île-de-France",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Île-de-France",
+    "depts_total": 8,
+    "depts_done": 1,
+    "current_dept": "77 Seine-et-Marne",
+    "cities_total": 285,
+    "cities_done": 49,
+    "current_city": "Lagny-sur-Marne",
+    "examined": 1394,
+    "valid": 639,
+    "rejected": 969,
+    "duplicates": 40,
+    "errors": 14,
+    "kept_total": 639,
+    "skipped_seen": 1290,
+    "valid_serper": 618,
+    "valid_basile": 21,
+    "target_contacts": 1000,
+    "serper_available": 48888,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785254874.5396469,
+    "message": null,
+    "current_detail": "agence-marketing · Serper 0 examinés",
+    "updated_at": 1785259797.013515
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "11",
+    "region_name": "Île-de-France",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Île-de-France",
+    "depts_total": 8,
+    "depts_done": 2,
+    "current_dept": "78 Yvelines",
+    "cities_total": 285,
+    "cities_done": 67,
+    "current_city": "Montigny-le-Bretonneux",
+    "examined": 1910,
+    "valid": 850,
+    "rejected": 1478,
+    "duplicates": 56,
+    "errors": 21,
+    "kept_total": 850,
+    "skipped_seen": 1924,
+    "valid_serper": 829,
+    "valid_basile": 21,
+    "target_contacts": 1000,
+    "serper_available": 48888,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785254874.5396469,
+    "message": null,
+    "current_detail": "agence-marketing · Serper 7 examinés",
+    "updated_at": 1785261598.5176013
+  }
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "11",
+    "region_name": "Île-de-France",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Île-de-France",
+    "depts_total": 8,
+    "depts_done": 2,
+    "current_dept": "78 Yvelines",
+    "cities_total": 285,
+    "cities_done": 80,
+    "current_city": "Les Clayes-sous-Bois",
+    "examined": 2298,
+    "valid": 1005,
+    "rejected": 1824,
+    "duplicates": 66,
+    "errors": 26,
+    "kept_total": 1005,
+    "skipped_seen": 2429,
+    "valid_serper": 984,
+    "valid_basile": 21,
+    "target_contacts": 1000,
+    "serper_available": 48320,
+    "basile_active": true,
+    "status": "cleaning",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785254874.5396469,
+    "message": "Scrape fini (1005 contacts) — nettoyage Mailnjoy en cours…",
+    "current_detail": "agence-marketing · Serper 32 examinés",
+    "scrape_finished_at": 1785262994.0994387,
+    "cleanup": {
+      "status": "running",
+      "valid": 198,
+      "removed": 75,
+      "total": 300
+    },
+    "updated_at": 1785268550.255072
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "11",
+    "region_name": "Île-de-France",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Île-de-France",
+    "depts_total": 8,
+    "depts_done": 2,
+    "current_dept": "78 Yvelines",
+    "cities_total": 285,
+    "cities_done": 80,
+    "current_city": "Les Clayes-sous-Bois",
+    "examined": 2298,
+    "valid": 1005,
+    "rejected": 1824,
+    "duplicates": 66,
+    "errors": 26,
+    "kept_total": 1005,
+    "skipped_seen": 2429,
+    "valid_serper": 984,
+    "valid_basile": 21,
+    "target_contacts": 1000,
+    "serper_available": 48320,
+    "basile_active": true,
+    "status": "cleaning",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785254874.5396469,
+    "message": "Scrape fini (1005 contacts) — nettoyage Mailnjoy en cours…",
+    "current_detail": "agence-marketing · Serper 32 examinés",
+    "scrape_finished_at": 1785262994.0994387,
+    "cleanup": {
+      "status": "running",
+      "valid": 263,
+      "removed": 80,
+      "total": 400
+    },
+    "updated_at": 1785270591.4175596
+  }
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}

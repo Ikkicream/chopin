@@ -131,6 +131,10 @@ async def auth_middleware(request: Request, call_next):
     if path == "/api/sweego/click":
         return await call_next(request)
 
+    # Pixel de tracking d'ouverture (public — chargé par les clients mail)
+    if path == "/api/track/open":
+        return await call_next(request)
+
     # Prise de RDV publique (type Calendly) : page + créneaux + soumission. Pas de session
     # (lien public partagé). Les handlers valident le site + le créneau ; aucune donnée
     # sensible n'est exposée (lecture seule des créneaux, écriture d'un RDV uniquement).
@@ -3360,6 +3364,30 @@ async def api_emelia_webhook(request: Request):
     return {"ok": True, "action": action, "email": email}
 
 
+@app.get("/api/track/open")
+async def api_track_open(t: str = ""):
+    """Pixel de tracking d'ouverture (public). Résout le token → email et enregistre
+    la date d'ouverture la plus récente dans le pool. Retourne toujours un GIF 1×1."""
+    from fastapi.responses import Response
+    _GIF = (b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04"
+            b"\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D"
+            b"\x01\x00;")
+    if t:
+        try:
+            sys.path.insert(0, str(BASE_DIR / "scripts"))
+            import sweego_backend as sw
+            import contacts_pool_backend as _cpb
+            info = sw.resolve_click(t)  # token dédié pixel : clicked_at = date d'ouverture
+            email = ((info or {}).get("email") or "").strip().lower()
+            if email and "@" in email:
+                _cpb.record_engagement(info.get("site") or "lcr", email, "open",
+                                       info.get("channel") or "maildoso")
+        except Exception as _e:
+            print(f"[track][open] {_e}")
+    return Response(content=_GIF, media_type="image/gif",
+                    headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
+
+
 @app.get("/api/sweego/click")
 async def api_sweego_click(t: str = "", request: Request = None):
     """Lien de tracking de clic Sweego (public). Résout le token → email, promeut le
@@ -3379,6 +3407,16 @@ async def api_sweego_click(t: str = "", request: Request = None):
     site = info.get("site") or "lcr"
     campaign_id = info.get("campaign_id") or ""
     dest = info.get("dest_url") or fallback
+    if dest.startswith("pixel:"):  # token de pixel d'ouverture égaré ici → pas un clic
+        return RedirectResponse(fallback, status_code=302)
+
+    # Table comportementale : clic (implique aussi ouverture), date la plus récente
+    if email and "@" in email:
+        try:
+            import contacts_pool_backend as _cpb
+            _cpb.record_engagement(site, email, "click", info.get("channel") or "sweego")
+        except Exception as _ee:
+            print(f"[track][click] {_ee}")
 
     if email and "@" in email:
         try:
@@ -4734,9 +4772,10 @@ async def api_mailnjoy_save_credentials(request: Request):
 
 @app.get("/api/sites/{site}/pool/contacts")
 def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
-                      source: str = "", search: str = "",
+                      source: str = "", search: str = "", engagement: str = "",
                       limit: int = 500, offset: int = 0):
-    """Liste les contacts du pool utilisés par ce site (avec filtres + recherche)."""
+    """Liste les contacts du pool utilisés par ce site (avec filtres + recherche).
+    `engagement` : openers | clickers (filtre comportemental)."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from contacts_pool_backend import list_contacts_for_site
     return {
@@ -4746,6 +4785,7 @@ def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
             sectors_in=sectors_in.split(",") if sectors_in else None,
             source=source.split(",") if source else None,
             search_email=search or None,
+            engagement=engagement or None,
             limit=limit,
             offset=offset,
         )
@@ -5415,15 +5455,18 @@ async def api_campaign_target_count(site: str, request: Request):
     sectors = body.get("sectors") or []
     regions = body.get("regions") or []
     depts = body.get("depts") or []
+    engagement = (body.get("engagement") or "").strip() or None
     days = int(body.get("cleaned_within_days") or 180)
     per = {}
     seen_total = 0
     for sec in sectors:
         n = pool.count_available_for_sector(site, sec, cleaned_within_days=days,
-                                            regions=regions, depts=depts)
+                                            regions=regions, depts=depts,
+                                            engagement=engagement)
         per[sec] = n
         seen_total += n
-    return {"by_sector": per, "total": seen_total, "cleaned_within_days": days}
+    return {"by_sector": per, "total": seen_total, "cleaned_within_days": days,
+            "engagement": engagement}
 
 
 @app.get("/api/sites/{site}/campaigns/messages")
@@ -5524,7 +5567,8 @@ async def api_campaign_create(site: str, request: Request):
         (body.get("message_id") or "").strip(), (body.get("subject") or "").strip(),
         body.get("sectors") or [], int(body.get("target_size") or 0),
         (body.get("schedule_start") or "").strip(), by=by,
-        regions=body.get("regions") or [], depts=body.get("depts") or [])
+        regions=body.get("regions") or [], depts=body.get("depts") or [],
+        engagement=(body.get("engagement") or "").strip() or None)
 
 
 @app.get("/api/sites/{site}/campaigns")
@@ -5557,9 +5601,24 @@ def _send_bat(site: str, channel: str, message_id: str, subject: str, email: str
                 return {"ok": True, "note": f"BAT Maildoso envoyé depuis {r.get('mailbox')}"}
             return {"ok": False, "error": r.get("error") or "échec envoi Maildoso"}
         # Sweego (masse) et Emelia (cold séquenceur tiers) : test via Sweego (domaine leclientroi.com).
+        # Emelia n'a pas d'envoi transactionnel de test — on tague donc le HTML comme le fera
+        # l'envoi réel (utm_source=coldemail) pour que le BAT soit identique en contenu.
         import sweego_backend as sw
-        r = sw.send_campaign(f"{site}-bat", subject, msg["html"], [email], dry_run=False)
-        return r if isinstance(r, dict) else {"ok": True}
+        html = msg["html"]
+        note = None
+        if channel == "emelia":
+            try:
+                from utm_tagging import tag_links
+                html = tag_links(html, "coldemail", "email", "bat")
+            except Exception:
+                pass
+            note = "BAT envoyé via Sweego, rendu identique au canal Emelia (liens tagués coldemail)"
+        r = sw.send_campaign(f"{site}-bat", subject, html, [email], dry_run=False)
+        if isinstance(r, dict):
+            if r.get("ok") and note:
+                r = {**r, "note": note}
+            return r
+        return {"ok": True, "note": note} if note else {"ok": True}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)}
 
@@ -5984,6 +6043,61 @@ def api_autoscrape_status(site: str):
         st["status"] = "interrupted"
         st["message"] = "Process interrompu (plus de heartbeat depuis > 5 min)."
     return st
+
+
+@app.post("/api/sites/{site}/autoscrape/resume")
+async def api_autoscrape_resume(site: str, request: Request):
+    """Relance un autoscrape arrêté là où il s'était arrêté (progression persistée :
+    dépts finis sautés, villes finies du dept en cours sautées, reliquat de cible).
+    Réservé admin, refuse si un run est déjà actif."""
+    sess = getattr(request.state, "session", None)
+    if not sess or sess.get("role") not in ("admin", "superadmin"):
+        return {"ok": False, "error": "Rôle admin requis."}
+    if site not in ("lcr", "mkd"):
+        return {"ok": False, "error": "invalid site"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import autoscrape_backend as asb
+    import time as _tm
+
+    cur = asb.read_status(site)
+    if cur.get("status") in ("running", "starting", "stopping", "cleaning") and (_tm.time() - cur.get("updated_at", 0) < 300):
+        return {"ok": False, "running": True, "error": "Un autoscrape est déjà en cours.", "active": cur}
+
+    # Validation AVANT de spawner : progression exploitable ?
+    prog = asb.read_progress(site)
+    if not prog:
+        return {"ok": False, "error": "Aucune progression enregistrée — rien à reprendre."}
+    if prog.get("status") not in asb.RESUMABLE_STATUSES:
+        return {"ok": False, "error": f"Statut « {prog.get('status')} » — rien à reprendre."}
+    region = prog.get("region")
+    dept = prog.get("dept") or (None if region else prog.get("cities_dept"))
+    if not region and not dept:
+        return {"ok": False, "error": "Progression illisible (ni région ni département)."}
+
+    scope = f"Région {prog.get('region_name') or region}" if region else f"Dept {dept}"
+    asb.write_status(site, {
+        "site": site, "region": region, "region_name": prog.get("region_name"),
+        "dept": dept, "sectors": prog.get("sectors") or [], "status": "starting",
+        "scope": f"{scope} (reprise)",
+        "depts_total": prog.get("depts_total") or 0, "depts_done": len(prog.get("depts_done") or []),
+        "cities_total": 0, "cities_done": 0, "current_city": None,
+        "examined": 0, "valid": int(prog.get("valid") or 0), "rejected": 0, "errors": 0,
+        "kept_total": 0, "valid_serper": 0, "valid_basile": 0,
+        "target_contacts": int(prog.get("target_contacts") or 0),
+        "serper_available": None, "basile_active": True, "blocked": False, "stopped": False,
+        "started_at": _tm.time(), "message": "Reprise du run arrêté…",
+    })
+    log_f = open(str(BASE_DIR / "logs" / f"autoscrape-{site}.log"), "a")
+    try:
+        subprocess.Popen(["python3", "scripts/autoscrape_backend.py", "--site", site, "--resume"],
+                         cwd=str(BASE_DIR), start_new_session=True,
+                         stdout=log_f, stderr=subprocess.STDOUT)
+    finally:
+        log_f.close()
+    return {"ok": True, "resumed": True, "site": site, "region": region, "dept": dept,
+            "depts_done": len(prog.get("depts_done") or []),
+            "valid_baseline": int(prog.get("valid") or 0),
+            "target_contacts": int(prog.get("target_contacts") or 0)}
 
 
 @app.post("/api/sites/{site}/autoscrape/stop")

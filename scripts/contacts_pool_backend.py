@@ -413,6 +413,7 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
                            sectors_in: list[str] | None = None,
                            source: list[str] | None = None,
                            search_email: str | None = None,
+                           engagement: str | None = None,
                            limit: int = 500, offset: int = 0) -> list[dict]:
     """Liste les contacts utilisés par un site (JOIN contacts × contact_site_history)."""
     q = """
@@ -425,12 +426,18 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
                csh.emelia_campaign_id, csh.emelia_contact_id,
                csh.email_sent_at, csh.emelia_opened_at, csh.emelia_clicked_at,
                csh.emelia_replied_at, csh.emelia_bounced_at, csh.emelia_unsubscribed_at,
-               csh.last_contacted_by_site_at, csh.notes
+               csh.last_contacted_by_site_at, csh.notes,
+               csh.last_opened_at, csh.last_clicked_at,
+               csh.last_open_channel, csh.last_click_channel
         FROM contacts c
         JOIN contact_site_history csh ON c.id = csh.contact_id
         WHERE csh.site_code = ?
     """
     params: list = [site_code]
+    if engagement == "openers":
+        q += " AND csh.last_opened_at IS NOT NULL"
+    elif engagement == "clickers":
+        q += " AND csh.last_clicked_at IS NOT NULL"
     if state:
         placeholders = ",".join(["?"] * len(state))
         q += f" AND csh.state IN ({placeholders})"
@@ -468,6 +475,8 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
         "email_sent_at", "emelia_opened_at", "emelia_clicked_at",
         "emelia_replied_at", "emelia_bounced_at", "emelia_unsubscribed_at",
         "last_contacted_by_site_at", "notes",
+        "last_opened_at", "last_clicked_at",
+        "last_open_channel", "last_click_channel",
     ]
     out = []
     for r in rows:
@@ -477,7 +486,7 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
         for ts_col in ("added_to_site_at", "last_action_at", "email_sent_at",
                        "emelia_opened_at", "emelia_clicked_at", "emelia_replied_at",
                        "emelia_bounced_at", "emelia_unsubscribed_at",
-                       "last_contacted_by_site_at"):
+                       "last_contacted_by_site_at", "last_opened_at", "last_clicked_at"):
             if d.get(ts_col):
                 d[ts_col] = str(d[ts_col])
         out.append(d)
@@ -602,6 +611,49 @@ SOURCE_RANK_SQL = """
 """
 
 
+def record_engagement(site_code: str, email: str, kind: str, channel: str,
+                      at: str | None = None, only_if_null: bool = False) -> bool:
+    """Enregistre une ouverture ('open') ou un clic ('click') pour un contact,
+    quel que soit le canal (emelia/sweego/maildoso). Ne garde que la date LA PLUS
+    RÉCENTE. Un clic implique aussi une ouverture. `only_if_null` : ne pose la date
+    que si aucune n'existe (utilisé quand la vraie date d'événement est inconnue)."""
+    if kind not in ("open", "click") or not email or "@" not in email:
+        return False
+    at = str(at or _now().isoformat())
+    cols = [("last_opened_at", "last_open_channel")]
+    if kind == "click":
+        cols = [("last_clicked_at", "last_click_channel")] + cols
+    c = _conn()
+    try:
+        for col, ch_col in cols:
+            guard = f"csh.{col} IS NULL" if only_if_null else f"(csh.{col} IS NULL OR csh.{col} < ?)"
+            params = [at, channel, site_code, email] + ([] if only_if_null else [at])
+            c.execute(f"""
+                UPDATE contact_site_history csh
+                SET {col} = ?, {ch_col} = ?
+                FROM contacts c2
+                WHERE csh.contact_id = c2.id AND csh.site_code = ?
+                  AND lower(c2.email) = lower(?) AND {guard}
+            """, params)
+    finally:
+        c.close()
+    return True
+
+
+# Filtres d'engagement pour le ciblage de campagne (wizard étape Cible)
+ENGAGEMENT_FILTERS = ("open_30", "open_180", "open_any", "click_any")
+
+
+def _engagement_clause(engagement: str | None) -> str:
+    """Fragment SQL du filtre d'engagement (aucun paramètre : intervalles littéraux)."""
+    return {
+        "open_30":  "AND csh.last_opened_at >= CURRENT_TIMESTAMP - INTERVAL '30' DAY",
+        "open_180": "AND csh.last_opened_at >= CURRENT_TIMESTAMP - INTERVAL '180' DAY",
+        "open_any": "AND csh.last_opened_at IS NOT NULL",
+        "click_any": "AND csh.last_clicked_at IS NOT NULL",
+    }.get(engagement or "", "")
+
+
 def _geo_clause(regions: list[str] | None, depts: list[str] | None) -> tuple[str, list]:
     """Fragment SQL + params du ciblage géographique optionnel.
 
@@ -627,7 +679,8 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
                       cooldown_same_site_days: int = COOLDOWN_SAME_SITE_DAYS,
                       cleaned_within_days: int = 180,
                       regions: list[str] | None = None,
-                      depts: list[str] | None = None) -> list[dict]:
+                      depts: list[str] | None = None,
+                      engagement: str | None = None) -> list[dict]:
     """Algorithme de pioche : retourne les N meilleurs contacts pour une campagne.
 
     Filtres :
@@ -643,6 +696,11 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
     """
     cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
     geo_sql, geo_params = _geo_clause(regions, depts)
+    eng_sql = _engagement_clause(engagement)
+    # Ciblage engagement = ré-engagement : les cliqueurs sont souvent déjà promus
+    # prm/lead, on élargit donc les états éligibles (blacklist reste exclue).
+    state_sql = ("csh.state IN ('cold_email','prm','lead')" if eng_sql
+                 else "(csh.state IS NULL OR csh.state = 'cold_email')")
     q = f"""
         SELECT c.id, c.email, c.prenom, c.nom, c.societe, c.tel, c.website,
                c.city, c.dept_code, c.region_code, c.sectors,
@@ -666,7 +724,8 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
             AND json_extract_string(c.mailnjoy_check, '$.decision') = 'valid'
             -- RÉCENCE : vérification Mailnjoy < cleaned_within_days (défaut 6 mois)
             AND json_extract_string(c.mailnjoy_check, '$.checked_at') >= ?
-            AND (csh.state IS NULL OR csh.state = 'cold_email')
+            AND {state_sql}
+            {eng_sql}
             AND (
                 csh.last_contacted_by_site_at IS NULL
                 OR csh.last_contacted_by_site_at < CURRENT_TIMESTAMP - INTERVAL '{cooldown_same_site_days}' DAY
@@ -704,10 +763,14 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
 
 def count_available_for_sector(site_code: str, sector: str, cleaned_within_days: int = 180,
                                regions: list[str] | None = None,
-                               depts: list[str] | None = None) -> int:
+                               depts: list[str] | None = None,
+                               engagement: str | None = None) -> int:
     """Count des contacts disponibles pour pioche dans un secteur (filtres identiques à pick_for_campaign)."""
     cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
     geo_sql, geo_params = _geo_clause(regions, depts)
+    eng_sql = _engagement_clause(engagement)
+    state_sql = ("csh.state IN ('cold_email','prm','lead')" if eng_sql
+                 else "(csh.state IS NULL OR csh.state = 'cold_email')")
     q = f"""
         SELECT COUNT(*)
         FROM contacts c
@@ -725,7 +788,8 @@ def count_available_for_sector(site_code: str, sector: str, cleaned_within_days:
             AND json_extract_string(c.mailnjoy_check, '$.decision') = 'valid'
             -- RÉCENCE : vérification Mailnjoy < cleaned_within_days (défaut 6 mois)
             AND json_extract_string(c.mailnjoy_check, '$.checked_at') >= ?
-            AND (csh.state IS NULL OR csh.state = 'cold_email')
+            AND {state_sql}
+            {eng_sql}
             AND (
                 csh.last_contacted_by_site_at IS NULL
                 OR csh.last_contacted_by_site_at < CURRENT_TIMESTAMP - INTERVAL '{COOLDOWN_SAME_SITE_DAYS}' DAY

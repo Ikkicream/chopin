@@ -252,6 +252,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     def persist_progress():
         write_progress(site, {
             "site": site, "region": region, "region_name": region_name,
+            "dept": dept,  # mode mono-département : indispensable à la reprise manuelle
             "sectors": sectors, "depts_total": len(all_depts),
             "depts_done": sorted(done_set), "status": cum["status"],
             # `valid` CUMULÉ (runs précédents de la région + ce run) pour que la reprise
@@ -623,6 +624,54 @@ def daily_retry(site: str) -> dict:
     return {"ok": True, "resumed": True, "region": prog.get("region"), "status": res.get("status")}
 
 
+RESUMABLE_STATUSES = ("blocked_serper", "interrupted", "timeout", "stopped", "error")
+
+
+def resume_stopped(site: str) -> dict:
+    """Reprise MANUELLE (bouton UI) d'un run arrêté, là où il s'était arrêté.
+    Contrairement à daily_retry (cron, mode région uniquement), gère aussi les runs
+    mono-département et tous les statuts d'arrêt (stop manuel, erreur, timeout…)."""
+    prog = read_progress(site)
+    if not prog:
+        return {"ok": False, "error": "Aucune progression enregistrée — rien à reprendre."}
+    region = prog.get("region")
+    # Ancien format sans champ `dept` : en mode mono-dept, cities_dept EST le département.
+    dept = prog.get("dept") or (None if region else prog.get("cities_dept"))
+    if not region and not dept:
+        return {"ok": False, "error": "Progression illisible (ni région ni département)."}
+    if prog.get("status") not in RESUMABLE_STATUSES:
+        return {"ok": False, "error": f"Statut « {prog.get('status')} » — rien à reprendre."}
+
+    # Reliquat : le plafond persisté est le TOTAL du périmètre, `valid` le cumul déjà gardé.
+    target = int(prog.get("target_contacts") or 0)
+    baseline = int(prog.get("valid") or 0)
+    remaining = 0
+    if target > 0:
+        remaining = target - baseline
+        if remaining <= 0:
+            write_progress(site, {**prog, "status": "done",
+                                  "message": "plafond de contacts atteint (reprise)"})
+            return {"ok": False, "error": "Plafond de contacts déjà atteint — rien à reprendre."}
+
+    sp = stop_path(site)
+    try:
+        if sp.exists():
+            sp.unlink()
+    except Exception:
+        pass
+    res = run_autoscrape(site, prog.get("sectors") or [], region=region, dept=dept,
+                         region_name=prog.get("region_name"),
+                         depts_done=prog.get("depts_done") or [],
+                         cities_done=prog.get("cities_done") or [],
+                         cities_dept=prog.get("cities_dept"),
+                         target_contacts=remaining,
+                         valid_baseline=baseline,
+                         progress_cb=lambda s: write_status(site, s),
+                         should_stop=lambda: sp.exists())
+    return {"ok": True, "resumed": True, "region": region, "dept": dept,
+            "status": res.get("status")}
+
+
 def main() -> int:
     """Process DÉTACHÉ (lancé par l'API) ou retry quotidien (cron PM2). Écrit
     l'avancement dans memory/autoscrape/<site>-status.json ; stop via flag fichier."""
@@ -637,7 +686,21 @@ def main() -> int:
                     help="scrape toutes les régions métropole en séquence")
     ap.add_argument("--daily-retry", action="store_true",
                     help="reprend la région stoppée si Serper repasse (cron)")
+    ap.add_argument("--resume", action="store_true",
+                    help="reprise manuelle du run arrêté (bouton UI) — région ou département")
     args = ap.parse_args()
+
+    if args.resume:
+        try:
+            out = resume_stopped(args.site)
+            print(json.dumps(out, ensure_ascii=False))
+            return 0 if out.get("ok") else 1
+        except Exception as e:
+            cur = read_status(args.site)
+            cur.update({"status": "error", "message": f"reprise: {e}", "finished_at": time.time()})
+            write_status(args.site, cur)
+            print(json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False))
+            return 1
 
     if args.daily_retry:
         try:

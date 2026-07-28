@@ -289,6 +289,19 @@ def main():
                         unsubscribed=bool(contact.get("hasUnsubscribed")),
                         campaign_id=contact.get("campaign_id", ""),
                     )
+                    # Tables comportementales du pool : date la plus récente, cross-canal.
+                    # Sans lastActivityDate on ne pose la date qu'à la 1re détection
+                    # (sinon chaque sync « rajeunirait » l'événement à tort).
+                    try:
+                        import contacts_pool_backend as _cpb
+                        act = contact.get("lastActivityDate") or None
+                        kw = {"at": act} if act else {"only_if_null": True}
+                        if contact.get("hasClicked"):
+                            _cpb.record_engagement(site, email_lc, "click", "emelia", **kw)
+                        elif contact.get("hasOpened"):
+                            _cpb.record_engagement(site, email_lc, "open", "emelia", **kw)
+                    except Exception as _ee:
+                        print(f"  [engagement] {email_lc}: {_ee}")
 
                 r["email"]   = email_lc
                 r["target_state"] = target_state or "cold_email"

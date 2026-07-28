@@ -20947,3 +20947,360 @@
 {"ts": "2026-07-27T14:33:45.434471+00:00", "email": "contact@greenhomeimmobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-07-27T14:34:04.524181+00:00", "email": "contact@cabinet-berthoz.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-07-27T14:34:11.535093+00:00", "email": "nmdv@immobiliere-lemarquis.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:07:30.835285+00:00", "email": "contact@cpc.immo", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:07:48.016566+00:00", "email": "info@lymmobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:08:41.514919+00:00", "email": "accueil@noustral.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:14:12.994338+00:00", "email": "contact@multi-regie.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T10:14:18.563234+00:00", "email": "contact@amagest.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:15:00.456373+00:00", "email": "amaury.caldairou@regie-ilg.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T10:15:09.706437+00:00", "email": "contact@flat-fish.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:15:59.235012+00:00", "email": "a.desheraud@proregie.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:18:09.024500+00:00", "email": "contact@fet9.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:18:32.416224+00:00", "email": "contact@ehpadinvest.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T10:24:41.771706+00:00", "email": "contact@citystone.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:24:56.488963+00:00", "email": "villeurbanne@markusimmobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:25:14.978483+00:00", "email": "donnees@edelis.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T10:25:22.714390+00:00", "email": "noemie.couilloud@cbienchezvous.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:28:26.462178+00:00", "email": "gestion@murani.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:38:40.610267+00:00", "email": "contact@dgrosselin-immobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:39:20.013876+00:00", "email": "mlanoue@sldi-immobilier.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T10:39:25.834335+00:00", "email": "csm@corneille-st-marc.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T10:39:33.023828+00:00", "email": "webmestre@grandlyon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T12:27:41.971865+00:00", "email": "reservations.trianon@waldorfastoria.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T12:27:47.900487+00:00", "email": "pizzahspot2025@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T12:28:24.321030+00:00", "email": "contact@pizzeriachezcesar.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T12:29:51.249511+00:00", "email": "brasserielelyautey.shop@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T12:30:12.911480+00:00", "email": "doddy777@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T14:50:33.274327+00:00", "email": "contact@ollca.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T14:50:40.145912+00:00", "email": "contact@gaulupeau-receptions.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T14:59:28.515064+00:00", "email": "h5954@accor.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T15:00:00.564612+00:00", "email": "contact@lepointdorigine.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T15:00:29.032236+00:00", "email": "kaganswimwear@mail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T15:01:14.538827+00:00", "email": "06%0d%0aemail%3abooking@hotelparisvesinet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T15:01:17.955306+00:00", "email": "hola@clasico-argentino.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T15:02:18.231860+00:00", "email": "contact@lenicoletta.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T15:04:02.841194+00:00", "email": "contact@lescarbille.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T15:04:17.850890+00:00", "email": "contactfrance@cigierre.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T15:04:34.503564+00:00", "email": "contact@temascake.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T15:04:57.906059+00:00", "email": "contact@indianacafe.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T15:05:39.250341+00:00", "email": "easycarte@small.paris", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T15:08:18.277286+00:00", "email": "contact@eatandcollect.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T15:10:04.600295+00:00", "email": "contact@labrasseriebarge.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:11:52.965071+00:00", "email": "contact@glucoz.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:12:38.749323+00:00", "email": "bonjour@oscar-referencement.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:13:05.227775+00:00", "email": "hello@lesanneesfolles.co", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:13:11.068737+00:00", "email": "contact@onyx-digital.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:13:26.550519+00:00", "email": "contact@values.media", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:13:33.844507+00:00", "email": "contact@ogury.co", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:13:40.303237+00:00", "email": "anatole.talla@wearetogether.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:13:50.336677+00:00", "email": "contact.france@iprospect.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:13:57.904166+00:00", "email": "contact@cospirit.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:14:22.037192+00:00", "email": "contact@publicis-consultants.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:14:27.271956+00:00", "email": "contact@carboatmedia.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:14:44.481612+00:00", "email": "gpd@gsa-healthcare.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:14:51.347983+00:00", "email": "aliou.maro@marcelww.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:14:56.781766+00:00", "email": "carrenoir@carre-noir.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:15:04.331195+00:00", "email": "accueil@publicis.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:15:12.941848+00:00", "email": "contact.rosetta@mediapost.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:15:29.042445+00:00", "email": "contact@presencity.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:15:32.966566+00:00", "email": "contact@agencedigi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:15:37.579148+00:00", "email": "clement@agence-pickers.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:15:45.763174+00:00", "email": "hello@ioquery.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:15:51.664555+00:00", "email": "hello@frenchidagency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:16:17.903598+00:00", "email": "contact@ettacom.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:16:57.075528+00:00", "email": "contact@ingencylive.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:22:36.180500+00:00", "email": "vincent@impulse-analytics.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:22:43.286939+00:00", "email": "contact@agencevitrine.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:22:51.646655+00:00", "email": "contact@oscar-black.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:23:15.991956+00:00", "email": "contact@thesocialrepublic.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:23:23.237190+00:00", "email": "antoine.dupont@gmail.com", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:23:35.185149+00:00", "email": "john@domaine.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:23:40.608975+00:00", "email": "jean@entreprise.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:23:49.628443+00:00", "email": "hello@slidor.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:24:46.523033+00:00", "email": "hello@yumens.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:24:51.665268+00:00", "email": "contact@double-monde.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:25:10.924164+00:00", "email": "contact@nerubi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:25:35.635592+00:00", "email": "hello@omi.day", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:26:04.987191+00:00", "email": "info@8upmedia.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:26:40.454000+00:00", "email": "contact@eymme.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:30:19.378191+00:00", "email": "hello@delace.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:31:01.499526+00:00", "email": "agence@premium-communication.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:31:19.563634+00:00", "email": "contact@izisight.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:31:24.264819+00:00", "email": "contact@agence-neno.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:32:09.351094+00:00", "email": "contact@agencepaloma.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:32:14.113412+00:00", "email": "contact@laudans.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:32:21.162896+00:00", "email": "contact@winleads.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:35:25.256505+00:00", "email": "john@digidop.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:35:34.298667+00:00", "email": "hello@akqa.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:36:14.958367+00:00", "email": "louis@le-rideau.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:36:37.577561+00:00", "email": "hello@nowadaysagency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:36:42.556130+00:00", "email": "contact@saucissepuree.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:36:58.782006+00:00", "email": "info@emeraldskygroup.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:37:19.357611+00:00", "email": "kevin@callead.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:38:35.136034+00:00", "email": "dmillet@etcompagnie.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:38:47.657926+00:00", "email": "contact@agence-wam.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:38:54.042640+00:00", "email": "arnaud@dpmedias.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:38:58.131462+00:00", "email": "contact@agence90.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:39:33.219349+00:00", "email": "contact@swapsolutions.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:39:54.666473+00:00", "email": "sarajane@email.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:40:34.128321+00:00", "email": "baptiste@slytherin.io", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:41:17.949740+00:00", "email": "contact@aep-digital.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:50:14.738885+00:00", "email": "contact@pano-senart.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:50:23.454034+00:00", "email": "laetitia@maolic.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:50:34.476318+00:00", "email": "publistyl@publistyl.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:50:41.290618+00:00", "email": "email@example.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:51:03.599456+00:00", "email": "votre.email@exemple.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:51:33.261739+00:00", "email": "martin@opdesignetstand.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:51:38.801015+00:00", "email": "eric.santos@tipandtool.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:51:42.085857+00:00", "email": "21perfectservice@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:52:16.346894+00:00", "email": "ls@agence-ls.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:52:21.549563+00:00", "email": "contact@factio.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:52:45.942924+00:00", "email": "dilly.pub@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T16:53:18.095530+00:00", "email": "hello@sablenoir.io", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T16:56:54.032854+00:00", "email": "david@idclic.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:00:12.354444+00:00", "email": "contact@2mweb.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:00:24.999330+00:00", "email": "contact@raftel.eu", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:00:55.350027+00:00", "email": "contact@brulea.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:01:09.514036+00:00", "email": "contact@ux-webera.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T17:01:29.623256+00:00", "email": "contact@souli.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T17:05:49.032918+00:00", "email": "contact@eurocompub.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:05:57.376433+00:00", "email": "hello@d-story.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:06:23.225663+00:00", "email": "contact@marketing-studio.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:06:40.320381+00:00", "email": "bonjour@belemon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:12:22.679822+00:00", "email": "astreinte@agence-nocta.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:13:07.217140+00:00", "email": "contact@astreparis.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:13:28.368951+00:00", "email": "prenom.nom@entreprise.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T17:15:31.921806+00:00", "email": "hello@socialfever.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:17:04.613293+00:00", "email": "job@advitam.paris", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:17:31.207827+00:00", "email": "infos@esr5.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:18:11.427954+00:00", "email": "contact@jaunecassis.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:18:52.360438+00:00", "email": "allo@agencebrandon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:19:15.199349+00:00", "email": "lollie@lesfabricants.net", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:19:21.795707+00:00", "email": "jeff@amazon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:19:31.495289+00:00", "email": "info@madamepolare.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:19:36.815847+00:00", "email": "hello@colorz.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:20:13.189064+00:00", "email": "contact@agence-spoutnik.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:20:17.223614+00:00", "email": "contact@positive.paris", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:20:21.161428+00:00", "email": "contact@histoires-et-slides.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:20:26.594681+00:00", "email": "contact@prest-agency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:20:41.963245+00:00", "email": "contact@agence-leadiya.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:20:45.519383+00:00", "email": "contact@fidesio.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:21:34.515837+00:00", "email": "contact@jans-agency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:22:04.936596+00:00", "email": "nvorobieff@safari-rh.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:22:09.550538+00:00", "email": "contact@ad-performance.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:22:45.171155+00:00", "email": "hello@mpublicite.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:24:12.116845+00:00", "email": "hello@nubet.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:24:21.688882+00:00", "email": "jameybusiness123@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:24:32.925910+00:00", "email": "serviceclient@emediadigital.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:25:41.571860+00:00", "email": "expert@rerp.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:25:52.620587+00:00", "email": "agence@odynous.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:26:09.938740+00:00", "email": "bonjour@109lagence.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:26:25.619597+00:00", "email": "info@lobstter.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:26:41.950966+00:00", "email": "contact@arevagence.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:27:19.960976+00:00", "email": "maxime@agence-raffut.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:27:24.819145+00:00", "email": "contact@148.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:27:33.333962+00:00", "email": "s.spielberg@netflix.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:27:41.776761+00:00", "email": "contact@kook-agency.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:27:53.866904+00:00", "email": "agence@terredesienne.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T17:27:55.447157+00:00", "email": "xpapetti@agence-nsw.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:28:01.155810+00:00", "email": "contact@appunto.io", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:28:06.630915+00:00", "email": "hello@tally.so", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:28:21.042972+00:00", "email": "vous@exemple.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:28:24.150531+00:00", "email": "hello@alioze.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:28:29.487714+00:00", "email": "contact@optimoz.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T17:40:34.762559+00:00", "email": "consulting@otowui.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:40:38.963843+00:00", "email": "contact@legalzone.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:40:53.679980+00:00", "email": "hello@85media.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:41:05.715391+00:00", "email": "email@address.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:41:09.500186+00:00", "email": "contact@kibitoh.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:45:52.257358+00:00", "email": "team@agencecenturion.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:45:57.583241+00:00", "email": "contact@ajaxagency.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:48:00.383409+00:00", "email": "contact@mxcom.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:48:32.347355+00:00", "email": "apedro@adndigital-solution.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:51:41.737553+00:00", "email": "contact@agence-creaset.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T17:55:34.056950+00:00", "email": "contact@cdkit.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T17:56:35.929324+00:00", "email": "alexis@creer-site-wordpress.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T17:58:12.259485+00:00", "email": "succes@agencezenith.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T17:58:32.521755+00:00", "email": "contact@commeunarbre.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:01:47.770911+00:00", "email": "info@cg-numerik.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:05:14.829920+00:00", "email": "contact@serval-agency.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:05:18.603968+00:00", "email": "jordan@polarys-agency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:08:22.791724+00:00", "email": "contact@soraelles.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:09:08.645029+00:00", "email": "contact@impaakt.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:09:11.732664+00:00", "email": "contact@sismic.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:09:51.413037+00:00", "email": "dcalderini@webriders.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:09:58.042347+00:00", "email": "hello@digirecto.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:10:23.457490+00:00", "email": "designer@example.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:11:01.310631+00:00", "email": "bonjour@kafein.studio", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:11:04.708319+00:00", "email": "ericpozz@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:11:21.397301+00:00", "email": "hello@horizon123.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:11:51.961433+00:00", "email": "contact@karibook.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:12:01.747038+00:00", "email": "groove@groovebrandexperience.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:12:26.682417+00:00", "email": "contact@housnati.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:12:30.416499+00:00", "email": "contact@sania-karanakov.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:12:48.338013+00:00", "email": "contact@leo-pieruccetti.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:12:55.911380+00:00", "email": "contact@comwithme.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:13:00.188745+00:00", "email": "contact@droit2com.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:13:00.909998+00:00", "email": "hello@digitalflowstudio.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:13:09.977505+00:00", "email": "bonjour@emendo.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:13:18.409280+00:00", "email": "contact@medagency.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:13:22.507905+00:00", "email": "marvin@mapesia.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:13:40.821062+00:00", "email": "contact@poplum.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:13:50.377257+00:00", "email": "contact@flocage-pro.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:13:57.916994+00:00", "email": "email@yourdomain.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:14:34.568029+00:00", "email": "contact@skygency.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:14:50.282433+00:00", "email": "vif-argent@vif-argent.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:17:52.208419+00:00", "email": "fontainebleau@studios-monin.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:18:20.292386+00:00", "email": "contact@vif-argent.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:19:43.066644+00:00", "email": "amiens@salti.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:20:01.107641+00:00", "email": "julie.martin@email.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:20:14.408644+00:00", "email": "philippe@di-rupt.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:23:23.937725+00:00", "email": "teddy@easy-print.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:23:42.005991+00:00", "email": "hello@tamaragency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:23:53.119275+00:00", "email": "am@amshadowstrategy.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:23:57.266016+00:00", "email": "contact@ste-sitem.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:24:28.941809+00:00", "email": "contact@monagenceduweb.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:25:15.455231+00:00", "email": "kevin.bilingi@k2b.agency", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:25:24.053399+00:00", "email": "contact@labanlieusarde.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:26:24.745599+00:00", "email": "contact@agence-eden.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:26:42.457459+00:00", "email": "contact@agence-omada.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:26:54.901572+00:00", "email": "contact@gestionplus78.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:27:05.857360+00:00", "email": "info@francis-tech.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:27:39.820839+00:00", "email": "contact@digiwy.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:27:45.985629+00:00", "email": "contact@lagence39.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:27:53.818304+00:00", "email": "johndoe@apple.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:28:12.251922+00:00", "email": "contact@numerique.email", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:28:17.192769+00:00", "email": "fbelz56@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:28:25.507957+00:00", "email": "info@albavoyages.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:28:26.278874+00:00", "email": "contact@vandpartners.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:28:30.199231+00:00", "email": "contact@infos-rail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:29:45.053815+00:00", "email": "info@artiza.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:31:45.991887+00:00", "email": "mail@example.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:32:32.201727+00:00", "email": "helice@helicemarketing.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:32:42.154926+00:00", "email": "anne.souquiere@nextcomm.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:33:24.742144+00:00", "email": "contact@abak.ec", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:33:28.946939+00:00", "email": "contact@mediaveille.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:33:34.812895+00:00", "email": "bonjour@agence-human.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:33:40.661209+00:00", "email": "contact@avanci.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:33:57.857295+00:00", "email": "cedric@siiteo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:34:03.464678+00:00", "email": "benjamin.milowski@dity.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:34:27.687680+00:00", "email": "contact@sign-cover.fr", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:35:07.637720+00:00", "email": "contact@nature.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:35:10.427099+00:00", "email": "contact@dcagency.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:35:19.329137+00:00", "email": "contact@befirstagence.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:38:37.397527+00:00", "email": "contacts@sevcom.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:38:40.963524+00:00", "email": "contact@emergence.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:39:19.687216+00:00", "email": "savigny@ariarepro.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:39:24.479861+00:00", "email": "info@webhd.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:39:30.160411+00:00", "email": "ontact@reputation-master.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:39:36.220379+00:00", "email": "groupe@etpe.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:39:36.500467+00:00", "email": "contact@games-visibility.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:39:42.356247+00:00", "email": "webflux78@outlook.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:39:46.617808+00:00", "email": "commercial@verrier-mp.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:39:53.015175+00:00", "email": "u003econtact@lesappreteurs.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:40:43.228439+00:00", "email": "info@discoverytravel.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T18:44:15.329656+00:00", "email": "contact@see-u-better.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:44:37.515091+00:00", "email": "hello@devsource.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:44:41.985092+00:00", "email": "contact@santarosaproduction.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:48:22.835572+00:00", "email": "contact@mywebo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:48:29.196472+00:00", "email": "contact@labullestudio.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:48:47.016500+00:00", "email": "contact@auplafond.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-07-28T18:57:31.885841+00:00", "email": "contact@atout-on-line.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T18:57:36.099858+00:00", "email": "commercial@fromagerie-berthaut.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:00:50.658976+00:00", "email": "hello@atout-on-line.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:01:12.907302+00:00", "email": "info@expertime.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:01:22.672029+00:00", "email": "contact@dibenn.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:01:28.623938+00:00", "email": "adresse@exemple.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:01:58.878864+00:00", "email": "contact@digitalvercors.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:02:24.705966+00:00", "email": "contact@ads-com.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:02:50.418084+00:00", "email": "info@fidemconseil.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:03:14.350932+00:00", "email": "contact@evia.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:03:22.031495+00:00", "email": "ewan@webnest-agency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:03:32.992097+00:00", "email": "contact@nwb.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:04:01.306624+00:00", "email": "serimages@serimages.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:04:40.091181+00:00", "email": "john.doe@noqode.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:05:10.845137+00:00", "email": "zak@bysocialflow.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:05:20.972645+00:00", "email": "xavier@dparchi.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:05:25.457161+00:00", "email": "paulnord@world.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:05:52.968614+00:00", "email": "f-roblin@autodistribution.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:05:53.615430+00:00", "email": "f-roblin@autodistribution.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:06:18.024775+00:00", "email": "agence@hawaiicom.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:06:19.459281+00:00", "email": "agence@hawaiicom.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:09:54.840145+00:00", "email": "contact@lucaskliminski.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:10:00.554365+00:00", "email": "contatc@dcb-com.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:10:04.479022+00:00", "email": "contact@lucaskliminski.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:12:40.827398+00:00", "email": "hello@jalaystudio.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:12:42.598141+00:00", "email": "hello@jalaystudio.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:12:47.204144+00:00", "email": "contact@ryse-agency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:12:48.024910+00:00", "email": "contact@ryse-agency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:12:53.382691+00:00", "email": "nathalie@flowws.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:12:54.015717+00:00", "email": "nathalie@flowws.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:12:58.226669+00:00", "email": "sekou@mushido.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:12:58.692354+00:00", "email": "sekou@mushido.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:13:26.818240+00:00", "email": "cbaroin@comebackgraphic.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:13:27.428477+00:00", "email": "cbaroin@comebackgraphic.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:13:41.364859+00:00", "email": "contact@alpha-group.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:13:43.159538+00:00", "email": "contact@alpha-group.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:13:48.551908+00:00", "email": "sophie@mybeautifulrp.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:13:50.159183+00:00", "email": "sophie@mybeautifulrp.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:14:13.303829+00:00", "email": "contact@black-frogs.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:14:26.809915+00:00", "email": "info@agenceweb-jforjay.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:14:31.200434+00:00", "email": "pierre.durant@entreprise.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:15:17.020774+00:00", "email": "nom@email.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:15:25.086405+00:00", "email": "contact@publithings.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:16:28.782217+00:00", "email": "getintouch@pubable.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:23:55.168706+00:00", "email": "contact@speedtrust.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:23:55.704011+00:00", "email": "contact@speedtrust.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:24:09.282210+00:00", "email": "info@anjuna.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:24:09.806703+00:00", "email": "info@anjuna.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:24:19.282448+00:00", "email": "info@texet.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:24:21.474434+00:00", "email": "info@texet.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:24:28.191191+00:00", "email": "contact@helenegosset.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:24:30.027971+00:00", "email": "contact@helenegosset.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:24:35.265396+00:00", "email": "ask@ohio.clbthemes.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:24:35.606232+00:00", "email": "ask@ohio.clbthemes.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:24:59.139247+00:00", "email": "arthur@neplim.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:25:15.668392+00:00", "email": "arthur@neplim.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:25:17.843915+00:00", "email": "assistantadv@2yfoncierconseil.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:25:21.798721+00:00", "email": "dwtdigital92@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:25:30.779636+00:00", "email": "contact@caractereretail.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:25:32.888813+00:00", "email": "contact@caractereretail.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:25:40.565561+00:00", "email": "contact@comwizme.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:25:41.335619+00:00", "email": "contact@comwizme.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:26:40.767175+00:00", "email": "olivier@onomaturge.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:26:41.301060+00:00", "email": "olivier@onomaturge.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:30:55.555686+00:00", "email": "contact@mail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:31:00.816919+00:00", "email": "contact@mail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:31:22.606373+00:00", "email": "servicesparticuliers@prodoffice.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:31:27.777096+00:00", "email": "contact@auxoconsult.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:31:49.667354+00:00", "email": "servicesparticuliers@prodoffice.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:32:00.397220+00:00", "email": "contact@octopoos.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:32:42.558830+00:00", "email": "hello@envysuel.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:32:48.205917+00:00", "email": "contact@octopoos.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:32:57.969572+00:00", "email": "contact@lapetiteboite.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:33:46.841421+00:00", "email": "contact@passionline.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:34:49.273797+00:00", "email": "olivia@commercedexception.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:34:56.254079+00:00", "email": "info@comercea.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:41:06.959439+00:00", "email": "%20michel@hansen-marketing.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:41:11.857034+00:00", "email": "contact@weble.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:44:14.962272+00:00", "email": "info@avenciamarketing.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:50:56.267604+00:00", "email": "digital@sb-agence.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:51:00.873226+00:00", "email": "projects@digitalico.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:51:09.713019+00:00", "email": "nicolas@oli-via-net.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:51:40.797878+00:00", "email": "agence@we-feed.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:51:45.905127+00:00", "email": "info@reidrocha.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T19:52:38.045369+00:00", "email": "setup@aviza-reputation.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:55:35.581224+00:00", "email": "contact@agencedone.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T19:55:49.253729+00:00", "email": "hello@arobase-agency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T20:01:07.792236+00:00", "email": "contact@omnivers.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T20:01:09.644607+00:00", "email": "contact@omnivers.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T20:02:08.607869+00:00", "email": "contact@la.seineetmarne.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T20:03:00.003643+00:00", "email": "contact@visualin.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T20:03:00.437233+00:00", "email": "contact@visualin.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T20:04:11.515665+00:00", "email": "jbk@jbkagency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T20:04:18.047841+00:00", "email": "contact@faitesbougervosid.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T20:04:22.107532+00:00", "email": "jbk@jbkagency.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-07-28T20:13:54.334302+00:00", "email": "80contact@osign-communication.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T20:13:57.031651+00:00", "email": "80contact@osign-communication.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T20:48:28.234929+00:00", "email": "siege@groupeadequat.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-28T20:49:10.278620+00:00", "email": "siege@groupeadequat.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}

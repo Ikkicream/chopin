@@ -14,6 +14,7 @@ CLI : python3 scripts/maildoso_backend.py verify|sync|mailboxes|test <email>
 """
 from __future__ import annotations
 
+import os
 import random
 import smtplib
 import time
@@ -267,6 +268,39 @@ def _apply_tokens(s: str, contact: dict | None, mb: dict) -> str:
     return s
 
 
+# Base publique des endpoints de tracking (redirection clic + pixel d'ouverture)
+TRACK_BASE = os.environ.get("GENESIS_PUBLIC_URL", "https://api.cheffer.email").rstrip("/")
+
+
+def _add_tracking(html_str: str, site: str, email: str, campaign_id: str) -> str:
+    """Réécrit les liens http(s) vers /api/sweego/click (token par destinataire) et
+    ajoute un pixel /api/track/open. Ignore désinscription, mailto, ancres et
+    variables non résolues. En cas d'échec de création d'un token, le lien
+    d'origine est conservé (le tracking est best-effort, jamais bloquant)."""
+    import re as _re
+    from sweego_backend import make_click_token
+
+    def _rw(m):
+        url = m.group(2)
+        if "{{" in url or "unsubscribe" in url.lower():
+            return m.group(0)
+        try:
+            tok = make_click_token(site, email, campaign_id, url, channel="maildoso")
+            return f'{m.group(1)}"{TRACK_BASE}/api/sweego/click?t={tok}"'
+        except Exception:
+            return m.group(0)
+
+    out = _re.sub(r'(href=)"(https?://[^"]+)"', _rw, html_str)
+    try:
+        tok_open = make_click_token(site, email, campaign_id, "pixel:open", channel="maildoso")
+        pixel = (f'<img src="{TRACK_BASE}/api/track/open?t={tok_open}" '
+                 f'width="1" height="1" alt="" style="display:none">')
+        out = out.replace("</body>", pixel + "</body>", 1) if "</body>" in out else out + pixel
+    except Exception:
+        pass
+    return out
+
+
 def send_email(to_email: str, subject: str, text: str | None = None, html: str | None = None,
                site: str = SITE_DEFAULT, campaign_id: str | None = None,
                to_name: str | None = None, mailbox: dict | None = None,
@@ -298,6 +332,14 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
     subject = _apply_tokens(subject, contact, mb)
     text = _apply_tokens(text, contact, mb)
     html = _apply_tokens(html, contact, mb) if html else html
+
+    # Tracking comportemental par destinataire (ouvertures via pixel, clics via
+    # redirection) — SMTP n'offre rien nativement, on utilise l'infra de tokens Genesis.
+    if html and campaign_id:
+        try:
+            html = _add_tracking(html, site, to_email, campaign_id)
+        except Exception:
+            pass
 
     msg = EmailMessage()
     msg["From"] = f"{mb['sender_name']} <{mb['email']}>"

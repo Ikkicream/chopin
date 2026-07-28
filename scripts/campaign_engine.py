@@ -67,7 +67,8 @@ def _ensure_table():
 def create_campaign(site: str, name: str, channel: str, message_id: str, subject: str,
                     sectors: list[str], target_size: int, schedule_start: str,
                     by: str = "ui", regions: list[str] | None = None,
-                    depts: list[str] | None = None) -> dict:
+                    depts: list[str] | None = None,
+                    engagement: str | None = None) -> dict:
     """Crée + planifie une campagne. Valide la faisabilité via deliverability_agent.
     Refuse si le canal est invalide, la cible vide, ou la cadence infaisable."""
     channel = (channel or "").lower()
@@ -80,6 +81,24 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
     import html_templates_backend as _htb
     if not (_htb.resolve_campaign_message(site, message_id) or {}).get("html"):
         return {"ok": False, "error": f"message introuvable: {message_id}"}
+
+    engagement = (engagement or "").strip() or None
+    import contacts_pool_backend as _pool
+    if engagement and engagement not in _pool.ENGAGEMENT_FILTERS:
+        return {"ok": False, "error": f"filtre engagement invalide: {engagement}"}
+
+    # La cible doit exister : refuse un volume supérieur aux contacts éligibles
+    # (sinon la campagne resterait "running" sans jamais atteindre son target).
+    available = sum(
+        _pool.count_available_for_sector(site, sec, regions=regions or [], depts=depts or [],
+                                         engagement=engagement)
+        for sec in sectors
+    )
+    if target_size > available:
+        return {"ok": False,
+                "error": f"volume trop grand : {target_size} demandés, "
+                         f"{available} contacts éligibles",
+                "available": available}
 
     try:
         start = _date.fromisoformat(schedule_start)
@@ -107,6 +126,8 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
         params["regions"] = [str(r) for r in regions if r]
     if depts:
         params["depts"] = [str(d) for d in depts if d]
+    if engagement:
+        params["engagement"] = engagement
     _ensure_table()
     c = _conn()
     try:
@@ -181,13 +202,21 @@ def set_status(cid: str, status: str, error: str | None = None) -> bool:
 
 # ── Dispatch (scheduler) ───────────────────────────────────────────────────────
 def _todays_allowance(camp: dict, today: _date) -> int:
-    """Nb d'emails prévus aujourd'hui par la cadence (0 si rien prévu)."""
-    for step in camp.get("cadence", []):
-        if step.get("date") == today.isoformat():
-            return int(step.get("count", 0))
-    # Cadence terminée mais reste à envoyer (rattrapage) : autorise le reliquat
-    remaining = (camp.get("target_size", 0) or 0) - (camp.get("sent_count", 0) or 0)
-    return max(0, remaining) if today.isoformat() > (camp.get("cadence", [{}])[-1].get("date", "") if camp.get("cadence") else "") else 0
+    """Nb d'emails autorisés aujourd'hui : cumul prévu par la cadence jusqu'à
+    aujourd'hui inclus, moins le déjà-envoyé — un jour de dispatch manqué est donc
+    rattrapé dès le lendemain, pas seulement après la fin de la cadence. Borné au
+    plus gros lot quotidien de la cadence pour respecter le cap du canal."""
+    cadence = camp.get("cadence") or []
+    sent = camp.get("sent_count", 0) or 0
+    target = camp.get("target_size", 0) or 0
+    if not cadence:
+        return max(0, target - sent)
+    expected = sum(int(s.get("count", 0)) for s in cadence
+                   if str(s.get("date", "")) <= today.isoformat())
+    if today.isoformat() > str(cadence[-1].get("date", "")):
+        expected = max(expected, target)  # cadence finie : tout le reliquat
+    daily_cap = max(int(s.get("count", 0)) for s in cadence)
+    return max(0, min(expected - sent, daily_cap))
 
 
 def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = False) -> dict:
@@ -221,7 +250,8 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
     seen = set()
     for sec in camp.get("sectors", []):
         for ct in pool.pick_for_campaign(site, sec, limit=n - len(contacts),
-                                         regions=geo.get("regions"), depts=geo.get("depts")):
+                                         regions=geo.get("regions"), depts=geo.get("depts"),
+                                         engagement=geo.get("engagement")):
             if ct.get("email") and ct["email"] not in seen:
                 seen.add(ct["email"]); contacts.append(ct)
         if len(contacts) >= n:

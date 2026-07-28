@@ -291,29 +291,33 @@ def _ensure_click_table():
                 PRIMARY KEY (token)
             )"""
         )
+        cols = [r[1] for r in c.execute("PRAGMA table_info(sweego_click_tokens)").fetchall()]
+        if "channel" not in cols:
+            c.execute("ALTER TABLE sweego_click_tokens ADD COLUMN channel VARCHAR")
     finally:
         c.close()
 
 
-def make_click_token(site: str, email: str, campaign_id: str, dest_url: str) -> str:
+def make_click_token(site: str, email: str, campaign_id: str, dest_url: str,
+                     channel: str = "sweego") -> str:
     _ensure_click_table()
     tok = _uuid.uuid4().hex[:16]
     c = _conn()
     try:
-        c.execute("INSERT INTO sweego_click_tokens VALUES (?,?,?,?,?,?,NULL)",
-                  [tok, site, email, campaign_id, dest_url, datetime.now(timezone.utc)])
+        c.execute("INSERT INTO sweego_click_tokens VALUES (?,?,?,?,?,?,NULL,?)",
+                  [tok, site, email, campaign_id, dest_url, datetime.now(timezone.utc), channel])
     finally:
         c.close()
     return tok
 
 
 def resolve_click(token: str) -> dict | None:
-    """Marque le token comme cliqué (1re fois) et renvoie {site,email,campaign_id,dest_url}."""
+    """Marque le token comme cliqué (1re fois) et renvoie {site,email,campaign_id,dest_url,channel}."""
     _ensure_click_table()
     c = _conn()
     try:
         row = c.execute(
-            "SELECT site_code, email, campaign_id, dest_url, clicked_at "
+            "SELECT site_code, email, campaign_id, dest_url, clicked_at, channel "
             "FROM sweego_click_tokens WHERE token=?", [token]).fetchone()
         if not row:
             return None
@@ -321,7 +325,8 @@ def resolve_click(token: str) -> dict | None:
             c.execute("UPDATE sweego_click_tokens SET clicked_at=? WHERE token=?",
                       [datetime.now(timezone.utc), token])
         return {"site": row[0], "email": row[1], "campaign_id": row[2],
-                "dest_url": row[3], "first_click": row[4] is None}
+                "dest_url": row[3], "first_click": row[4] is None,
+                "channel": row[5] or "sweego"}
     finally:
         c.close()
 

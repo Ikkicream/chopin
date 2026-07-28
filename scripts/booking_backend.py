@@ -381,9 +381,11 @@ def _confirmation_html(booking: dict, cfg: dict) -> str:
       <p style="margin:0 0 20px;font-size:15px;line-height:1.5;">Votre rendez-vous (<strong>{reason}</strong>) est bien enregistré. Voici le récapitulatif :</p>
       <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:18px 20px;font-size:15px;">
         <div style="margin-bottom:8px;">📅 <strong>{when}</strong></div>
-        <div>🎯 {reason}</div>
+        <div style="margin-bottom:8px;">🎯 {reason}</div>
+        <div>🤝 Notre Directeur Commercial <strong>Roméo.C</strong> sera à ce rendez-vous et vous attend.</div>
       </div>
-      <p style="margin:24px 0 0;font-size:13px;color:#6b7280;line-height:1.5;">Un imprévu ? Répondez simplement à cet email pour replanifier. À très vite !</p>
+      <p style="margin:20px 0 0;font-size:14px;line-height:1.5;">Des questions avant le rendez-vous ? Vous pouvez contacter Roméo directement à <a href="mailto:romeo@leclientroi.com" style="color:{color};">romeo@leclientroi.com</a>.</p>
+      <p style="margin:16px 0 0;font-size:13px;color:#6b7280;line-height:1.5;">Un imprévu ? Répondez simplement à cet email pour replanifier. À très vite !</p>
     </div>
   </div>
   <div style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px;">{label}</div>
@@ -393,7 +395,9 @@ def _confirmation_html(booking: dict, cfg: dict) -> str:
 def _confirmation_sms(booking: dict, cfg: dict) -> str:
     label = cfg.get("from_name") or booking["site_code"].upper()
     when = _fmt_slot_fr(booking["slot_start"], booking["slot_minutes"])
-    return f"{label} : votre RDV ({booking['reason_label']}) est confirme le {when}. A bientot !"
+    return (f"{label} : votre RDV ({booking['reason_label']}) est confirme le {when}. "
+            f"Romeo.C, notre Directeur Commercial, vous y attend. "
+            f"Questions : romeo@leclientroi.com")
 
 
 def send_confirmations(booking: dict, cfg: dict) -> dict:
