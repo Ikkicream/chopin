@@ -144,21 +144,99 @@ def configure_steps(campaign_id, steps_data):
     return r.json()
 
 
-def configure_settings(campaign_id):
-    """Configure campaign settings: Mon-Fri 8h-18h."""
+def configure_settings(campaign_id, sending_days=None, sending_hours=None,
+                       timezone_="Europe/Paris"):
+    """Configure campaign settings. Défaut : Lun-Ven 8h-18h.
+    `sending_days`/`sending_hours` permettent d'élargir la fenêtre (BAT : 7j/7, 24h/24,
+    pour que le test parte immédiatement au lieu d'attendre le prochain créneau)."""
     settings = {
-        "sendingDays": {
+        "sendingDays": sending_days or {
             "monday": True, "tuesday": True, "wednesday": True,
             "thursday": True, "friday": True,
             "saturday": False, "sunday": False,
         },
-        "sendingHours": {"start": "08:00", "end": "18:00"},
-        "timezone": "Europe/Paris",
+        "sendingHours": sending_hours or {"start": "08:00", "end": "18:00"},
+        "timezone": timezone_,
     }
     r = requests.patch(f"{EMELIA_URL}/emails/campaigns/{campaign_id}/settings",
                       json=settings, headers=HEADERS, timeout=30)
     r.raise_for_status()
     return r.json()
+
+
+ALL_DAYS = {"monday": True, "tuesday": True, "wednesday": True, "thursday": True,
+            "friday": True, "saturday": True, "sunday": True}
+
+
+def _api_error(resp) -> str:
+    """Message d'erreur lisible renvoyé par Emelia (le corps porte le vrai motif,
+    que `raise_for_status()` perdrait)."""
+    try:
+        return resp.json().get("error") or resp.text[:200]
+    except Exception:
+        return resp.text[:200]
+
+
+def send_test_email(html: str, subject: str, to_email: str,
+                    contact: dict | None = None, label: str = "BAT") -> dict:
+    """BAT RÉEL via Emelia. L'API Emelia n'expose aucun envoi de test (ni REST ni
+    GraphQL, vérifié 2026-07-29) : on crée donc une campagne jetable d'un seul
+    contact et on la démarre. C'est volontairement le MÊME chemin que l'envoi final
+    (même expéditeur, même moteur de variables Emelia, même tracking) — un BAT qui
+    emprunterait un autre canal ne prouverait rien.
+
+    Seule différence assumée avec la campagne réelle : la fenêtre d'envoi est ouverte
+    7j/7 24h/24 pour que le test parte tout de suite.
+    """
+    if not to_email or "@" not in to_email:
+        return {"ok": False, "error": "adresse de test invalide"}
+    if not (html or "").strip():
+        return {"ok": False, "error": "message vide"}
+    if not EMELIA_KEY:
+        return {"ok": False, "error": "EMELIA_API_KEY absente du .env"}
+
+    # Emelia refuse un nom de campagne déjà pris : on horodate pour que deux BAT
+    # successifs sur le même message ne se télescopent pas.
+    stamp = datetime.now(timezone.utc).astimezone().strftime("%d/%m %H:%M:%S")
+    name = f"[{label}] {(subject or 'test').strip()}"[:46] + f" · {stamp}"
+    try:
+        r = requests.post(f"{EMELIA_URL}/emails/campaigns", json={"name": name},
+                          headers=HEADERS, timeout=30)
+        if r.status_code >= 400:
+            return {"ok": False, "error": f"Emelia refuse de créer la campagne de test "
+                                          f"({r.status_code}) : {_api_error(r)}"}
+        created = r.json()
+        cid = (created.get("campaign") or {}).get("_id") or created.get("_id")
+        if not cid:
+            return {"ok": False, "error": "création de la campagne de test échouée"}
+        configure_steps(cid, build_newsletter_steps(html, subject))
+        try:
+            configure_settings(cid, sending_days=ALL_DAYS,
+                               sending_hours={"start": "00:00", "end": "23:59"})
+        except Exception:
+            pass  # fenêtre par défaut : le test partira au prochain créneau ouvré
+        # La réponse du démarrage DOIT être vérifiée : sans abonnement actif Emelia
+        # renvoie 400 et la campagne reste en DRAFT — les contacts sont acceptés mais
+        # rien ne part. Ignorer ce code, c'est déclarer un envoi qui n'a pas eu lieu.
+        st = requests.post(f"{EMELIA_URL}/emails/campaigns/{cid}/start",
+                           headers=HEADERS, timeout=15)
+        if st.status_code >= 400:
+            # Campagne inutilisable : on la retire pour ne pas polluer le compte Emelia
+            # (DELETE n'est pas documenté mais fonctionne — vérifié 2026-07-29).
+            try:
+                requests.delete(f"{EMELIA_URL}/emails/campaigns/{cid}", headers=HEADERS, timeout=15)
+            except Exception:
+                pass
+            return {"ok": False,
+                    "error": f"Emelia refuse de démarrer l'envoi ({st.status_code}) : {_api_error(st)}"}
+        if not add_contact(cid, contact or {"email": to_email}):
+            return {"ok": False, "error": "ajout du contact de test refusé par Emelia",
+                    "emelia_campaign_id": cid}
+        return {"ok": True, "emelia_campaign_id": cid,
+                "note": f"BAT Emelia envoyé à {to_email} — campagne de test « {name} » "
+                        "(à archiver dans Emelia une fois le contrôle fait)"}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"Emelia: {e}"}
 
 
 def add_contact(campaign_id, contact):

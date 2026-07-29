@@ -189,6 +189,125 @@ def get_campaign(cid: str) -> dict | None:
     return _row_to_dict(r) if r else None
 
 
+def update_campaign(site: str, cid: str, patch: dict, by: str = "ui") -> dict:
+    """Modifie une campagne existante (fiche « Éditer » de l'UI).
+
+    Toujours modifiables : nom, objet, message, ciblage (secteurs / zones / engagement)
+    — le dispatch pioche des contacts frais chaque jour, ces changements ne valent donc
+    que pour les envois restants.
+    Volume et date de lancement : uniquement tant qu'aucun envoi n'a eu lieu, car la
+    cadence est recalculée de zéro et les compteurs déjà consommés la rendraient fausse.
+    """
+    camp = get_campaign(cid)
+    if not camp or camp.get("site_code") != site:
+        return {"ok": False, "error": "campagne introuvable"}
+    if camp.get("status") in ("done", "cancelled"):
+        return {"ok": False, "error": f"campagne {camp['status']} — non modifiable"}
+
+    import contacts_pool_backend as _pool
+    import html_templates_backend as _htb
+
+    sent = int(camp.get("sent_count") or 0)
+    params = dict(camp.get("params") or {})
+    sets: list[str] = []
+    vals: list = []
+
+    if "name" in patch:
+        name = (patch.get("name") or "").strip()
+        if not name:
+            return {"ok": False, "error": "nom requis"}
+        sets.append("name=?"); vals.append(name)
+    if "subject" in patch:
+        subject = (patch.get("subject") or "").strip()
+        if not subject:
+            return {"ok": False, "error": "objet requis"}
+        sets.append("subject=?"); vals.append(subject)
+    if "message_id" in patch:
+        mid = (patch.get("message_id") or "").strip()
+        if not (_htb.resolve_campaign_message(site, mid) or {}).get("html"):
+            return {"ok": False, "error": f"message introuvable: {mid}"}
+        sets.append("message_id=?"); vals.append(mid)
+
+    # ── Ciblage ──
+    sectors = camp.get("sectors") or []
+    if "sectors" in patch:
+        sectors = [s for s in (patch.get("sectors") or []) if s]
+        if not sectors:
+            return {"ok": False, "error": "au moins un secteur requis"}
+        sets.append("sectors=?"); vals.append(json.dumps(sectors))
+    for key in ("regions", "depts"):
+        if key in patch:
+            vs = [str(v) for v in (patch.get(key) or []) if v]
+            if vs:
+                params[key] = vs
+            else:
+                params.pop(key, None)
+    if "engagement" in patch:
+        eng = (patch.get("engagement") or "").strip()
+        if eng and eng not in _pool.ENGAGEMENT_FILTERS:
+            return {"ok": False, "error": f"filtre engagement invalide: {eng}"}
+        if eng:
+            params["engagement"] = eng
+        else:
+            params.pop("engagement", None)
+
+    # ── Volume / date de lancement : avant le 1er envoi seulement ──
+    target = int(camp.get("target_size") or 0)
+    start = str(camp.get("schedule_start") or "")[:10]
+    replan = ("target_size" in patch and int(patch["target_size"] or 0) != target) or \
+             ("schedule_start" in patch and (patch.get("schedule_start") or "").strip()[:10] != start)
+    if replan and sent > 0:
+        return {"ok": False,
+                "error": f"volume et date non modifiables après le 1er envoi ({sent} déjà envoyés) — "
+                         "annule la campagne et recrée-la"}
+    if "target_size" in patch:
+        target = int(patch.get("target_size") or 0)
+        if target < 1:
+            return {"ok": False, "error": "volume invalide"}
+    if "schedule_start" in patch:
+        try:
+            start = _date.fromisoformat((patch.get("schedule_start") or "").strip()[:10]).isoformat()
+        except Exception:
+            return {"ok": False, "error": "date de lancement invalide (YYYY-MM-DD)"}
+
+    # La cible doit rester atteignable dès que le ciblage OU le volume bouge.
+    if replan or any(k in patch for k in ("sectors", "regions", "depts", "engagement")):
+        available = sum(
+            _pool.count_available_for_sector(site, sec,
+                                             regions=params.get("regions") or [],
+                                             depts=params.get("depts") or [],
+                                             engagement=params.get("engagement"))
+            for sec in sectors
+        )
+        if target > available:
+            return {"ok": False,
+                    "error": f"volume trop grand : {target} demandés, {available} contacts éligibles",
+                    "available": available}
+
+    if replan:
+        import deliverability_agent as da
+        plan = da.plan_cadence(site, camp["channel"], target, _date.fromisoformat(start))
+        if not plan.get("feasible"):
+            return {"ok": False, "error": "cadence infaisable", "plan": plan,
+                    "explanation": da.explain(plan, camp["channel"], target)}
+        sets.append("target_size=?"); vals.append(int(target))
+        sets.append("schedule_start=?"); vals.append(_date.fromisoformat(start))
+        sets.append("cadence=?"); vals.append(json.dumps(plan.get("schedule", [])))
+
+    if params != (camp.get("params") or {}):
+        sets.append("params=?"); vals.append(json.dumps(params))
+    if not sets:
+        return {"ok": True, "id": cid, "unchanged": True, "campaign": camp}
+
+    _ensure_table()
+    c = _conn()
+    try:
+        c.execute(f"UPDATE campaigns_unified SET {', '.join(sets)} WHERE id=?", vals + [cid])
+    finally:
+        c.close()
+    return {"ok": True, "id": cid, "campaign": get_campaign(cid)}
+
+
 def set_status(cid: str, status: str, error: str | None = None) -> bool:
     _ensure_table()
     c = _conn()
@@ -339,8 +458,27 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                 except Exception:
                     pass
                 import requests as _rq
-                _rq.post(f"{ecm.EMELIA_URL}/emails/campaigns/{emelia_cid}/start",
-                         headers=ecm.HEADERS, timeout=15)
+                # Vérifier la réponse est indispensable : sans abonnement actif (ou sur
+                # toute autre erreur) Emelia laisse la campagne en DRAFT tout en acceptant
+                # les contacts. Sans ce contrôle, le dispatch comptait des envois fantômes
+                # et posait le cooldown sur des contacts qui n'ont jamais rien reçu.
+                _st = _rq.post(f"{ecm.EMELIA_URL}/emails/campaigns/{emelia_cid}/start",
+                               headers=ecm.HEADERS, timeout=15)
+                if _st.status_code >= 400:
+                    try:
+                        _detail = _st.json().get("error") or _st.text[:200]
+                    except Exception:
+                        _detail = _st.text[:200]
+                    # Sans suppression, la campagne Emelia inutilisable resterait et le
+                    # dispatch suivant se heurterait à un doublon de nom au lieu du vrai motif.
+                    try:
+                        _rq.delete(f"{ecm.EMELIA_URL}/emails/campaigns/{emelia_cid}",
+                                   headers=ecm.HEADERS, timeout=15)
+                    except Exception:
+                        pass
+                    return {"ok": False,
+                            "error": f"Emelia refuse de démarrer la campagne "
+                                     f"({_st.status_code}) : {_detail}"}
                 params["emelia_campaign_id"] = emelia_cid
                 _save_params(camp["id"], params)
             except Exception as e:  # noqa: BLE001

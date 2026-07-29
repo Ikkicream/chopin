@@ -5579,10 +5579,56 @@ def api_campaigns_list(site: str):
     return {"campaigns": ce.list_campaigns(site)}
 
 
-def _send_bat(site: str, channel: str, message_id: str, subject: str, email: str) -> dict:
-    """BAT unifié : résout le message (Templates/structures, Cold, Messages validés) et
-    l'envoie à UNE adresse de test via le canal choisi. Personnalise avec un contact fictif
-    pour que les variables ({{prenom}}…) soient rendues comme à l'envoi réel."""
+# Déclaré APRÈS /campaigns/messages et /campaigns/message-preview : sur des chemins de
+# même forme, FastAPI retient la 1re route déclarée — l'ordre garde ces deux-là gagnantes.
+@app.get("/api/sites/{site}/campaigns/{cid}")
+def api_campaign_detail(site: str, cid: str):
+    """Détail complet d'une campagne (fiche de contrôle/édition) : paramétrage, cadence,
+    message rendu et nombre de contacts encore éligibles pour son ciblage."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import campaign_engine as ce
+    import html_templates_backend as htb
+    import contacts_pool_backend as pool
+    camp = ce.get_campaign(cid)
+    if not camp or camp.get("site_code") != site:
+        return {"ok": False, "error": "campagne introuvable"}
+    msg = htb.resolve_campaign_message(site, camp.get("message_id") or "") or {}
+    p = camp.get("params") or {}
+    try:
+        available = sum(
+            pool.count_available_for_sector(site, sec, regions=p.get("regions") or [],
+                                            depts=p.get("depts") or [],
+                                            engagement=p.get("engagement"))
+            for sec in (camp.get("sectors") or [])
+        )
+    except Exception:
+        available = None
+    return {"ok": True, "campaign": camp, "available": available,
+            "message_html": msg.get("html") or "", "message_name": msg.get("name") or ""}
+
+
+@app.patch("/api/sites/{site}/campaigns/{cid}")
+async def api_campaign_update(site: str, cid: str, request: Request):
+    """Modifie une campagne : nom, objet, message, ciblage, volume, date de lancement."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import campaign_engine as ce
+    body = await request.json()
+    sess = getattr(request.state, "session", None)
+    by = (sess or {}).get("username", "ui")
+    return ce.update_campaign(site, cid, body, by=by)
+
+
+def _send_bat(site: str, channel: str, message_id: str, subject: str, email: str,
+              utm_campaign: str | None = None) -> dict:
+    """BAT unifié : envoie le message à UNE adresse de test **par le canal qui fera
+    l'envoi final**. Un BAT routé vers un autre canal ne prouve rien — ni l'expéditeur,
+    ni la substitution des variables, ni le rendu, ni la délivrabilité.
+
+    Chaque branche emprunte donc exactement la fonction utilisée par le dispatch
+    (`campaign_engine._send_batch`), avec un contact fictif mappé comme un vrai
+    contact du pool. Les défauts éventuels du template apparaissent donc dans le BAT :
+    c'est le but.
+    """
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import html_templates_backend as htb
     channel = (channel or "").lower()
@@ -5591,34 +5637,48 @@ def _send_bat(site: str, channel: str, message_id: str, subject: str, email: str
     msg = htb.resolve_campaign_message(site, message_id)
     if not msg or not msg.get("html"):
         return {"ok": False, "error": "message introuvable"}
-    sample = {"prenom": "Camille", "nom": "Afchain", "societe": "Le Client ROI", "city": "Paris"}
+
+    utm = utm_campaign or f"{site}-bat"
+    campaign_id = f"{site}-bat"
+    # Contact fictif, mappé par chaque canal comme il mappe un contact du pool.
+    sample = {"email": email, "prenom": "Camille", "nom": "Afchain",
+              "societe": "Le Client ROI", "city": "Paris"}
     try:
         if channel == "maildoso":
+            # Même appel que le dispatch : tag UTM + réécriture des liens + pixel.
             import maildoso_backend as md
-            r = md.send_email(email, subject, html=msg["html"], site=site,
-                              campaign_id="bat", contact=sample)
-            if r.get("ok"):
-                return {"ok": True, "note": f"BAT Maildoso envoyé depuis {r.get('mailbox')}"}
-            return {"ok": False, "error": r.get("error") or "échec envoi Maildoso"}
-        # Sweego (masse) et Emelia (cold séquenceur tiers) : test via Sweego (domaine leclientroi.com).
-        # Emelia n'a pas d'envoi transactionnel de test — on tague donc le HTML comme le fera
-        # l'envoi réel (utm_source=coldemail) pour que le BAT soit identique en contenu.
-        import sweego_backend as sw
-        html = msg["html"]
-        note = None
+            r = md.send_batch(campaign_id, subject, msg["html"], [sample],
+                              site=site, utm_campaign=utm)
+            if r.get("sent"):
+                return {"ok": True, "note": f"BAT Maildoso envoyé à {email} (SMTP, boîte en rotation)"}
+            err = (r.get("errors") or [{}])[0].get("error") or r.get("note") or "échec envoi Maildoso"
+            return {"ok": False, "error": err}
+
         if channel == "emelia":
+            # Emelia n'a pas d'envoi de test : le dispatch crée une campagne, pose le
+            # HTML tagué en step unique, la démarre puis ajoute les contacts. Le BAT
+            # fait pareil avec un seul contact — même expéditeur, mêmes variables.
+            import emelia_campaign_manager as ecm
+            html = msg["html"]
             try:
                 from utm_tagging import tag_links
-                html = tag_links(html, "coldemail", "email", "bat")
+                html = tag_links(html, "coldemail", "email", utm)
             except Exception:
                 pass
-            note = "BAT envoyé via Sweego, rendu identique au canal Emelia (liens tagués coldemail)"
-        r = sw.send_campaign(f"{site}-bat", subject, html, [email], dry_run=False)
+            contact = {"email": email, "firstName": sample["prenom"],
+                       "lastName": sample["nom"], "field1": sample["societe"]}
+            return ecm.send_test_email(html, subject, email, contact=contact,
+                                       label=f"BAT {site.upper()}")
+
+        # Sweego (masse) : même appel que le dispatch.
+        import sweego_backend as sw
+        r = sw.send_campaign(campaign_id, subject, msg["html"], [email], dry_run=False,
+                             utm_campaign=utm, utm_source="sweego")
         if isinstance(r, dict):
-            if r.get("ok") and note:
-                r = {**r, "note": note}
+            if r.get("ok"):
+                return {**r, "note": f"BAT Sweego envoyé à {email}"}
             return r
-        return {"ok": True, "note": note} if note else {"ok": True}
+        return {"ok": True}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)}
 
@@ -5644,7 +5704,8 @@ async def api_campaign_unified_bat(site: str, cid: str, request: Request):
     camp = ce.get_campaign(cid)
     if not camp:
         return {"ok": False, "error": "campagne introuvable"}
-    return _send_bat(site, camp.get("channel"), camp["message_id"], camp["subject"], email)
+    return _send_bat(site, camp.get("channel"), camp["message_id"], camp["subject"], email,
+                     utm_campaign=(camp.get("params") or {}).get("utm_campaign"))
 
 
 @app.post("/api/sites/{site}/campaigns/{cid}/{action}")
