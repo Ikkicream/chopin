@@ -21304,3 +21304,4 @@
 {"ts": "2026-07-28T20:13:57.031651+00:00", "email": "80contact@osign-communication.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
 {"ts": "2026-07-28T20:48:28.234929+00:00", "email": "siege@groupeadequat.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
 {"ts": "2026-07-28T20:49:10.278620+00:00", "email": "siege@groupeadequat.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-07-29T10:00:08.803288+00:00", "email": "quickeneen@oultook.com", "decision": "invalid", "status": "VALID", "category": "UNSAFE", "reason": "acquisition import"}
