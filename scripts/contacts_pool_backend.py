@@ -644,14 +644,176 @@ def record_engagement(site_code: str, email: str, kind: str, channel: str,
 ENGAGEMENT_FILTERS = ("open_30", "open_180", "open_any", "click_any")
 
 
+# Conditions brutes (sans « AND »), réutilisées par le filtre simple ET par les segments.
+_ENGAGEMENT_COND = {
+    "open_30":  "csh.last_opened_at >= CURRENT_TIMESTAMP - INTERVAL '30' DAY",
+    "open_180": "csh.last_opened_at >= CURRENT_TIMESTAMP - INTERVAL '180' DAY",
+    "open_any": "csh.last_opened_at IS NOT NULL",
+    "click_any": "csh.last_clicked_at IS NOT NULL",
+}
+
+
 def _engagement_clause(engagement: str | None) -> str:
     """Fragment SQL du filtre d'engagement (aucun paramètre : intervalles littéraux)."""
-    return {
-        "open_30":  "AND csh.last_opened_at >= CURRENT_TIMESTAMP - INTERVAL '30' DAY",
-        "open_180": "AND csh.last_opened_at >= CURRENT_TIMESTAMP - INTERVAL '180' DAY",
-        "open_any": "AND csh.last_opened_at IS NOT NULL",
-        "click_any": "AND csh.last_clicked_at IS NOT NULL",
-    }.get(engagement or "", "")
+    cond = _ENGAGEMENT_COND.get(engagement or "")
+    return f"AND {cond}" if cond else ""
+
+
+# ── Segments : règles enregistrées → SQL ─────────────────────────────────────
+def _segment_side_sql(side: dict, match: str) -> tuple[str, list]:
+    """Traduit UN côté (include ou exclude) en condition SQL.
+
+    Dans une famille, les valeurs sont en OU. Entre familles, c'est `match` qui décide.
+    Retourne ("", []) si le côté est vide — l'appelant sait alors qu'il n'y a rien à poser.
+    """
+    parts: list[str] = []
+    params: list = []
+    sectors = [s for s in (side.get("sectors") or []) if s]
+    if sectors:
+        parts.append("(" + " OR ".join(["c.sectors::VARCHAR LIKE ?"] * len(sectors)) + ")")
+        params += [f"%{s}%" for s in sectors]
+    depts = [d for d in (side.get("depts") or []) if d]
+    if depts:
+        parts.append(f"c.dept_code IN ({','.join('?' * len(depts))})")
+        params += depts
+    regions = [r for r in (side.get("regions") or []) if r]
+    if regions:
+        parts.append(f"c.region_code IN ({','.join('?' * len(regions))})")
+        params += regions
+    cond = _ENGAGEMENT_COND.get(side.get("engagement") or "")
+    if cond:
+        parts.append(f"({cond})")
+    if not parts:
+        return "", []
+    glue = " OR " if str(match).upper() == "OR" else " AND "
+    return "(" + glue.join(parts) + ")", params
+
+
+def segment_clause(rules: dict) -> tuple[str, list, bool]:
+    """Règles d'un segment → (fragment SQL, params, utilise_engagement).
+
+    L'exclusion est TOUJOURS soustraite en bloc (OU entre ses critères) : un contact qui
+    coche une seule exclusion sort du segment, quel que soit le mode de combinaison.
+    """
+    import segments_backend as sb
+    r = sb.normalize_rules(rules)
+    inc_sql, inc_params = _segment_side_sql(r["include"], r["match"])
+    # Côté exclusion, les critères sont en OU : « exclu si secteur X OU dépt Y ».
+    exc_sql, exc_params = _segment_side_sql(r["exclude"], "OR")
+
+    sql, params = "", []
+    if inc_sql:
+        sql += f" AND {inc_sql}"
+        params += inc_params
+    if exc_sql:
+        # COALESCE indispensable : en SQL, `dept_code IN ('13')` vaut NULL — et non FALSE —
+        # quand le département est inconnu, et `NOT NULL` reste NULL, donc la ligne serait
+        # écartée. Sans ça, exclure un département supprimait aussi tous les contacts dont
+        # le département n'est pas renseigné (158 contacts perdus sur le pool LCR).
+        sql += f" AND NOT COALESCE({exc_sql}, FALSE)"
+        params += exc_params
+    # Seule une INCLUSION sur l'engagement vaut ré-engagement (et ouvre donc les états
+    # prm/lead). Une exclusion « sauf les cliqueurs » reste une campagne froide : elle ne
+    # doit pas repêcher des contacts déjà avancés dans le tunnel.
+    uses_engagement = bool(r["include"].get("engagement"))
+    return sql, params, uses_engagement
+
+
+def _segment_query(site_code: str, rules: dict, cleaned_within_days: int,
+                   select_sql: str, tail_sql: str, extra_params: list | None = None):
+    """Construit la requête d'un segment : éligibilité du pool + clauses du segment.
+
+    Les filtres d'éligibilité (Mailnjoy valide et récent, non blacklisté, non exclu par
+    l'enrichissement, hors cooldown) sont IDENTIQUES à `pick_for_campaign` : un segment
+    restreint la cible, il ne peut jamais l'élargir au-delà du contactable.
+    """
+    cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
+    seg_sql, seg_params, uses_eng = segment_clause(rules)
+    # Même règle que le filtre simple : viser l'engagement, c'est du ré-engagement, donc
+    # on ouvre aux contacts déjà promus prm/lead (la blacklist reste exclue).
+    state_sql = ("(csh.state IS NULL OR csh.state IN ('cold_email','prm','lead'))" if uses_eng
+                 else "(csh.state IS NULL OR csh.state = 'cold_email')")
+    q = f"""
+        {select_sql}
+        FROM contacts c
+        LEFT JOIN contact_site_history csh
+            ON c.id = csh.contact_id AND csh.site_code = ?
+        LEFT JOIN contact_enrichment e
+            ON e.contact_id = c.id
+        WHERE
+            c.global_blacklisted = FALSE
+            AND COALESCE(e.excluded, FALSE) = FALSE
+            AND json_extract_string(c.mailnjoy_check, '$.decision') = 'valid'
+            AND json_extract_string(c.mailnjoy_check, '$.checked_at') >= ?
+            AND {state_sql}
+            {seg_sql}
+            AND (
+                csh.last_contacted_by_site_at IS NULL
+                OR csh.last_contacted_by_site_at < CURRENT_TIMESTAMP - INTERVAL '{COOLDOWN_SAME_SITE_DAYS}' DAY
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM contact_site_history csh2
+                WHERE csh2.contact_id = c.id
+                  AND csh2.site_code != ?
+                  AND csh2.last_contacted_by_site_at > CURRENT_TIMESTAMP - INTERVAL '{COOLDOWN_GLOBAL_DAYS}' DAY
+            )
+        {tail_sql}
+    """
+    params = [site_code, cutoff, *seg_params, site_code, *(extra_params or [])]
+    return q, params
+
+
+def count_for_segment(site_code: str, rules: dict, cleaned_within_days: int = 180,
+                      patience_s: float = 6.0) -> int:
+    """Nombre de contacts contactables correspondant aux règles du segment.
+
+    `patience_s` : le pool est verrouillé dès qu'un scrape ou le nettoyage horaire écrit
+    (DuckDB n'admet qu'un écrivain OU des lecteurs). Ces écritures relâchent le verrou par
+    intermittence : on patiente plus longtemps que le défaut (2,8 s) pour un compteur
+    affiché à l'écran, quitte à répondre en quelques secondes plutôt qu'en erreur.
+    """
+    q, params = _segment_query(site_code, rules, cleaned_within_days,
+                               "SELECT COUNT(*)", "")
+    _ensure_schema()
+    c = _connect_with_retry(read_only=True,
+                            attempts=max(1, int(patience_s / 0.4)), sleep_s=0.4)
+    try:
+        row = c.execute(q, params).fetchone()
+    finally:
+        c.close()
+    return int(row[0]) if row else 0
+
+
+def pick_for_segment(site_code: str, rules: dict, limit: int = 30,
+                     cleaned_within_days: int = 180) -> list[dict]:
+    """Pioche les N meilleurs contacts d'un segment (même tri que pick_for_campaign)."""
+    cols = ["id", "email", "prenom", "nom", "societe", "tel", "website",
+            "city", "dept_code", "region_code", "sectors",
+            "primary_source", "email_score", "global_blacklisted",
+            "state", "last_contacted_by_site_at"]
+    select_sql = ("SELECT c.id, c.email, c.prenom, c.nom, c.societe, c.tel, c.website, "
+                  "c.city, c.dept_code, c.region_code, c.sectors, "
+                  "c.primary_source, c.email_score, c.global_blacklisted, "
+                  "csh.state, csh.last_contacted_by_site_at")
+    tail = f"""ORDER BY
+            {SOURCE_RANK_SQL},
+            c.email_score DESC NULLS LAST,
+            c.updated_at DESC
+        LIMIT ?"""
+    q, params = _segment_query(site_code, rules, cleaned_within_days, select_sql, tail, [limit])
+    c = _conn(read_only=True)
+    try:
+        rows = c.execute(q, params).fetchall()
+    finally:
+        c.close()
+    out = []
+    for r in rows:
+        d = dict(zip(cols, r))
+        d["sectors"] = _maybe_parse(d.get("sectors"))
+        if d.get("last_contacted_by_site_at"):
+            d["last_contacted_by_site_at"] = str(d["last_contacted_by_site_at"])
+        out.append(d)
+    return out
 
 
 def _geo_clause(regions: list[str] | None, depts: list[str] | None) -> tuple[str, list]:
@@ -699,7 +861,7 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
     eng_sql = _engagement_clause(engagement)
     # Ciblage engagement = ré-engagement : les cliqueurs sont souvent déjà promus
     # prm/lead, on élargit donc les états éligibles (blacklist reste exclue).
-    state_sql = ("csh.state IN ('cold_email','prm','lead')" if eng_sql
+    state_sql = ("(csh.state IS NULL OR csh.state IN ('cold_email','prm','lead'))" if eng_sql
                  else "(csh.state IS NULL OR csh.state = 'cold_email')")
     q = f"""
         SELECT c.id, c.email, c.prenom, c.nom, c.societe, c.tel, c.website,
@@ -769,7 +931,7 @@ def count_available_for_sector(site_code: str, sector: str, cleaned_within_days:
     cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
     geo_sql, geo_params = _geo_clause(regions, depts)
     eng_sql = _engagement_clause(engagement)
-    state_sql = ("csh.state IN ('cold_email','prm','lead')" if eng_sql
+    state_sql = ("(csh.state IS NULL OR csh.state IN ('cold_email','prm','lead'))" if eng_sql
                  else "(csh.state IS NULL OR csh.state = 'cold_email')")
     q = f"""
         SELECT COUNT(*)

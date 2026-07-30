@@ -68,12 +68,26 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
                     sectors: list[str], target_size: int, schedule_start: str,
                     by: str = "ui", regions: list[str] | None = None,
                     depts: list[str] | None = None,
-                    engagement: str | None = None) -> dict:
+                    engagement: str | None = None,
+                    segment_id: str | None = None) -> dict:
     """Crée + planifie une campagne. Valide la faisabilité via deliverability_agent.
     Refuse si le canal est invalide, la cible vide, ou la cadence infaisable."""
     channel = (channel or "").lower()
     if channel not in VALID_CHANNELS:
         return {"ok": False, "error": f"canal invalide: {channel}"}
+
+    # Ciblage par SEGMENT enregistré : ses règles remplacent secteurs/zones/engagement.
+    # Résolu AVANT la validation, car une campagne par segment n'a pas de secteurs saisis.
+    segment_rules = None
+    if segment_id:
+        import segments_backend as _sb
+        seg = _sb.get_segment(segment_id)
+        if not seg or seg.get("site_code") != site:
+            return {"ok": False, "error": f"segment introuvable : {segment_id}"}
+        segment_rules = seg["rules"]
+        # `sectors` reste une colonne du modèle de campagne : on y note l'origine du ciblage.
+        sectors = sectors or [f"segment:{seg['name']}"]
+
     if not name or not message_id or not subject or not sectors or target_size < 1:
         return {"ok": False, "error": "name, message_id, subject, sectors, target_size requis"}
 
@@ -89,11 +103,14 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
 
     # La cible doit exister : refuse un volume supérieur aux contacts éligibles
     # (sinon la campagne resterait "running" sans jamais atteindre son target).
-    available = sum(
-        _pool.count_available_for_sector(site, sec, regions=regions or [], depts=depts or [],
-                                         engagement=engagement)
-        for sec in sectors
-    )
+    if segment_rules is not None:
+        available = _pool.count_for_segment(site, segment_rules)
+    else:
+        available = sum(
+            _pool.count_available_for_sector(site, sec, regions=regions or [], depts=depts or [],
+                                             engagement=engagement)
+            for sec in sectors
+        )
     if target_size > available:
         return {"ok": False,
                 "error": f"volume trop grand : {target_size} demandés, "
@@ -128,6 +145,10 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
         params["depts"] = [str(d) for d in depts if d]
     if engagement:
         params["engagement"] = engagement
+    if segment_id:
+        # On mémorise l'UUID du segment, pas une copie de ses règles : si le segment est
+        # mis à jour (et non verrouillé), les prochains lots suivent la nouvelle définition.
+        params["segment_id"] = segment_id
     _ensure_table()
     c = _conn()
     try:
@@ -360,6 +381,18 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
             return {"ok": True, "done": True, "sent": 0}
         return {"ok": True, "sent": 0, "note": "rien prévu aujourd'hui"}
 
+    # Fenêtre d'envoi : rien le dimanche, rien hors 08:01–17:59 (heure de Paris).
+    # Placé AVANT la pioche : inutile de solliciter le pool si l'on ne peut pas envoyer.
+    # Couvre le cron quotidien ET le bouton « Envoyer le lot du jour » de l'UI. On sort
+    # sans toucher au statut ni à `last_dispatch_day` : ce n'est pas une erreur mais un
+    # report — le prochain passage reprendra le lot, et l'allocation cumulée de
+    # `_todays_allowance` rattrapera le jour sauté.
+    if not dry_run:
+        import deliverability_agent as _da
+        allowed, why = _da.within_send_window()
+        if not allowed:
+            return {"ok": True, "sent": 0, "skipped": True, "note": f"envoi différé — {why}"}
+
     # Pioche les contacts éligibles (Mailnjoy valid < 6 mois) sur tous les secteurs,
     # restreinte aux zones géo de la campagne si définies (params.regions / params.depts)
     import contacts_pool_backend as pool
@@ -367,14 +400,25 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
     geo = camp.get("params") or {}
     contacts: list[dict] = []
     seen = set()
-    for sec in camp.get("sectors", []):
-        for ct in pool.pick_for_campaign(site, sec, limit=n - len(contacts),
-                                         regions=geo.get("regions"), depts=geo.get("depts"),
-                                         engagement=geo.get("engagement")):
-            if ct.get("email") and ct["email"] not in seen:
-                seen.add(ct["email"]); contacts.append(ct)
-        if len(contacts) >= n:
-            break
+    if geo.get("segment_id"):
+        # Segment enregistré : ses règles pilotent la pioche (une seule requête, les
+        # secteurs y sont déjà exprimés). Un segment supprimé entre-temps arrête la
+        # campagne plutôt que de basculer silencieusement sur un autre ciblage.
+        import segments_backend as sb
+        seg = sb.get_segment(geo["segment_id"])
+        if not seg or seg.get("site_code") != site:
+            return {"ok": False, "error": f"segment {geo['segment_id']} introuvable — campagne bloquée"}
+        contacts = [ct for ct in pool.pick_for_segment(site, seg["rules"], limit=n)
+                    if ct.get("email")]
+    else:
+        for sec in camp.get("sectors", []):
+            for ct in pool.pick_for_campaign(site, sec, limit=n - len(contacts),
+                                             regions=geo.get("regions"), depts=geo.get("depts"),
+                                             engagement=geo.get("engagement")):
+                if ct.get("email") and ct["email"] not in seen:
+                    seen.add(ct["email"]); contacts.append(ct)
+            if len(contacts) >= n:
+                break
     contacts = contacts[:n]
     emails = [ct["email"] for ct in contacts if ct.get("email")]
     if not emails:
@@ -453,10 +497,14 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                 except Exception:
                     pass
                 ecm.configure_steps(emelia_cid, ecm.build_newsletter_steps(tagged_html, camp["subject"]))
-                try:
-                    ecm.configure_settings(emelia_cid)
-                except Exception:
-                    pass
+                # Fenêtre d'envoi lundi→samedi 08:01–17:59 : indispensable côté Emelia,
+                # qui étale les envois lui-même sur les jours suivants — notre garde-fou
+                # de dispatch ne contrôle que le moment où on lui remet les contacts.
+                # L'échec n'est plus muet : il part dans last_error et remonte dans l'UI.
+                _sched = ecm.configure_schedule(emelia_cid)
+                if not _sched.get("ok"):
+                    params["emelia_schedule_error"] = _sched.get("error")
+                    print(f"[campaign_engine] planning Emelia non appliqué : {_sched.get('error')}")
                 params["emelia_campaign_id"] = emelia_cid
                 _save_params(camp["id"], params)
             except Exception as e:  # noqa: BLE001

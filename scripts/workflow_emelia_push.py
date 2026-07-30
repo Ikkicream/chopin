@@ -206,25 +206,18 @@ def get_or_create_campaign(api_key: str, site: str, sector: str) -> dict:
     if isinstance(created, dict) and "campaign" in created and isinstance(created["campaign"], dict):
         created = created["campaign"]
 
-    # Settings par défaut : lun-ven 8h-18h Europe/Paris
+    # Fenêtre d'envoi : lundi→samedi 08:01–17:59 Europe/Paris, rien le dimanche.
+    # L'ancien PATCH REST /settings répondait 404 (endpoint inexistant) et l'échec était
+    # avalé : aucun planning n'était réellement posé. Seule la mutation GraphQL marche.
     cid = _camp_id(created)
     if cid:
         try:
-            requests.patch(
-                f"{EMELIA_URL}/emails/campaigns/{cid}/settings",
-                json={
-                    "sendingDays": {
-                        "monday": True, "tuesday": True, "wednesday": True,
-                        "thursday": True, "friday": True,
-                        "saturday": False, "sunday": False,
-                    },
-                    "sendingHours": {"start": "08:00", "end": "18:00"},
-                    "timezone": "Europe/Paris",
-                },
-                headers=_headers(api_key), timeout=15,
-            )
+            from emelia_campaign_manager import configure_schedule
+            res = configure_schedule(cid)
+            if not res.get("ok"):
+                print(f"  [emelia] warn planning: {res.get('error')}")
         except Exception as e:
-            print(f"  [emelia] warn settings: {e}")
+            print(f"  [emelia] warn planning: {e}")
 
         # === Configurer steps (template du secteur) + START + register webhook ===
         try:

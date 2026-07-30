@@ -5457,6 +5457,18 @@ async def api_campaign_target_count(site: str, request: Request):
     depts = body.get("depts") or []
     engagement = (body.get("engagement") or "").strip() or None
     days = int(body.get("cleaned_within_days") or 180)
+    # Ciblage par segment : ses règles priment sur les critères manuels.
+    if (body.get("segment_id") or "").strip():
+        import segments_backend as sb
+        seg = sb.get_segment(body["segment_id"].strip())
+        if not seg or seg.get("site_code") != site:
+            return {"total": 0, "by_sector": {}, "error": "segment introuvable"}
+        try:
+            total = pool.count_for_segment(site, seg["rules"], cleaned_within_days=days)
+        except Exception as e:  # noqa: BLE001
+            return {"total": 0, "by_sector": {}, "error": f"pool indisponible : {str(e)[:100]}"}
+        return {"total": total, "by_sector": {}, "segment": seg["name"],
+                "summary": seg["summary"], "cleaned_within_days": days}
     per = {}
     seen_total = 0
     for sec in sectors:
@@ -5568,7 +5580,8 @@ async def api_campaign_create(site: str, request: Request):
         body.get("sectors") or [], int(body.get("target_size") or 0),
         (body.get("schedule_start") or "").strip(), by=by,
         regions=body.get("regions") or [], depts=body.get("depts") or [],
-        engagement=(body.get("engagement") or "").strip() or None)
+        engagement=(body.get("engagement") or "").strip() or None,
+        segment_id=(body.get("segment_id") or "").strip() or None)
 
 
 @app.get("/api/sites/{site}/campaigns")
@@ -5577,6 +5590,97 @@ def api_campaigns_list(site: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import campaign_engine as ce
     return {"campaigns": ce.list_campaigns(site)}
+
+
+# ── Segments de ciblage réutilisables ─────────────────────────────────────────
+@app.get("/api/sites/{site}/segments")
+def api_segments_list(site: str):
+    """Segments du site, avec le nombre de contacts que chacun vise aujourd'hui."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import segments_backend as sb
+    import contacts_pool_backend as pool
+    out = []
+    for s in sb.list_segments(site):
+        try:
+            s["count"] = pool.count_for_segment(site, s["rules"])
+            s["count_stale"] = False
+            sb.save_count(s["id"], s["count"])
+        except Exception:
+            # Pool verrouillé (scrape ou nettoyage horaire en cours) : on ressert le
+            # dernier comptage connu en le signalant, plutôt qu'un tiret sans explication.
+            s["count"] = s.get("last_count")
+            s["count_stale"] = True
+        out.append(s)
+    return {"segments": out}
+
+
+@app.post("/api/sites/{site}/segments/preview")
+async def api_segments_preview(site: str, request: Request):
+    """Compteur live pendant l'édition : combien de contacts pour CES règles ?
+    Déclaré avant /segments/{sid} — sur des chemins de même forme, la 1re route gagne."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import segments_backend as sb
+    import contacts_pool_backend as pool
+    body = await request.json()
+    rules = body.get("rules") or {}
+    ok, err = sb.validate_rules(rules)
+    if not ok:
+        return {"ok": False, "error": err, "summary": sb.describe_rules(rules)}
+    try:
+        return {"ok": True, "count": pool.count_for_segment(site, rules),
+                "summary": sb.describe_rules(rules)}
+    except Exception as e:  # noqa: BLE001
+        # Verrou DuckDB : la base est en écriture (scrape / nettoyage). Ce n'est pas une
+        # erreur de règles — `retryable` dit à l'UI de rester utilisable et de réessayer.
+        locked = "lock" in str(e).lower()
+        return {"ok": False, "retryable": locked,
+                "summary": sb.describe_rules(rules),
+                "error": ("Comptage indisponible : la base est en cours d'écriture "
+                          "(scrape ou nettoyage). Les règles restent enregistrables.")
+                         if locked else f"Comptage impossible : {str(e)[:120]}"}
+
+
+@app.post("/api/sites/{site}/segments")
+async def api_segment_create(site: str, request: Request):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import segments_backend as sb
+    body = await request.json()
+    sess = getattr(request.state, "session", None)
+    return sb.create_segment(site, body.get("name") or "", body.get("rules") or {},
+                             description=body.get("description") or "",
+                             by=(sess or {}).get("username", "ui"))
+
+
+@app.get("/api/sites/{site}/segments/{sid}")
+def api_segment_detail(site: str, sid: str):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import segments_backend as sb
+    import contacts_pool_backend as pool
+    seg = sb.get_segment(sid)
+    if not seg or seg["site_code"] != site:
+        return {"ok": False, "error": "segment introuvable"}
+    try:
+        seg["count"] = pool.count_for_segment(site, seg["rules"])
+    except Exception:
+        seg["count"] = None
+    return {"ok": True, "segment": seg}
+
+
+@app.patch("/api/sites/{site}/segments/{sid}")
+async def api_segment_update(site: str, sid: str, request: Request):
+    """Renomme, réécrit les règles, verrouille ou déverrouille un segment."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import segments_backend as sb
+    body = await request.json()
+    sess = getattr(request.state, "session", None)
+    return sb.update_segment(sid, site, body, by=(sess or {}).get("username", "ui"))
+
+
+@app.delete("/api/sites/{site}/segments/{sid}")
+def api_segment_delete(site: str, sid: str):
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import segments_backend as sb
+    return sb.delete_segment(sid, site)
 
 
 # Déclaré APRÈS /campaigns/messages et /campaigns/message-preview : sur des chemins de
@@ -6059,6 +6163,37 @@ async def api_autoscrape_start(site: str, request: Request):
             region_name = asb._region_name(region)
         except Exception:
             region_name = region
+
+    # Hors fenêtre nocturne : on ne lance pas, on PROGRAMME. Le scrape verrouillerait
+    # contacts.duckdb et couperait les compteurs de l'interface toute la journée.
+    in_window, why = asb.within_scrape_window()
+    if not in_window:
+        req = {"site": site, "sectors": sectors, "region": region or None,
+               "dept": dept or None, "all_regions": all_regions,
+               "target_contacts": target_contacts,
+               "region_name": region_name or None}
+        asb.write_pending(site, req)
+        scope_txt = ("Toutes les régions" if all_regions
+                     else (f"Région {region_name}" if region else f"Dept {dept}"))
+        asb.write_status(site, {
+            "site": site, "region": region or None, "region_name": region_name or None,
+            "all_regions": all_regions, "dept": dept or None, "sectors": sectors,
+            "status": "scheduled", "scope": scope_txt,
+            "depts_total": 0, "depts_done": 0, "cities_total": 0, "cities_done": 0,
+            "current_city": None, "examined": 0, "valid": 0, "rejected": 0, "errors": 0,
+            "kept_total": 0, "valid_serper": 0, "valid_basile": 0,
+            "target_contacts": target_contacts, "serper_available": None,
+            "basile_active": True, "blocked": False, "stopped": False,
+            "started_at": None, "message": f"{asb.PENDING_NOTE} · {why}",
+        })
+        return {"ok": True, "scheduled": True, "site": site,
+                "starts_at": asb.SCRAPE_START, "reason": why,
+                "message": f"{asb.PENDING_NOTE}. La journée reste libre pour travailler.",
+                "sectors": sectors, "region": region or None, "dept": dept or None,
+                "target_contacts": target_contacts}
+
+    # Dans la fenêtre : lancement immédiat. Une demande en attente devient caduque.
+    asb.clear_pending(site)
     scope = "Toutes les régions (France métropole)" if all_regions else (f"Région {region_name}" if region else f"Dept {dept}")
     asb.write_status(site, {
         "site": site, "region": region or None, "region_name": region_name or None,

@@ -163,6 +163,12 @@ def work() -> dict:
     """Run bloquant de la région courante du plan (appelé détaché par tick)."""
     import autoscrape_backend as asb
 
+    # Fenêtre nocturne : le cron ne tire déjà que de 22h à 8h, mais un lancement manuel
+    # ne doit pas non plus verrouiller contacts.duckdb en pleine journée de travail.
+    in_window, why = asb.within_scrape_window()
+    if not in_window:
+        return {"ok": False, "skipped": why}
+
     # Re-garde anti-course (deux ticks rapprochés)
     cur = asb.read_status(SITE)
     if cur.get("status") in ("running", "starting", "stopping", "cleaning") \

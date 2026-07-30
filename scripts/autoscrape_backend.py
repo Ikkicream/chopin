@@ -78,6 +78,103 @@ def read_status(site: str) -> dict:
         pass
     return {"status": "idle"}
 
+
+# Un run tué net (SIGKILL, OOM, reboot) n'écrit aucun statut final : les fichiers restent
+# sur « running » et TOUS les mécanismes de reprise l'ignorent, puisqu'ils exigent un statut
+# d'arrêt. Le run reste alors figé indéfiniment. On considère donc qu'au-delà de ce délai
+# sans battement de cœur, le run est mort — l'API affichait déjà « interrupted » à la lecture,
+# mais sans jamais le persister.
+STALE_AFTER_SECONDS = 15 * 60
+LIVE_STATUSES = ("running", "starting", "stopping", "cleaning")
+
+# ── Fenêtre de scraping (demande user 2026-07-30) ─────────────────────────────
+# Le scraping n'a lieu QUE la nuit, de 22h00 à 08h00 heure de Paris. Raison concrète :
+# DuckDB n'admet qu'un écrivain OU des lecteurs. Un scrape en journée verrouille
+# contacts.duckdb et rend les compteurs de l'interface (segments, cible de campagne,
+# acquisition) indisponibles. En le confinant la nuit, on travaille au calme le jour.
+# Le serveur tourne en UTC : la comparaison se fait explicitement en Europe/Paris.
+SCRAPE_START = "22:00"
+SCRAPE_END = "08:00"
+SCRAPE_TZ = "Europe/Paris"
+PENDING_NOTE = f"Programmé — démarrage automatique à {SCRAPE_START}"
+
+
+def _paris_now():
+    from datetime import datetime as _dt
+    try:
+        from zoneinfo import ZoneInfo
+        return _dt.now(ZoneInfo(SCRAPE_TZ))
+    except Exception:  # noqa: BLE001
+        return _dt.now()
+
+
+def within_scrape_window(now=None) -> tuple[bool, str]:
+    """Peut-on scraper maintenant ? → (autorisé, motif du refus).
+
+    Fenêtre à cheval sur minuit : autorisée si l'heure est >= 22:00 OU < 08:00.
+    """
+    now = now or _paris_now()
+    hhmm = now.strftime("%H:%M")
+    if hhmm >= SCRAPE_START or hhmm < SCRAPE_END:
+        return True, ""
+    return False, (f"scraping réservé à la plage {SCRAPE_START}–{SCRAPE_END} "
+                   f"(il est {hhmm} à Paris)")
+
+
+def pending_path(site: str) -> Path:
+    """Demande de scrape en attente d'ouverture de la fenêtre nocturne."""
+    return STATUS_DIR / f"{site}-pending.json"
+
+
+def read_pending(site: str) -> dict:
+    try:
+        p = pending_path(site)
+        if p.exists():
+            return json.loads(p.read_text())
+    except Exception:
+        pass
+    return {}
+
+
+def write_pending(site: str, req: dict) -> None:
+    STATUS_DIR.mkdir(parents=True, exist_ok=True)
+    d = dict(req)
+    d["queued_at"] = time.time()
+    pending_path(site).write_text(json.dumps(d, ensure_ascii=False))
+
+
+def clear_pending(site: str) -> None:
+    try:
+        pending_path(site).unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def heartbeat_age(site: str) -> float:
+    """Secondes écoulées depuis le dernier battement du run (inf si jamais écrit)."""
+    ts = read_status(site).get("updated_at")
+    return (time.time() - ts) if ts else float("inf")
+
+
+def is_stalled(site: str) -> bool:
+    """Le run se dit vivant mais ne bat plus → processus mort sans statut final."""
+    return (read_status(site).get("status") in LIVE_STATUSES
+            and heartbeat_age(site) > STALE_AFTER_SECONDS)
+
+
+def mark_interrupted(site: str, reason: str = "") -> dict:
+    """Fige un run mort en « interrupted » dans le statut ET la progression, afin qu'il
+    redevienne reprenable (bouton Relancer, retry quotidien, plan, veilleur de minuit)."""
+    msg = reason or "Processus interrompu sans statut final."
+    st = read_status(site)
+    if st.get("status") in LIVE_STATUSES:
+        st.update({"status": "interrupted", "message": msg, "finished_at": time.time()})
+        write_status(site, st)
+    prog = read_progress(site)
+    if prog and prog.get("status") not in RESUMABLE_STATUSES:
+        write_progress(site, {**prog, "status": "interrupted", "message": msg})
+    return {"ok": True, "site": site, "status": "interrupted", "message": msg}
+
 # Réglages internes (volontairement non exposés à l'utilisateur)
 PER_CITY = 15          # objectif de contacts gardés par ville (Serper)
 MAX_PAGES = 4          # pagination Serper max par requête
@@ -577,7 +674,12 @@ def daily_retry(site: str) -> dict:
     if not prog or not prog.get("region"):
         return {"ok": True, "skipped": "aucune région en cours"}
     if prog.get("status") not in ("blocked_serper", "interrupted", "timeout", "stopped"):
-        return {"ok": True, "skipped": f"statut '{prog.get('status')}' — rien à reprendre"}
+        # Idem retry quotidien : un run mort sans statut final doit redevenir reprenable.
+        if is_stalled(site):
+            mark_interrupted(site, "Retry quotidien : run figé sans battement de cœur.")
+            prog = read_progress(site)
+        else:
+            return {"ok": True, "skipped": f"statut '{prog.get('status')}' — rien à reprendre"}
 
     # Test : un appel Serper bon marché. S'il est encore refusé → Basile peut quand
     # même reprendre SEUL (sinon un Serper mort gèlerait toute l'acquisition).
@@ -640,7 +742,13 @@ def resume_stopped(site: str) -> dict:
     if not region and not dept:
         return {"ok": False, "error": "Progression illisible (ni région ni département)."}
     if prog.get("status") not in RESUMABLE_STATUSES:
-        return {"ok": False, "error": f"Statut « {prog.get('status')} » — rien à reprendre."}
+        # Un run figé sur « running » sans battement depuis 15 min est mort : on le
+        # requalifie avant de refuser, sinon il resterait bloqué à vie.
+        if is_stalled(site):
+            mark_interrupted(site, "Reprise manuelle : run figé sans battement de cœur.")
+            prog = read_progress(site)
+        else:
+            return {"ok": False, "error": f"Statut « {prog.get('status')} » — rien à reprendre."}
 
     # Reliquat : le plafond persisté est le TOTAL du périmètre, `valid` le cumul déjà gardé.
     target = int(prog.get("target_contacts") or 0)
@@ -726,7 +834,37 @@ def main() -> int:
         write_status(args.site, state)
 
     def should_stop():
-        return sp.exists()
+        # Arrêt manuel (drapeau) OU sortie de la fenêtre nocturne. Dans le 2e cas, la
+        # boucle sort proprement en écrivant sa progression : le scrape reprendra la nuit
+        # suivante exactement là où il s'est arrêté, sans re-scanner les villes déjà faites.
+        if sp.exists():
+            return True
+        ok, why = within_scrape_window()
+        if not ok:
+            cur = read_status(args.site)
+            cur["message"] = f"Pause de jour — {why}. Reprise à {SCRAPE_START}."
+            write_status(args.site, cur)
+            return True
+        return False
+
+    # Arrêt externe (SIGTERM d'un déploiement, SIGINT, kill) : on demande un arrêt PROPRE
+    # via le flag, pour que la boucle sorte en écrivant sa progression. Sans ça, le run
+    # mourait en laissant « running » derrière lui, et plus aucun mécanisme de reprise ne
+    # le reconnaissait comme repartable — c'est ainsi qu'un scrape restait figé des jours.
+    import signal as _signal
+
+    def _on_signal(signum, _frame):
+        try:
+            sp.write_text("stop")   # la boucle le verra au prochain tour de ville
+            mark_interrupted(args.site, f"Arrêt externe (signal {signum}) — reprise possible.")
+        finally:
+            raise KeyboardInterrupt
+
+    for _sig in (_signal.SIGTERM, _signal.SIGINT, _signal.SIGHUP):
+        try:
+            _signal.signal(_sig, _on_signal)
+        except Exception:  # noqa: BLE001
+            pass
 
     try:
         if args.all_regions:
@@ -736,6 +874,9 @@ def main() -> int:
             run_autoscrape(args.site, sectors, region=args.region, dept=args.dept,
                            target_contacts=args.target_contacts,
                            progress_cb=progress_cb, should_stop=should_stop)
+    except KeyboardInterrupt:
+        mark_interrupted(args.site, "Interrompu — reprise possible là où il s'est arrêté.")
+        return 130
     except Exception as e:
         cur = read_status(args.site)
         cur.update({"status": "error", "message": str(e), "finished_at": time.time()})

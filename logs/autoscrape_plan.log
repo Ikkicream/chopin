@@ -16721,3 +16721,170 @@
   "done": true,
   "note": "plan terminé (tous secteurs actifs faits)"
 }
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "93",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Provence-Alpes-Côte d'Azur",
+    "depts_total": 6,
+    "depts_done": 2,
+    "current_dept": "06 Alpes-Maritimes",
+    "cities_total": 107,
+    "cities_done": 18,
+    "current_city": "Saint-Laurent-du-Var",
+    "examined": 120,
+    "valid": 50,
+    "rejected": 134,
+    "duplicates": 9,
+    "errors": 0,
+    "kept_total": 50,
+    "skipped_seen": 245,
+    "valid_serper": 48,
+    "valid_basile": 2,
+    "target_contacts": 706,
+    "serper_available": 48218,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785425044.6973133,
+    "message": null,
+    "current_detail": "agence-marketing · Serper 0 examinés",
+    "updated_at": 1785425395.6967535
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "93",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Provence-Alpes-Côte d'Azur",
+    "depts_total": 6,
+    "depts_done": 3,
+    "current_dept": "13 Bouches-du-Rhône",
+    "cities_total": 107,
+    "cities_done": 37,
+    "current_city": "Arles",
+    "examined": 635,
+    "valid": 317,
+    "rejected": 462,
+    "duplicates": 38,
+    "errors": 2,
+    "kept_total": 317,
+    "skipped_seen": 1178,
+    "valid_serper": 297,
+    "valid_basile": 20,
+    "target_contacts": 706,
+    "serper_available": 48218,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785425044.6973133,
+    "message": null,
+    "current_detail": "agence-marketing · Serper 0 examinés",
+    "updated_at": 1785427198.823273
+  }
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "93",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Provence-Alpes-Côte d'Azur",
+    "depts_total": 6,
+    "depts_done": 3,
+    "current_dept": "13 Bouches-du-Rhône",
+    "cities_total": 107,
+    "cities_done": 58,
+    "current_city": "Plan-de-Cuques",
+    "examined": 1209,
+    "valid": 550,
+    "rejected": 939,
+    "duplicates": 56,
+    "errors": 9,
+    "kept_total": 550,
+    "skipped_seen": 1963,
+    "valid_serper": 530,
+    "valid_basile": 20,
+    "target_contacts": 706,
+    "serper_available": 48218,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785425044.6973133,
+    "message": null,
+    "current_detail": "agence-marketing · Serper 9 examinés",
+    "updated_at": 1785428998.8509514
+  }
+}

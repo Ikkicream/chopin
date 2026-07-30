@@ -8,10 +8,44 @@ décide JAMAIS des plafonds — elle ne fait qu'expliquer le plan calculé par l
 - channel_caps(site, channel)        : cap dur/jour + barème de montée (ramp)
 - plan_cadence(site, channel, n, d0) : planning jour/jour + faisabilité + warnings
 - explain(plan, channel, n)          : texte court (IA + fallback déterministe)
+- within_send_window()               : la fenêtre d'envoi autorisée est-elle ouverte ?
 """
 from __future__ import annotations
 
 from datetime import date as _date, timedelta
+
+# ── Fenêtre d'envoi autorisée (demande user 2026-07-30) ───────────────────────
+# Lundi → samedi, 08:01–17:59, HEURE DE PARIS. Rien le dimanche.
+# Le serveur tourne en UTC (Paris = UTC+2 en été) : la comparaison se fait donc
+# explicitement en Europe/Paris, sinon la plage glisserait de deux heures.
+# Jours : 0 = lundi … 6 = dimanche (convention Python `weekday()`, identique à celle
+# du champ `days` d'Emelia — vérifiée le 2026-07-30 par un envoi réel).
+SEND_DAYS = (0, 1, 2, 3, 4, 5)
+SEND_START = "08:01"
+SEND_END = "17:59"
+SEND_TZ = "Europe/Paris"
+
+
+def within_send_window(now=None) -> tuple[bool, str]:
+    """La fenêtre d'envoi est-elle ouverte maintenant ? → (autorisé, motif du refus).
+
+    Ne concerne que les campagnes de prospection. Les emails transactionnels
+    (confirmation de rendez-vous) et les BAT ne passent PAS par ici : ils doivent
+    partir immédiatement, dimanche compris.
+    """
+    from datetime import datetime as _dt
+    if now is None:
+        try:
+            from zoneinfo import ZoneInfo
+            now = _dt.now(ZoneInfo(SEND_TZ))
+        except Exception:  # noqa: BLE001
+            now = _dt.now()
+    if now.weekday() not in SEND_DAYS:
+        return False, "dimanche — aucun envoi ce jour"
+    hhmm = now.strftime("%H:%M")
+    if hhmm < SEND_START or hhmm > SEND_END:
+        return False, f"hors plage {SEND_START}–{SEND_END} (il est {hhmm} à Paris)"
+    return True, ""
 
 # Plafonds d'envoi/jour PLATS par canal (validés user 2026-06-24).
 # Maildoso : cap DYNAMIQUE = somme des daily_cap des boîtes actives (table mailboxes),

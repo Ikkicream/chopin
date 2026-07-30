@@ -144,28 +144,68 @@ def configure_steps(campaign_id, steps_data):
     return r.json()
 
 
+# Convention Emelia du champ `schedule.days` : 0 = lundi … 6 = dimanche.
+# Vérifiée le 2026-07-30 par un envoi réel programmé sur days=[3] un jeudi.
+MONDAY_TO_SATURDAY = [0, 1, 2, 3, 4, 5]
+ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
+
+GQL_URL = "https://graphql.emelia.io/graphql"
+_GQL_UPDATE_SETTINGS = ("mutation($id: ID!, $data: JSON!) "
+                        "{ updateCampaignSettings(id: $id, data: $data) { _id } }")
+
+
+def get_campaign_schedule(campaign_id) -> dict:
+    """Planning réel d'une campagne (jours, plage horaire, fuseau, caps)."""
+    r = requests.get(f"{EMELIA_URL}/emails/campaigns/{campaign_id}",
+                     headers=HEADERS, timeout=20)
+    r.raise_for_status()
+    return (r.json().get("campaign") or {}).get("schedule") or {}
+
+
+def configure_schedule(campaign_id, days=None, start=None, end=None,
+                       timezone_="Europe/Paris") -> dict:
+    """Applique la fenêtre d'envoi d'une campagne Emelia.
+
+    Par défaut : **lundi → samedi, 08:01–17:59, Europe/Paris** — rien le dimanche.
+
+    L'API REST n'a AUCUN endpoint de planning (`/settings` répond 404 : l'ancienne
+    fonction `configure_settings` ne configurait donc rien, l'échec étant avalé par les
+    try/except des appelants). Seule la mutation GraphQL `updateCampaignSettings`
+    fonctionne, et elle valide l'objet `schedule` en ENTIER (`dailyContact` requis…) :
+    on relit donc le planning existant et on ne remplace que la fenêtre.
+    """
+    try:
+        current = dict(get_campaign_schedule(campaign_id))
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"planning illisible : {e}"}
+    if not current:
+        return {"ok": False, "error": "planning introuvable pour cette campagne"}
+
+    current.update({
+        "days": list(days if days is not None else MONDAY_TO_SATURDAY),
+        "start": start or "08:01",
+        "end": end or "17:59",
+        "timeZone": timezone_,
+    })
+    try:
+        r = requests.post(GQL_URL, headers={"Authorization": EMELIA_KEY,
+                                           "Content-Type": "application/json"},
+                          json={"query": _GQL_UPDATE_SETTINGS,
+                                "variables": {"id": campaign_id, "data": {"schedule": current}}},
+                          timeout=30)
+        errs = (r.json() or {}).get("errors") or []
+        if errs:
+            return {"ok": False, "error": errs[0].get("message", "erreur GraphQL")[:200]}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "days": current["days"], "start": current["start"],
+            "end": current["end"], "timeZone": current["timeZone"]}
+
+
 def configure_settings(campaign_id, sending_days=None, sending_hours=None,
                        timezone_="Europe/Paris"):
-    """Configure campaign settings. Défaut : Lun-Ven 8h-18h.
-    `sending_days`/`sending_hours` permettent d'élargir la fenêtre (BAT : 7j/7, 24h/24,
-    pour que le test parte immédiatement au lieu d'attendre le prochain créneau)."""
-    settings = {
-        "sendingDays": sending_days or {
-            "monday": True, "tuesday": True, "wednesday": True,
-            "thursday": True, "friday": True,
-            "saturday": False, "sunday": False,
-        },
-        "sendingHours": sending_hours or {"start": "08:00", "end": "18:00"},
-        "timezone": timezone_,
-    }
-    r = requests.patch(f"{EMELIA_URL}/emails/campaigns/{campaign_id}/settings",
-                      json=settings, headers=HEADERS, timeout=30)
-    r.raise_for_status()
-    return r.json()
-
-
-ALL_DAYS = {"monday": True, "tuesday": True, "wednesday": True, "thursday": True,
-            "friday": True, "saturday": True, "sunday": True}
+    """Compat : délègue à `configure_schedule` (fenêtre lundi→samedi 08:01–17:59)."""
+    return configure_schedule(campaign_id, days=sending_days, timezone_=timezone_)
 
 
 def _api_error(resp) -> str:
@@ -210,11 +250,10 @@ def send_test_email(html: str, subject: str, to_email: str,
         if not cid:
             return {"ok": False, "error": "création de la campagne de test échouée"}
         configure_steps(cid, build_newsletter_steps(html, subject))
-        try:
-            configure_settings(cid, sending_days=ALL_DAYS,
-                               sending_hours={"start": "00:00", "end": "23:59"})
-        except Exception:
-            pass  # fenêtre par défaut : le test partira au prochain créneau ouvré
+        # Un BAT part vers TA propre adresse : fenêtre grande ouverte pour qu'il arrive
+        # tout de suite, y compris dimanche ou en soirée. La fenêtre lundi→samedi
+        # 08:01–17:59 ne concerne que les envois de prospection.
+        configure_schedule(cid, days=ALL_DAYS, start="00:00", end="23:59")
         # ORDRE IMPOSÉ PAR EMELIA : le destinataire d'abord, le démarrage ensuite
         # (« You must have at least one recipient to start campaign »).
         if not add_contact(cid, contact or {"email": to_email}):
