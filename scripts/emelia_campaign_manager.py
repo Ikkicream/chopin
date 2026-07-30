@@ -215,9 +215,17 @@ def send_test_email(html: str, subject: str, to_email: str,
                                sending_hours={"start": "00:00", "end": "23:59"})
         except Exception:
             pass  # fenêtre par défaut : le test partira au prochain créneau ouvré
-        # La réponse du démarrage DOIT être vérifiée : sans abonnement actif Emelia
-        # renvoie 400 et la campagne reste en DRAFT — les contacts sont acceptés mais
-        # rien ne part. Ignorer ce code, c'est déclarer un envoi qui n'a pas eu lieu.
+        # ORDRE IMPOSÉ PAR EMELIA : le destinataire d'abord, le démarrage ensuite
+        # (« You must have at least one recipient to start campaign »).
+        if not add_contact(cid, contact or {"email": to_email}):
+            try:
+                requests.delete(f"{EMELIA_URL}/emails/campaigns/{cid}", headers=HEADERS, timeout=15)
+            except Exception:
+                pass
+            return {"ok": False, "error": "ajout du contact de test refusé par Emelia"}
+        # La réponse du démarrage DOIT être vérifiée : sur refus (abonnement, quota…)
+        # la campagne reste en DRAFT et rien ne part. Ignorer ce code, c'est déclarer
+        # un envoi qui n'a pas eu lieu.
         st = requests.post(f"{EMELIA_URL}/emails/campaigns/{cid}/start",
                            headers=HEADERS, timeout=15)
         if st.status_code >= 400:
@@ -229,9 +237,6 @@ def send_test_email(html: str, subject: str, to_email: str,
                 pass
             return {"ok": False,
                     "error": f"Emelia refuse de démarrer l'envoi ({st.status_code}) : {_api_error(st)}"}
-        if not add_contact(cid, contact or {"email": to_email}):
-            return {"ok": False, "error": "ajout du contact de test refusé par Emelia",
-                    "emelia_campaign_id": cid}
         return {"ok": True, "emelia_campaign_id": cid,
                 "note": f"BAT Emelia envoyé à {to_email} — campagne de test « {name} » "
                         "(à archiver dans Emelia une fois le contrôle fait)"}

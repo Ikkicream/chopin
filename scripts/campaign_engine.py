@@ -457,33 +457,13 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                     ecm.configure_settings(emelia_cid)
                 except Exception:
                     pass
-                import requests as _rq
-                # Vérifier la réponse est indispensable : sans abonnement actif (ou sur
-                # toute autre erreur) Emelia laisse la campagne en DRAFT tout en acceptant
-                # les contacts. Sans ce contrôle, le dispatch comptait des envois fantômes
-                # et posait le cooldown sur des contacts qui n'ont jamais rien reçu.
-                _st = _rq.post(f"{ecm.EMELIA_URL}/emails/campaigns/{emelia_cid}/start",
-                               headers=ecm.HEADERS, timeout=15)
-                if _st.status_code >= 400:
-                    try:
-                        _detail = _st.json().get("error") or _st.text[:200]
-                    except Exception:
-                        _detail = _st.text[:200]
-                    # Sans suppression, la campagne Emelia inutilisable resterait et le
-                    # dispatch suivant se heurterait à un doublon de nom au lieu du vrai motif.
-                    try:
-                        _rq.delete(f"{ecm.EMELIA_URL}/emails/campaigns/{emelia_cid}",
-                                   headers=ecm.HEADERS, timeout=15)
-                    except Exception:
-                        pass
-                    return {"ok": False,
-                            "error": f"Emelia refuse de démarrer la campagne "
-                                     f"({_st.status_code}) : {_detail}"}
                 params["emelia_campaign_id"] = emelia_cid
                 _save_params(camp["id"], params)
             except Exception as e:  # noqa: BLE001
                 return {"ok": False, "error": f"setup Emelia: {e}"}
-        # Ajoute le lot du jour
+
+        # 1) Les contacts d'abord : Emelia refuse de démarrer une campagne sans
+        #    destinataire (« You must have at least one recipient to start campaign »).
         added = 0
         for ct in contacts:
             contact = {"email": ct["email"], "firstName": ct.get("prenom", ""),
@@ -494,6 +474,28 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                     mark_pushed_to_emelia(ct["id"], site, emelia_cid, "")
             except Exception:
                 pass
+
+        # 2) Démarrage, une seule fois par campagne. La réponse DOIT être vérifiée :
+        #    sur refus Emelia laisse la campagne en DRAFT tout en ayant accepté les
+        #    contacts — sans ce contrôle le dispatch comptait des envois fantômes et
+        #    posait le cooldown sur des contacts qui n'ont jamais rien reçu.
+        if added and not params.get("emelia_started"):
+            import requests as _rq
+            _st = _rq.post(f"{ecm.EMELIA_URL}/emails/campaigns/{emelia_cid}/start",
+                           headers=ecm.HEADERS, timeout=15)
+            if _st.status_code >= 400:
+                try:
+                    _detail = _st.json().get("error") or _st.text[:200]
+                except Exception:
+                    _detail = _st.text[:200]
+                # On NE supprime pas la campagne : son id est déjà enregistré dans les
+                # params et les contacts y sont poussés — le prochain dispatch la
+                # réutilisera et retentera le démarrage.
+                return {"ok": False,
+                        "error": f"Emelia refuse de démarrer la campagne "
+                                 f"({_st.status_code}) : {_detail}"}
+            params["emelia_started"] = True
+            _save_params(camp["id"], params)
         return {"ok": True, "sent": added}
 
     if channel == "maildoso":

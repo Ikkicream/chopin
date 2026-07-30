@@ -123,19 +123,44 @@ def _fallback_text(plan: dict, channel: str, target_size: int) -> str:
     return "⚠️ " + base
 
 
+def _schedule_summary(sched: list[dict]) -> str:
+    """Résumé EXHAUSTIF et compact du planning, en regroupant les jours de même volume.
+    Tronquer la liste amenait le modèle d'`explain()` à inventer la fin du planning
+    (ex. « 445 restants sur 5 jours » pour une cadence réelle de 12×100 puis 45)."""
+    if not sched:
+        return "aucun envoi planifié"
+    groups: list[list] = []  # [count, nb_jours, 1re date, dernière date]
+    for s in sched:
+        n = int(s.get("count", 0))
+        if groups and groups[-1][0] == n:
+            groups[-1][1] += 1
+            groups[-1][3] = s.get("date")
+        else:
+            groups.append([n, 1, s.get("date"), s.get("date")])
+    parts = []
+    for count, days, first, last in groups:
+        if days == 1:
+            parts.append(f"{count} le {first}")
+        else:
+            parts.append(f"{count}/jour pendant {days} jours (du {first} au {last})")
+    total = sum(int(s.get("count", 0)) for s in sched)
+    n_days = len(sched)
+    return " puis ".join(parts) + f" — soit {total} emails sur {n_days} jour{'s' if n_days > 1 else ''}"
+
+
 def explain(plan: dict, channel: str, target_size: int) -> str:
     """Phrase d'explication claire pour l'utilisateur. IA si dispo, sinon fallback déterministe."""
     try:
         import llm_call
-        sched = plan.get("schedule", [])
-        sched_str = ", ".join(f"{s['date']}:{s['count']}" for s in sched[:8])
         prompt = (
             "Tu es un expert délivrabilité email. En 2 phrases max, en français simple, explique à "
             "un utilisateur non-technique la cadence d'envoi suivante et pourquoi elle protège sa "
-            "réputation. Ne propose AUCUN autre plafond que celui donné.\n"
+            "réputation. Ne propose AUCUN autre plafond que celui donné. N'invente AUCUN chiffre : "
+            "utilise uniquement ceux du résumé, qui décrit le planning en entier.\n"
             f"Canal: {channel}\nVolume cible: {target_size}\nFaisable: {plan.get('feasible')}\n"
             f"Plafond/jour: {plan.get('daily_cap')}\nJours: {plan.get('total_days')}\n"
-            f"Planning: {sched_str}\nAlertes: {plan.get('warnings')}\n"
+            f"Résumé du planning: {_schedule_summary(plan.get('schedule', []))}\n"
+            f"Alertes: {plan.get('warnings')}\n"
             f"Canal suggéré si infaisable: {plan.get('suggested_channel')}"
         )
         txt = llm_call.call_llm(prompt, max_tokens=160, temperature=0.4,

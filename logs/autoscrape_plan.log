@@ -16642,3 +16642,82 @@
   "done": true,
   "note": "plan terminé (tous secteurs actifs faits)"
 }
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "93",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Provence-Alpes-Côte d'Azur",
+    "depts_total": 6,
+    "depts_done": 2,
+    "current_dept": "06 Alpes-Maritimes",
+    "cities_total": 111,
+    "cities_done": 7,
+    "current_city": "Vence",
+    "examined": 233,
+    "valid": 118,
+    "rejected": 167,
+    "duplicates": 13,
+    "errors": 3,
+    "kept_total": 118,
+    "skipped_seen": 99,
+    "valid_serper": 110,
+    "valid_basile": 8,
+    "target_contacts": 1000,
+    "serper_available": 48320,
+    "basile_active": true,
+    "status": "running",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785402635.7092927,
+    "message": null,
+    "current_detail": "agence-marketing · Serper 10 examinés",
+    "updated_at": 1785403797.3162527
+  }
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}

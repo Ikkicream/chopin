@@ -326,20 +326,56 @@ def set_status(site: str, bid: str, status: str) -> dict:
     return {"ok": True, "id": bid, "status": status}
 
 
-def list_bookings(site: str, limit: int = 200) -> list[dict]:
+ARCHIVED_SQL = "status IN ('answered','cancelled')"
+ACTIVE_SQL = "status NOT IN ('answered','cancelled')"
+
+
+def list_bookings(site: str, limit: int = 25, offset: int = 0,
+                  scope: str = "", search: str = "") -> dict:
+    """Liste paginée des RDV d'un site.
+
+    `scope`  : 'active' (à traiter) | 'archived' (répondus / annulés) | '' (tous).
+    `search` : sous-chaîne sur l'email, insensible à la casse.
+
+    Retourne {items, total, limit, offset, counts}. `total` porte sur le filtre courant
+    (pas sur la page) et `counts` donne le volume par onglet — les deux honorent `search`,
+    pour que la recherche montre aussi combien de résultats dorment dans l'autre onglet.
+    """
     _ensure_tables()
+    limit = max(1, min(int(limit or 25), 200))
+    offset = max(0, int(offset or 0))
+
+    where = ["site_code = ?"]
+    params: list = [site]
+    if search and search.strip():
+        where.append("lower(email) LIKE ?")
+        params.append(f"%{search.strip().lower()}%")
+    base_sql = " AND ".join(where)
+
+    scope_sql = {"active": ACTIVE_SQL, "archived": ARCHIVED_SQL}.get(scope, "")
+    full_sql = f"{base_sql} AND {scope_sql}" if scope_sql else base_sql
+
     c = _conn()
     try:
+        n_active = c.execute(
+            f"SELECT COUNT(*) FROM bookings WHERE {base_sql} AND {ACTIVE_SQL}", params).fetchone()[0]
+        n_archived = c.execute(
+            f"SELECT COUNT(*) FROM bookings WHERE {base_sql} AND {ARCHIVED_SQL}", params).fetchone()[0]
+        total = c.execute(
+            f"SELECT COUNT(*) FROM bookings WHERE {full_sql}", params).fetchone()[0]
         rows = c.execute(
             "SELECT id, reason_label, slot_start, slot_minutes, name, email, phone, message, "
-            "status, created_at FROM bookings WHERE site_code=? ORDER BY slot_start DESC LIMIT ?",
-            [site, limit],
-        ).fetchall()
+            f"status, created_at FROM bookings WHERE {full_sql} "
+            "ORDER BY slot_start DESC LIMIT ? OFFSET ?", params + [limit, offset]).fetchall()
     finally:
         c.close()
-    return [{"id": r[0], "reason_label": r[1], "slot_start": r[2], "slot_minutes": r[3],
-             "name": r[4], "email": r[5], "phone": r[6], "message": r[7],
-             "status": r[8], "created_at": str(r[9])} for r in rows]
+    return {
+        "items": [{"id": r[0], "reason_label": r[1], "slot_start": r[2], "slot_minutes": r[3],
+                   "name": r[4], "email": r[5], "phone": r[6], "message": r[7],
+                   "status": r[8], "created_at": str(r[9])} for r in rows],
+        "total": int(total), "limit": limit, "offset": offset,
+        "counts": {"active": int(n_active), "archived": int(n_archived)},
+    }
 
 
 # ── Confirmation (email + SMS) ─────────────────────────────────────────────────

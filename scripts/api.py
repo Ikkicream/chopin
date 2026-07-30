@@ -5810,10 +5810,15 @@ async def booking_settings_put(site: str, request: Request):
 
 
 @app.get("/api/sites/{site}/booking/list")
-def booking_list(site: str, limit: int = 200):
+def booking_list(site: str, limit: int = 25, offset: int = 0,
+                 scope: str = "", search: str = ""):
+    """RDV paginés. `scope` : active | archived | vide (tous). `search` : email."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import booking_backend as bb
-    return {"bookings": bb.list_bookings(site, limit)}
+    r = bb.list_bookings(site, limit=limit, offset=offset, scope=scope, search=search)
+    # `bookings` conservé sous ce nom (clé historique lue par l'UI) + méta de pagination
+    return {"bookings": r["items"], "total": r["total"], "limit": r["limit"],
+            "offset": r["offset"], "counts": r["counts"]}
 
 
 @app.get("/api/sites/{site}/booking/unread-count")
