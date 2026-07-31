@@ -16888,3 +16888,185 @@
     "updated_at": 1785428998.8509514
   }
 }
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "93",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Provence-Alpes-Côte d'Azur",
+    "depts_total": 6,
+    "depts_done": 4,
+    "current_dept": "83 Var",
+    "cities_total": 107,
+    "cities_done": 71,
+    "current_city": "La Garde",
+    "examined": 1575,
+    "valid": 713,
+    "rejected": 1264,
+    "duplicates": 76,
+    "errors": 17,
+    "kept_total": 713,
+    "skipped_seen": 2285,
+    "valid_serper": 693,
+    "valid_basile": 20,
+    "target_contacts": 706,
+    "serper_available": 47778,
+    "basile_active": true,
+    "status": "cleaning",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785425044.6973133,
+    "message": "Scrape fini (713 contacts) — nettoyage Mailnjoy en cours…",
+    "current_detail": "agence-marketing · Serper 20 examinés",
+    "scrape_finished_at": 1785430288.1333244,
+    "cleanup": {
+      "status": "running",
+      "valid": 343,
+      "removed": 72,
+      "total": 600
+    },
+    "updated_at": 1785455979.6230311
+  }
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "skipped": "un autoscrape est déjà en cours",
+  "active": {
+    "site": "lcr",
+    "region": "93",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "dept": null,
+    "sectors": [
+      "agence-marketing"
+    ],
+    "scope": "Région Provence-Alpes-Côte d'Azur",
+    "depts_total": 6,
+    "depts_done": 4,
+    "current_dept": "83 Var",
+    "cities_total": 107,
+    "cities_done": 71,
+    "current_city": "La Garde",
+    "examined": 1575,
+    "valid": 713,
+    "rejected": 1264,
+    "duplicates": 76,
+    "errors": 17,
+    "kept_total": 713,
+    "skipped_seen": 2285,
+    "valid_serper": 693,
+    "valid_basile": 20,
+    "target_contacts": 706,
+    "serper_available": 47778,
+    "basile_active": true,
+    "status": "cleaning",
+    "blocked": false,
+    "stopped": false,
+    "started_at": 1785425044.6973133,
+    "message": "Scrape fini (713 contacts) — nettoyage Mailnjoy en cours…",
+    "current_detail": "agence-marketing · Serper 20 examinés",
+    "scrape_finished_at": 1785430288.1333244,
+    "cleanup": {
+      "status": "running",
+      "valid": 343,
+      "removed": 72,
+      "total": 683
+    },
+    "updated_at": 1785470323.481789
+  }
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}
+{
+  "ok": true,
+  "done": true,
+  "note": "plan terminé (tous secteurs actifs faits)"
+}

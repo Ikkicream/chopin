@@ -1,0 +1,30 @@
+[veilleur autoscrape] 2026-07-30 22:00:01 UTC
+  {"site": "lcr", "status": "cleaning", "heartbeat_min": 98.4, "valid": 713, "target": 706, "requalifie": "running → interrupted", "action": "rien — cible atteinte (1007/1000)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-07-30 23:00:01 UTC
+  {"site": "lcr", "status": "interrupted", "heartbeat_min": 60.0, "valid": 713, "target": 706, "action": "rien — cible atteinte (1007/1000)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-07-31 00:00:01 UTC
+  {"site": "lcr", "status": "cleaning", "heartbeat_min": 0.4, "valid": 713, "target": 706, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-07-31 01:00:01 UTC
+  {"site": "lcr", "status": "cleaning", "heartbeat_min": 60.4, "valid": 713, "target": 706, "requalifie": "running → interrupted", "action": "rien — cible atteinte (1007/1000)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-07-31 02:00:01 UTC
+  {"site": "lcr", "status": "interrupted", "heartbeat_min": 60.0, "valid": 713, "target": 706, "action": "rien — cible atteinte (1007/1000)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-07-31 03:00:01 UTC
+  {"site": "lcr", "status": "interrupted", "heartbeat_min": 120.0, "valid": 713, "target": 706, "action": "rien — cible atteinte (1007/1000)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-07-31 04:00:01 UTC
+  {"site": "lcr", "status": "cleaning", "heartbeat_min": 1.3, "valid": 713, "target": 706, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-07-31 05:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 38.3, "valid": 713, "target": 706, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-07-31 06:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 98.3, "valid": 713, "target": 706, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+[veilleur autoscrape] 2026-07-31 07:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 158.3, "valid": 713, "target": 706, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
