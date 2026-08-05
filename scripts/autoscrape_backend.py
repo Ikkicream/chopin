@@ -162,17 +162,82 @@ def is_stalled(site: str) -> bool:
             and heartbeat_age(site) > STALE_AFTER_SECONDS)
 
 
+def log_run_end(site: str, status: str, message: str = "") -> dict:
+    """Écrit la ligne d'activité de fin d'un run qui n'a pas pu la produire lui-même.
+
+    `run_autoscrape` ne logge sa fin qu'au terme du chemin nominal. Un run tué (SIGKILL,
+    OOM, reboot), interrompu par un signal ou planté sur exception laisse donc sa ligne
+    de démarrage orpheline dans god_mode_logs — et l'historique de la page Scrapper
+    l'affiche « ⏱ Timeout » indéfiniment, sans le moindre chiffre, alors que des contacts
+    ont bien été récupérés (ils sont insérés au fil de l'eau).
+
+    On reconstruit cette ligne depuis le statut persisté, lui aussi écrit au fil de l'eau,
+    pour clore le run avec son vrai bilan. Idempotent : ne réécrit rien si la fin est déjà
+    loggée, et ne fait rien s'il n'y a aucun run ouvert à clore."""
+    st = read_status(site)
+    sectors = st.get("sectors") or []
+    sector_label = ",".join(sectors)
+    if not sector_label:
+        return {"ok": False, "skipped": "aucun secteur dans le statut"}
+
+    import duckdb as _dd
+    import god_mode_backend as gm
+    c = _dd.connect(str(GOD_DB), read_only=True)
+    try:
+        start_at = c.execute(
+            "SELECT max(created_at) FROM god_mode_logs WHERE site_code = ? "
+            "AND action = 'start_scrape' AND resource_id = ?", [site, sector_label]).fetchone()[0]
+        if not start_at:
+            return {"ok": False, "skipped": "aucun run démarré pour ce secteur"}
+        already = c.execute(
+            "SELECT count(*) FROM god_mode_logs WHERE site_code = ? AND action = 'scrape' "
+            "AND resource_id = ? AND created_at > ? "
+            "AND json_extract_string(payload, '$.scope') IS NOT NULL",
+            [site, sector_label, start_at]).fetchone()[0]
+    finally:
+        c.close()
+    if already:
+        return {"ok": True, "skipped": "fin déjà loggée"}
+
+    valid = int(st.get("valid", 0) or 0)
+    try:
+        gm.log_action(site, "system", "autoscrape", "scrape",
+                      resource="sector", resource_id=sector_label,
+                      payload={"sector": sector_label, "region": st.get("region"),
+                               "region_name": st.get("region_name"),
+                               "scope": st.get("scope") or st.get("region_name") or sector_label,
+                               "scraped": st.get("examined", 0), "valid": valid,
+                               "valid_serper": st.get("valid_serper", 0),
+                               "valid_basile": st.get("valid_basile", 0),
+                               "rejected": st.get("rejected", 0),
+                               "duplicates": st.get("duplicates", 0),
+                               "skipped_seen": st.get("skipped_seen", 0),
+                               "errors": st.get("errors", 0), "status": status,
+                               "net": valid, "cleanup": None,
+                               "message": message or st.get("message") or ""},
+                      success=False)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "logged": True, "status": status, "valid": valid}
+
+
 def mark_interrupted(site: str, reason: str = "") -> dict:
     """Fige un run mort en « interrupted » dans le statut ET la progression, afin qu'il
     redevienne reprenable (bouton Relancer, retry quotidien, plan, veilleur de minuit)."""
     msg = reason or "Processus interrompu sans statut final."
     st = read_status(site)
-    if st.get("status") in LIVE_STATUSES:
+    was_live = st.get("status") in LIVE_STATUSES
+    if was_live:
         st.update({"status": "interrupted", "message": msg, "finished_at": time.time()})
         write_status(site, st)
     prog = read_progress(site)
     if prog and prog.get("status") not in RESUMABLE_STATUSES:
         write_progress(site, {**prog, "status": "interrupted", "message": msg})
+    # Clôt aussi la ligne d'historique : sans elle le run reste « ⏱ Timeout » à vie dans
+    # la page Scrapper, alors qu'on connaît son bilan. N'agit que sur un run réellement
+    # en vol, pour ne pas reclore un run déjà terminé proprement.
+    if was_live:
+        log_run_end(site, "stalled", msg)
     return {"ok": True, "site": site, "status": "interrupted", "message": msg}
 
 # Réglages internes (volontairement non exposés à l'utilisateur)
@@ -881,6 +946,7 @@ def main() -> int:
         cur = read_status(args.site)
         cur.update({"status": "error", "message": str(e), "finished_at": time.time()})
         write_status(args.site, cur)
+        log_run_end(args.site, "failed", f"Erreur : {e}")
         return 1
     finally:
         try:

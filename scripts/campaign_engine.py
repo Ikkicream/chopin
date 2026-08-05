@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
 import uuid as _uuid
 from datetime import date as _date, datetime, timezone
 from pathlib import Path
@@ -340,6 +341,23 @@ def set_status(cid: str, status: str, error: str | None = None) -> bool:
     return True
 
 
+def _bump_sent(cid: str, n: int = 1) -> None:
+    """Incrémente le compteur d'envois immédiatement, sans attendre la fin du lot.
+
+    Un lot maildoso s'étale sur des heures (pacing 15-60 s/email) : tant que le
+    compteur n'était écrit qu'à la fin, un arrêt en cours de route laissait la
+    campagne à son ancien `sent_count` alors que les emails étaient bel et bien
+    partis. L'UPDATE final de `dispatch_campaign` pose une valeur absolue calculée
+    depuis le `sent_count` lu avant le lot : il converge donc vers le même total,
+    ces incréments ne le faussent pas."""
+    c = _conn()
+    try:
+        c.execute("UPDATE campaigns_unified SET sent_count = COALESCE(sent_count, 0) + ?, "
+                  "last_dispatch_at = ? WHERE id = ?", [n, _now(), cid])
+    finally:
+        c.close()
+
+
 # ── Dispatch (scheduler) ───────────────────────────────────────────────────────
 def _todays_allowance(camp: dict, today: _date) -> int:
     """Nb d'emails autorisés aujourd'hui : cumul prévu par la cadence jusqu'à
@@ -427,9 +445,34 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
     if dry_run:
         return {"ok": True, "dry_run": True, "would_send": len(emails)}
 
+    # Marqueur du jour posé AVANT l'envoi, et non à la fin : un lot dure des heures, et
+    # tant que le marqueur manquait, le cron de 8h30 pouvait démarrer un second dispatch
+    # de la même campagne pendant que celui-ci tournait — deux process piochant chacun
+    # leurs contacts, donc des doublons. Le verrou `_RUNNING` ne protège pas de ça : il
+    # est propre au process. C'est ce marqueur qui rend le dispatch idempotent par jour.
+    # Pour reprendre volontairement un lot interrompu le jour même : `reconcile` puis
+    # remise à NULL de last_dispatch_day.
+    c = _conn()
+    try:
+        c.execute("UPDATE campaigns_unified SET last_dispatch_day=?, last_dispatch_at=?, "
+                  "status='running' WHERE id=?", [today, _now(), cid])
+    finally:
+        c.close()
+
     sent = _send_batch(camp, contacts, emails, today)
     if not sent.get("ok"):
         set_status(cid, "running", error=sent.get("error"))
+        if not sent.get("sent"):
+            # Rien n'est parti (typiquement : cap journalier des boîtes atteint). On
+            # retire le marqueur posé plus haut, sinon la campagne passerait pour
+            # dispatchée alors qu'elle n'a rien envoyé — et resterait bloquée jusqu'au
+            # lendemain, y compris pour un envoi manuel.
+            c = _conn()
+            try:
+                c.execute("UPDATE campaigns_unified SET last_dispatch_day=? WHERE id=?",
+                          [camp.get("last_dispatch_day"), cid])
+            finally:
+                c.close()
         return sent
 
     # MAJ compteurs + statut
@@ -443,6 +486,66 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
     finally:
         c.close()
     return {"ok": True, "sent": sent.get("sent", 0), "total_sent": new_sent, "done": done}
+
+
+# ── Dispatch en tâche de fond ──────────────────────────────────────────────────
+# `dispatch_campaign` est bloquant de bout en bout : sur le canal maildoso il tient
+# une pause de 15-60 s entre chaque email, soit des heures pour un gros lot. Appelé
+# directement depuis un endpoint `async def`, il gelait l'event loop de l'API — plus
+# aucune requête n'était servie tant que la campagne n'était pas finie. On l'exécute
+# donc dans un thread dédié (et non via le threadpool anyio, qui est partagé avec
+# tous les endpoints synchrones et serait monopolisé des heures durant).
+_RUNNING: dict[str, dict] = {}
+_RUNNING_LOCK = threading.Lock()
+
+
+def is_dispatching(cid: str) -> dict | None:
+    """Infos sur l'envoi en cours pour cette campagne, None si aucun (ce process)."""
+    with _RUNNING_LOCK:
+        return dict(_RUNNING[cid]) if cid in _RUNNING else None
+
+
+def dispatch_in_background(cid: str, today: _date | None = None) -> dict:
+    """Démarre le lot du jour dans un thread et rend la main immédiatement.
+
+    Le suivi se fait sur `sent_count`, désormais persisté email par email. Le verrou
+    est propre au process : il empêche deux clics sur « Envoyer » de lancer deux lots
+    concurrents. Après un redémarrage il est vide, mais la garde de reprise de
+    `maildoso_backend.send_batch` empêche alors le renvoi aux contacts déjà servis."""
+    today = today or _date.today()
+    camp = get_campaign(cid)
+    if not camp:
+        return {"ok": False, "error": "introuvable"}
+    with _RUNNING_LOCK:
+        if cid in _RUNNING:
+            return {"ok": False, "running": True,
+                    "error": "un envoi est déjà en cours pour cette campagne",
+                    "started_at": _RUNNING[cid]["started_at"].isoformat()}
+        _RUNNING[cid] = {"started_at": _now(), "day": today.isoformat()}
+
+    def _run() -> None:
+        try:
+            # Alerte crédits : réseau, donc à l'intérieur du thread et non dans la requête.
+            try:
+                import credit_alerts
+                credit_alerts.check_and_alert()
+            except Exception:
+                pass
+            res = dispatch_campaign(cid, today)
+            print(f"[campaign_engine] dispatch {cid} terminé : {res}")
+        except Exception as e:  # noqa: BLE001
+            print(f"[campaign_engine] dispatch {cid} a échoué : {e}")
+            try:
+                set_status(cid, camp["status"], error=str(e))
+            except Exception:
+                pass
+        finally:
+            with _RUNNING_LOCK:
+                _RUNNING.pop(cid, None)
+
+    threading.Thread(target=_run, name=f"dispatch-{cid}", daemon=True).start()
+    return {"ok": True, "started": True, "background": True,
+            "note": "envoi lancé en tâche de fond — suivre l'avancement sur sent_count"}
 
 
 def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _date) -> dict:
@@ -550,10 +653,22 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
         import maildoso_backend as md
         from contacts_pool_backend import mark_pushed_to_emelia
         campaign_id = f"{site}-{camp['id']}-{today.isoformat()}"
+
+        # Progression persistée email par email : le lot dure des heures et doit
+        # survivre à un redémarrage. Le marquage du contact pose son cooldown, ce qui
+        # l'exclut de la prochaine pioche — c'est ce qui empêche le renvoi.
+        def _on_sent(ct: dict) -> None:
+            try:
+                mark_pushed_to_emelia(ct["id"], site, campaign_id, "")
+            except Exception as e:  # noqa: BLE001
+                print(f"[campaign_engine] marquage contact {ct.get('email')} échoué : {e}")
+            _bump_sent(camp["id"], 1)
+
         res = md.send_batch(campaign_id, camp["subject"], msg["html"], contacts,
-                            site=site, utm_campaign=utm_campaign)
+                            site=site, utm_campaign=utm_campaign, on_sent=_on_sent)
         if not res.get("ok"):
             return res
+        # Filet : un contact dont le marquage a échoué dans le callback est repris ici.
         ok_emails = set(res.get("sent_emails", []))
         for ct in contacts:
             if ct.get("email") in ok_emails:
@@ -607,9 +722,93 @@ def dispatch_due(today: _date | None = None) -> dict:
     return {"ok": True, "dispatched": len(ids), "results": results}
 
 
+def reconcile_from_sent_log(cid: str, apply: bool = False) -> dict:
+    """Recale une campagne maildoso sur les envois réellement tracés dans `maildoso_sent`.
+
+    À utiliser après un arrêt brutal en cours de lot : les emails sont partis et tracés,
+    mais ni le compteur de la campagne ni le cooldown des contacts n'ont été posés. Sans
+    ce rattrapage les contacts déjà servis restent éligibles à la pioche et reçoivent le
+    même message au dispatch suivant — la garde de reprise de `send_batch`, elle, ne
+    couvre que le jour courant puisque le campaign_id porte la date.
+
+    `apply=False` (défaut) : ne fait qu'un état des lieux."""
+    camp = get_campaign(cid)
+    if not camp:
+        return {"ok": False, "error": "introuvable"}
+    if camp["channel"] != "maildoso":
+        return {"ok": False, "error": f"canal {camp['channel']} : pas de log d'envoi par contact"}
+    site = camp["site_code"]
+    c = _conn()
+    try:
+        emails = [r[0] for r in c.execute(
+            "SELECT DISTINCT to_email FROM maildoso_sent "
+            "WHERE campaign_id LIKE ? AND status = 'sent'", [f"{site}-{cid}-%"]).fetchall() if r[0]]
+        last_day = c.execute(
+            "SELECT max(created_at) FROM maildoso_sent WHERE campaign_id LIKE ? AND status = 'sent'",
+            [f"{site}-{cid}-%"]).fetchone()[0]
+    finally:
+        c.close()
+
+    out = {"ok": True, "campaign": cid, "name": camp["name"], "really_sent": len(emails),
+           "sent_count_before": camp["sent_count"] or 0, "applied": apply}
+    if not apply or not emails:
+        out["note"] = "état des lieux — relancer avec --apply pour corriger"
+        return out
+
+    import contacts_pool_backend as pool
+    from contacts_pool_backend import mark_pushed_to_emelia
+    pc = pool._conn(read_only=True)   # lecture seule : contacts.duckdb n'admet qu'un writer
+    try:
+        rows = pc.execute(
+            f"SELECT id, email FROM contacts WHERE email IN ({','.join(['?'] * len(emails))})",
+            emails).fetchall()
+    finally:
+        pc.close()
+    by_email = {e: i for i, e in rows}
+
+    marked, missing = 0, []
+    day = (last_day.date() if hasattr(last_day, "date") else _date.today()).isoformat()
+    for em in emails:
+        ct_id = by_email.get(em)
+        if not ct_id:
+            missing.append(em)
+            continue
+        try:
+            mark_pushed_to_emelia(ct_id, site, f"{site}-{cid}-{day}", "")
+            marked += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"[reconcile] marquage {em} échoué : {e}")
+
+    c = _conn()
+    try:
+        # Le compteur devient le nombre d'envois réellement tracés, pas un cumul :
+        # rejouer la réconciliation deux fois doit donner le même résultat.
+        done = len(emails) >= (camp["target_size"] or 0)
+        # Le statut n'est touché que si la campagne est encore active : réconcilier une
+        # campagne mise en pause (ou annulée) ne doit pas la remettre en route.
+        if camp["status"] in ACTIVE_STATUSES:
+            status = "done" if done else "running"
+        else:
+            status = camp["status"]
+        c.execute("UPDATE campaigns_unified SET sent_count = ?, status = ?, "
+                  "last_dispatch_day = ?, last_dispatch_at = ? WHERE id = ?",
+                  [len(emails), status, day, _now(), cid])
+    finally:
+        c.close()
+    out.update({"contacts_marked": marked, "emails_sans_contact": len(missing),
+                "sent_count_after": len(emails), "last_dispatch_day": day})
+    return out
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "dispatch"
     if cmd == "dispatch":
         print(json.dumps(dispatch_due(), ensure_ascii=False, default=str))
+    elif cmd == "reconcile":
+        if len(sys.argv) < 3:
+            print(f"usage: {sys.argv[0]} reconcile <campaign_id> [--apply]")
+            sys.exit(1)
+        print(json.dumps(reconcile_from_sent_log(sys.argv[2], "--apply" in sys.argv),
+                         ensure_ascii=False, default=str))
     else:
-        print(f"usage: {sys.argv[0]} dispatch")
+        print(f"usage: {sys.argv[0]} dispatch | reconcile <campaign_id> [--apply]")

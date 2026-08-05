@@ -19,6 +19,7 @@ import random
 import smtplib
 import time
 import uuid as _uuid
+from collections.abc import Callable
 from datetime import date as _date, datetime, timezone
 from email.message import EmailMessage
 from email.utils import make_msgid
@@ -238,6 +239,25 @@ def _record_sent(site, campaign_id, mailbox, to_email, subject, rfc_msgid, statu
         c.close()
 
 
+def already_sent_emails(campaign_id: str) -> set[str]:
+    """Destinataires déjà servis pour ce campaign_id (ligne 'sent' dans maildoso_sent).
+
+    Sert de garde de reprise : `maildoso_sent` est écrit juste après chaque SMTP réussi,
+    c'est donc la seule trace fiable quand le process meurt au milieu d'un lot — les
+    compteurs de campagne et le marquage des contacts, eux, n'étaient historiquement
+    posés qu'à la toute fin du lot. Sans cette garde, un redémarrage en cours d'envoi
+    repioche les contacts déjà contactés et leur renvoie le même email."""
+    if not campaign_id:
+        return set()
+    c = _conn()
+    try:
+        rows = c.execute("SELECT DISTINCT to_email FROM maildoso_sent "
+                         "WHERE campaign_id = ? AND status = 'sent'", [campaign_id]).fetchall()
+    finally:
+        c.close()
+    return {r[0] for r in rows if r[0]}
+
+
 # ── Envoi SMTP ───────────────────────────────────────────────────────────────────
 def _split_name(full: str) -> tuple[str, str]:
     parts = (full or "").split()
@@ -372,12 +392,19 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
 
 def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[dict | str],
                site: str = SITE_DEFAULT, utm_campaign: str | None = None,
-               pace: tuple[int, int] = (15, 60)) -> dict:
+               pace: tuple[int, int] = (15, 60),
+               on_sent: Callable[[dict], None] | None = None) -> dict:
     """Lot de cold emails avec rotation des boîtes + pause aléatoire entre envois.
 
     `recipients` : emails (str) ou dicts contacts ({email, prenom?, nom?}).
+    `on_sent` : appelé avec le contact juste après chaque envoi réussi. Permet à
+    l'appelant de persister sa progression au fil de l'eau plutôt qu'à la fin du lot —
+    avec un pacing de 15-60 s, un lot de 200 dure ~2 h, et tout ce qui n'est écrit
+    qu'à la fin est perdu si le process meurt entre-temps. Une exception du callback
+    n'interrompt pas le lot (l'email, lui, est déjà parti).
+    Les destinataires déjà servis sous ce `campaign_id` sont ignorés : reprise sûre.
     S'arrête proprement quand toutes les boîtes ont atteint leur cap.
-    {ok, sent, errors[], exhausted?}."""
+    {ok, sent, sent_emails[], skipped, errors[], exhausted?}."""
     try:
         from utm_tagging import tag_links
         html_str = tag_links(html_str, "maildoso", "email", utm_campaign or campaign_id or "lcr-cold")
@@ -389,6 +416,16 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
     sent, sent_emails, errors, exhausted = 0, [], [], False
     items = [{"email": r} if isinstance(r, str) else r for r in (recipients or [])]
     items = [it for it in items if it.get("email") and "@" in it["email"]]
+    # Garde de reprise : on ne réexpédie jamais à quelqu'un que ce campaign_id a déjà servi.
+    done = already_sent_emails(campaign_id)
+    if done:
+        before = len(items)
+        items = [it for it in items if it["email"] not in done]
+        skipped = before - len(items)
+        if skipped:
+            print(f"[maildoso] reprise {campaign_id} : {skipped} destinataire(s) déjà servi(s), ignoré(s)")
+    else:
+        skipped = 0
     for i, it in enumerate(items):
         res = send_email(it["email"], subject, text=text, html=html_str, site=site,
                          campaign_id=campaign_id, contact=it,
@@ -396,6 +433,11 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
         if res.get("ok"):
             sent += 1
             sent_emails.append(it["email"])
+            if on_sent:
+                try:
+                    on_sent(it)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[maildoso] on_sent({it['email']}) a échoué : {e}")
         else:
             errors.append({"email": it["email"], "error": res.get("error")})
             if "aucune boîte active" in (res.get("error") or ""):
@@ -404,7 +446,7 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
         if i < len(items) - 1:
             time.sleep(random.randint(*pace))
     out = {"ok": sent > 0 or not errors, "sent": sent, "sent_emails": sent_emails,
-           "errors": errors[:10]}
+           "skipped": skipped, "errors": errors[:10]}
     if exhausted:
         out["exhausted"] = True
         out["note"] = f"cap journalier atteint après {sent} envois"

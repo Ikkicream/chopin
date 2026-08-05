@@ -5829,13 +5829,11 @@ async def api_campaign_action(site: str, cid: str, action: str):
     if action == "cancel":
         ce.set_status(cid, "cancelled"); return {"ok": True, "status": "cancelled"}
     if action == "send-now":
-        # Envoi manuel : vérifie les crédits d'envoi et alerte l'admin si bas/épuisés.
-        try:
-            import credit_alerts
-            credit_alerts.check_and_alert()
-        except Exception:
-            pass
-        return ce.dispatch_campaign(cid, _d.today())
+        # Envoi manuel lancé en tâche de fond : un lot maildoso s'étale sur des heures
+        # (pause de 15-60 s entre emails) et gelait l'event loop — donc toute l'API —
+        # tant qu'il tournait dans la requête. La vérification des crédits d'envoi part
+        # avec lui. L'avancement se suit sur `sent_count`, persisté au fil de l'eau.
+        return ce.dispatch_in_background(cid, _d.today())
     return {"ok": False, "error": f"action inconnue: {action}"}
 
 
@@ -7136,14 +7134,24 @@ def api_scrape_live_activity(site: str, limit: int = 20):
             # NB : le scraper logge AUSSI une ligne action='scrape' PAR VILLE (payload sans
             # 'scope'). Sans le filtre json, la 1re ville (quelques secondes après le start,
             # souvent 0 partout) était prise pour la fin du run → « Région finie · 7s · 0 ».
+            # Borne haute du run = prochain start du même secteur (un seul run à la fois),
+            # à défaut maintenant. Remplace une fenêtre fixe de 12 h qui classait à tort
+            # « timeout » tout autoscrape régional plus long qu'elle : celui du 30/07 a
+            # tourné 12 h 58 et s'est terminé « done » (713 valides), mais sa fin tombait
+            # 58 min hors fenêtre — donc jamais appariée, donc affichée en échec.
+            _nxt = c.execute(
+                "SELECT min(created_at) FROM god_mode_logs WHERE site_code = ? "
+                "AND action = 'start_scrape' AND resource_id = ? AND created_at > ?",
+                [site, sector, start_at]).fetchone()[0]
+            _upper = _nxt or _dt_now()
             end_row = c.execute("""
                 SELECT created_at, payload, success
                 FROM god_mode_logs
                 WHERE site_code = ? AND action = 'scrape' AND resource_id = ?
-                  AND created_at > ? AND created_at < ? + INTERVAL 12 HOUR
+                  AND created_at > ? AND created_at < ?
                   AND json_extract_string(payload, '$.scope') IS NOT NULL
                 ORDER BY created_at ASC LIMIT 1
-            """, [site, sector, start_at, start_at]).fetchone()
+            """, [site, sector, start_at, _upper]).fetchone()
 
             end_at = None; scraped = 0; valid = 0; rejected = 0; errors = 0; status = "running"
             duplicates = 0; net = None; cleanup = None; skipped_seen = 0
@@ -7177,12 +7185,7 @@ def api_scrape_live_activity(site: str, limit: int = 20):
             else:
                 # Pas de log de fin (run interrompu / timeout ou en cours) : le recap chiffre du log
                 # final manque. On recupere le VRAI nombre de contacts SAUVES (insertion au fil de
-                # l'eau, AVANT la fin). Borne a la fenetre de ce run -> 1 run a la fois = pas de chevauchement.
-                _nxt = c.execute(
-                    "SELECT min(created_at) FROM god_mode_logs WHERE site_code = ? "
-                    "AND action = 'start_scrape' AND resource_id = ? AND created_at > ?",
-                    [site, sector, start_at]).fetchone()[0]
-                _upper = _nxt or _dt_now()
+                # l'eau, AVANT la fin), borne a la fenetre de ce run (_upper, calcule plus haut).
                 try:
                     valid = c.execute(
                         "SELECT (SELECT count(*) FROM scrappe_pending WHERE site_code = ? AND sector = ? "
