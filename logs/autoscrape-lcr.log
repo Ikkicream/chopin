@@ -430,3 +430,8 @@ KeyboardInterrupt
   [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 642357) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
   [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 642357) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
 {"ok": true, "resumed": true, "region": "93", "dept": null, "status": "done"}
+
+=== [veilleur 2026-08-06 20:00:01 UTC] reprise automatique après arrêt anormal ===
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{"ok": true, "resumed": true, "region": null, "dept": "92", "status": "done"}

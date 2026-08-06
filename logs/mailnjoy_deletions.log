@@ -21561,3 +21561,10 @@
 {"ts": "2026-07-30T19:38:58.252372+00:00", "email": "christel.schneider@keemia.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-07-30T19:39:00.218475+00:00", "email": "christel.schneider@keemia.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-07-30T20:31:09.999457+00:00", "email": "contact@webwedosolutions.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-06T20:12:16.478600+00:00", "email": "contact@office-immo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-06T20:12:31.718751+00:00", "email": "primovoltaire@agencesprimo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-06T20:13:13.492641+00:00", "email": "jean.dupont@entreprise.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-06T20:34:37.863215+00:00", "email": "contact@vaneau.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-06T20:37:42.744045+00:00", "email": "nom.prenom@example.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-06T20:37:49.352845+00:00", "email": "contact@francelogis-immobilier.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-06T20:38:05.499172+00:00", "email": "contact@booge.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
