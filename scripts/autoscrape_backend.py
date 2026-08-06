@@ -121,6 +121,47 @@ def within_scrape_window(now=None) -> tuple[bool, str]:
                    f"(il est {hhmm} à Paris)")
 
 
+# ── Butoirs de fin de nuit (demande Camille 2026-08-06) ──────────────────────────
+# `within_scrape_window` n'est consultée qu'AU LANCEMENT. Un run démarré à 6h du matin
+# continuait donc jusqu'à épuisement ou jusqu'au garde-temps de 6 h — soit jusqu'en
+# milieu de journée, contacts.duckdb verrouillé, plus de routage d'emails (le dispatch
+# de campagnes tourne à 8h30 UTC) ni de compteurs dans l'UI.
+# Les butoirs sont appliqués DANS `run_autoscrape`, donc pour TOUS les points d'entrée :
+# planificateur quotidien, veilleur (`--resume`), bouton « Relancer » de l'UI, CLI.
+# Deux temps, parce que le run a deux phases qui écrivent en base :
+#   • SCRAPE_STOP  : fin de la boucle des villes (testée à chaque ville) ;
+#   • CLEANUP_STOP : fin du nettoyage Mailnjoy, qui suit le scrape (testé à chaque lot).
+SCRAPE_STOP = "07:20"
+CLEANUP_STOP = "07:50"
+
+
+def seconds_until_paris(hhmm: str, now=None) -> float:
+    """Secondes avant l'heure `hhmm` (Europe/Paris), 0 si elle est passée.
+
+    Vise toujours le matin de la nuit EN COURS : appelé à 23h, il vise le 07:20 du
+    lendemain ; appelé à 03h, celui du jour même.
+    """
+    from datetime import timedelta as _td
+    now = now or _paris_now()
+    h, m = (int(x) for x in hhmm.split(":"))
+    target = now.replace(hour=h, minute=m, second=0, microsecond=0)
+    if now.hour >= 12:          # soirée → butoir demain matin
+        target += _td(days=1)
+    return max(0.0, (target - now).total_seconds())
+
+
+def night_deadlines(now=None) -> tuple[float | None, float | None]:
+    """(budget de scraping en s, timestamp d'arrêt du nettoyage) pour la nuit en cours.
+
+    (None, None) hors fenêtre nocturne : un run lancé délibérément de jour (CLI, debug)
+    garde l'ancien comportement — c'est la fenêtre qui l'interdit, pas le butoir.
+    """
+    now = now or _paris_now()
+    if not within_scrape_window(now)[0]:
+        return None, None
+    return seconds_until_paris(SCRAPE_STOP, now), time.time() + seconds_until_paris(CLEANUP_STOP, now)
+
+
 def pending_path(site: str) -> Path:
     """Demande de scrape en attente d'ouverture de la fenêtre nocturne."""
     return STATUS_DIR / f"{site}-pending.json"
@@ -360,6 +401,17 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     agents.SERPER_BLOCKED_STATUS = None
     bb.BASILE_BLOCKED_STATUS = None
     basile_available = bool(bb.BASILE_KEY)
+
+    # Butoirs de nuit, appliqués ici pour être valables quel que soit l'appelant (le
+    # veilleur relançait `--resume` avec le garde-temps de 6 h par défaut : un run repris
+    # à 7h du matin tenait la base jusqu'en début d'après-midi). On ne fait que RESSERRER
+    # ce que l'appelant a demandé — jamais l'inverse.
+    _budget, _hard_ts = night_deadlines()
+    if _budget is not None:
+        max_seconds = max(60, min(max_seconds, int(_budget)))
+        _caller_stop = should_stop
+        def should_stop():  # noqa: F811 — remplace volontairement le paramètre
+            return bool(_caller_stop and _caller_stop()) or time.time() >= _hard_ts
 
     if isinstance(sectors, str):
         sectors = [sectors]
