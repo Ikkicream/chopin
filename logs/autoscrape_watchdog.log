@@ -214,3 +214,36 @@
 [veilleur autoscrape] 2026-08-06 20:00:01 UTC
   {"site": "lcr", "status": "done", "heartbeat_min": 9578.3, "valid": 713, "target": 706, "perimetre": "dept 92", "reliquat": "illimité", "action": "RELANCÉ (--resume)"}
   {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-06 21:00:01 UTC
+  {"site": "lcr", "status": "running", "heartbeat_min": 0.0, "valid": 14, "target": 2000, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-06 22:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 17.2, "valid": 28, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-06 23:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 77.2, "valid": 28, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-07 00:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 137.2, "valid": 28, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-07 01:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 197.2, "valid": 28, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-07 02:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 257.2, "valid": 28, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-07 03:00:02 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 317.2, "valid": 28, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-07 04:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 377.2, "valid": 28, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-07 05:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 437.2, "valid": 28, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-07 06:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 497.2, "valid": 28, "target": 2000, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+[veilleur autoscrape] 2026-08-07 07:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 557.2, "valid": 28, "target": 2000, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
