@@ -21572,3 +21572,13 @@
 {"ts": "2026-08-06T21:32:07.538968+00:00", "email": "chatillon@acorimmobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-07T03:08:15.453913+00:00", "email": "contact@pf-eternite.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
 {"ts": "2026-08-07T03:08:55.177255+00:00", "email": "contact@cgop.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-08-07T20:06:37.085027+00:00", "email": "sarah@servicesplusimmo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:07:03.070458+00:00", "email": "secretariat@capresort.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:13:47.766615+00:00", "email": "sebastien@bluemarketing.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:19:59.314949+00:00", "email": "loris.larade@iadfrance.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:36:14.562754+00:00", "email": "m.lorin@lorin-construction.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:42:41.397429+00:00", "email": "maisons-laffitte@real31.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:49:32.935247+00:00", "email": "y.treboit@domini.email", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:49:40.755083+00:00", "email": "mail@ortec.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:55:28.657153+00:00", "email": "contact@elevare.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T20:55:46.963929+00:00", "email": "jcliaigre@pyrenees-immobilier.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
