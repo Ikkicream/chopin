@@ -21582,3 +21582,11 @@
 {"ts": "2026-08-07T20:49:40.755083+00:00", "email": "mail@ortec.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-07T20:55:28.657153+00:00", "email": "contact@elevare.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-07T20:55:46.963929+00:00", "email": "jcliaigre@pyrenees-immobilier.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-07T21:06:12.771508+00:00", "email": "immo35@immo35.org", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T21:13:45.028462+00:00", "email": "contact@residea.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-07T21:14:05.147250+00:00", "email": "contact@quero-immobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T21:20:00.277732+00:00", "email": "contact@kernel-immobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T21:20:19.786287+00:00", "email": "contact@ges-loc.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T21:20:51.344559+00:00", "email": "contact@sd-finance.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-07T21:21:09.072877+00:00", "email": "jc@jci-immobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-08T03:04:01.819246+00:00", "email": "contact@agence-sablons.immo", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
