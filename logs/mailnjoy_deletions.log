@@ -21590,3 +21590,8 @@
 {"ts": "2026-08-07T21:20:51.344559+00:00", "email": "contact@sd-finance.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-07T21:21:09.072877+00:00", "email": "jc@jci-immobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-08T03:04:01.819246+00:00", "email": "contact@agence-sablons.immo", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-08-08T20:03:25.081153+00:00", "email": "le.mediateur@mediation-assurance.org", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-08T20:18:42.479937+00:00", "email": "contact@tradiart-construction.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-08T20:19:04.091014+00:00", "email": "savigny@arthurimmo.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-08T20:35:52.623987+00:00", "email": "mel.minatchy@expfrance.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-08T20:42:16.031568+00:00", "email": "contact@agence-paris-est.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
