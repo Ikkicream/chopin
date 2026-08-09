@@ -988,3 +988,389 @@
     "status": "pending"
   }
 }
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "13 Bouches-du-Rhône",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-08T21:00:01+00:00 start immobilier / dept 13 Bouches-du-Rhône — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (499 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 105,
+    "current_city": "Marseille 11e"
+  }
+}
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 207,
+    "current_city": "Istres"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 272,
+    "current_city": "Fos-sur-Mer"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 359,
+    "current_city": "Fuveau"
+  }
+}
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:13",
+    "sector": "immobilier",
+    "dept": "13",
+    "dept_name": "Bouches-du-Rhône",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "night": "2026-08-08",
+    "started_at": "2026-08-08T21:00:01+00:00",
+    "resumes": 0
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:13",
+    "runs": 1,
+    "valid_total": 362,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "closed": true,
+  "valid": 362,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:13",
+    "runs": 2,
+    "valid_total": 724,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:91",
+    "lcr:immobilier:77",
+    "lcr:immobilier:13"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 08:15 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 08:30 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 08:45 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:15 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:30 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:45 à Paris)"
+}

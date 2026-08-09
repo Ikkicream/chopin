@@ -292,3 +292,36 @@
 [veilleur autoscrape] 2026-08-08 20:00:01 UTC
   {"site": "lcr", "status": "done", "heartbeat_min": 1358.6, "valid": 42, "target": 2000, "action": "rien — statut « done » non reprenable"}
   {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-08 21:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 11.4, "valid": 31, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-08 22:00:01 UTC
+  {"site": "lcr", "status": "running", "heartbeat_min": 0.0, "valid": 359, "target": 2000, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-08 23:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 4.8, "valid": 362, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-09 00:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 64.8, "valid": 362, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-09 01:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 124.8, "valid": 362, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-09 02:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 184.8, "valid": 362, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-09 03:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 244.8, "valid": 362, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-09 04:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 304.8, "valid": 362, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-09 05:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 364.8, "valid": 362, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-09 06:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 424.8, "valid": 362, "target": 2000, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+[veilleur autoscrape] 2026-08-09 07:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 484.8, "valid": 362, "target": 2000, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
