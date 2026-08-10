@@ -1445,3 +1445,406 @@
     "status": "pending"
   }
 }
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "83 Var",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-09T21:00:02+00:00 start immobilier / dept 83 Var — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (499 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 83",
+    "valid": 109,
+    "current_city": "La Farlède"
+  }
+}
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 83",
+    "valid": 222,
+    "current_city": "Hyères"
+  }
+}
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:83",
+    "sector": "immobilier",
+    "dept": "83",
+    "dept_name": "Var",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "night": "2026-08-09",
+    "started_at": "2026-08-09T21:00:02+00:00",
+    "resumes": 0
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:83",
+    "runs": 1,
+    "valid_total": 257,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 83",
+    "valid": 257,
+    "current_city": "Vidauban"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 83",
+    "valid": 257,
+    "current_city": "Vidauban"
+  }
+}
+{
+  "ok": true,
+  "closed": true,
+  "valid": 257,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:83",
+    "runs": 2,
+    "valid_total": 514,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "84 Vaucluse",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-09T22:30:02+00:00 start immobilier / dept 84 Vaucluse — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (409 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 84",
+    "valid": 91,
+    "current_city": "Sorgues"
+  }
+}
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "closed": true,
+  "valid": 97,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:84",
+    "runs": 1,
+    "valid_total": 97,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:06",
+    "lcr:immobilier:83",
+    "lcr:immobilier:84"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 08:15 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 08:30 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 08:45 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:15 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:30 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:45 à Paris)"
+}
