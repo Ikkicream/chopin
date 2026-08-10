@@ -21828,3 +21828,9 @@
 {"ts": "2026-08-09T22:51:14.080704+00:00", "email": "anna.ruocco@expfrance.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-09T22:51:16.503019+00:00", "email": "anna.ruocco@expfrance.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-10T03:50:26.760581+00:00", "email": "contact@cotedazurimmobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-08-10T20:06:49.393422+00:00", "email": "sami.porte@safti.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-10T20:07:10.476246+00:00", "email": "info@riegert.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-10T20:07:21.648986+00:00", "email": "contact@alpha-immo05.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-10T20:57:32.125189+00:00", "email": "belleville-en-beaujolais@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-10T20:57:37.275094+00:00", "email": "contact@adhoq.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-10T20:58:55.948841+00:00", "email": "louis.pelland@dufosse-immobilier.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
