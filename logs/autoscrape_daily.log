@@ -2299,3 +2299,84 @@
   "ok": true,
   "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:45 à Paris)"
 }
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:00 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:15 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:30 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:45 à Paris)"
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "38 Isère",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-11T20:00:02+00:00 start immobilier / dept 38 Isère — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (559 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2676878) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 38",
+    "valid": 85,
+    "current_city": "Meylan"
+  }
+}
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:38",
+    "sector": "immobilier",
+    "dept": "38",
+    "dept_name": "Isère",
+    "region_name": "Auvergne-Rhône-Alpes",
+    "night": "2026-08-11",
+    "started_at": "2026-08-11T20:00:02+00:00",
+    "resumes": 0
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:38",
+    "runs": 1,
+    "valid_total": 120,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 38",
+    "valid": 120,
+    "current_city": "Le Pont-de-Claix"
+  }
+}
+{
+  "ok": true,
+  "closed": true,
+  "valid": 120,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:38",
+    "runs": 2,
+    "valid_total": 240,
+    "status": "pending"
+  }
+}
