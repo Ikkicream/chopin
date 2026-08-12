@@ -2777,3 +2777,84 @@
   "ok": true,
   "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:45 à Paris)"
 }
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:00 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:15 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:30 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:45 à Paris)"
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "63 Puy-de-Dôme",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-12T20:00:02+00:00 start immobilier / dept 63 Puy-de-Dôme — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (559 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 63",
+    "valid": 59,
+    "current_city": "Cournon-d'Auvergne"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 63",
+    "valid": 59,
+    "current_city": "Cournon-d'Auvergne"
+  }
+}
+{
+  "ok": true,
+  "closed": true,
+  "valid": 59,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:63",
+    "runs": 1,
+    "valid_total": 59,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "26 Drôme",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-12T20:45:02+00:00 start immobilier / dept 26 Drôme — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (514 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1794262) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "closed": true,
+  "valid": 48,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:26",
+    "runs": 1,
+    "valid_total": 48,
+    "status": "pending"
+  }
+}
