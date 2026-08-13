@@ -448,3 +448,36 @@
 [veilleur autoscrape] 2026-08-12 20:00:01 UTC
   {"site": "lcr", "status": "done", "heartbeat_min": 1295.6, "valid": 69, "target": 2000, "action": "rien — statut « done » non reprenable"}
   {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-12 21:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 2.2, "valid": 48, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-12 22:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 36.3, "valid": 59, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-12 23:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 96.3, "valid": 59, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-13 00:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 156.3, "valid": 59, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-13 01:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 216.3, "valid": 59, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-13 02:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 276.3, "valid": 59, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-13 03:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 336.3, "valid": 59, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-13 04:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 396.3, "valid": 59, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-13 05:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 456.3, "valid": 59, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-13 06:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 516.3, "valid": 59, "target": 2000, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+[veilleur autoscrape] 2026-08-13 07:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 576.3, "valid": 59, "target": 2000, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}

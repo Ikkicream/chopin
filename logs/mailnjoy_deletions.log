@@ -21991,3 +21991,22 @@
 {"ts": "2026-08-12T20:56:51.280371+00:00", "email": "contact@agence-immocenter.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-12T20:57:26.383261+00:00", "email": "julie.orlu@safti.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-12T20:57:27.018443+00:00", "email": "julie.orlu@safti.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:03:52.997645+00:00", "email": "contact@mpbi.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:04:44.757640+00:00", "email": "contact@jmm-immobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:07:44.637975+00:00", "email": "bourg-en-bresse@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:13:16.855731+00:00", "email": "contact@immo-perspective.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:13:22.530222+00:00", "email": "contact@acimmo01.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:13:29.474458+00:00", "email": "j.kaminski@coteparticuliers.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:13:36.677018+00:00", "email": "l.millet@laetietcie.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:13:52.947585+00:00", "email": "cgdm@notaires.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-12T21:13:59.871054+00:00", "email": "contact@maisons-apex.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:14:06.437328+00:00", "email": "florence.dubost@cefia.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:14:11.177397+00:00", "email": "lagnieu@muller-immobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:14:23.808578+00:00", "email": "contact@maisons-apex.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:14:54.434551+00:00", "email": "accueil@residencedulac.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:15:32.147958+00:00", "email": "contact@laperle-immobilier.ch", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:15:32.765345+00:00", "email": "contact@laperle-immobilier.ch", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:16:26.954454+00:00", "email": "contact@raconciergerie.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:16:38.204615+00:00", "email": "contact@impactimmobilier01.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:18:13.657279+00:00", "email": "service.clients@interim-nation.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-12T21:23:41.547517+00:00", "email": "contact@bgi01.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
