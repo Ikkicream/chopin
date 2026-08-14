@@ -22048,3 +22048,7 @@
 {"ts": "2026-08-14T03:03:02.434453+00:00", "email": "michel.morgado@endie.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
 {"ts": "2026-08-14T03:05:17.658301+00:00", "email": "emilie.marien@endie.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
 {"ts": "2026-08-14T03:05:36.871408+00:00", "email": "didier.michelas@endie.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-08-14T20:17:36.178529+00:00", "email": "contact@lesmaisoniales.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-14T20:17:52.411718+00:00", "email": "contact@tempereimmobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-14T20:21:18.682114+00:00", "email": "contact.lepuyenvelay@dohm.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-14T20:21:19.279113+00:00", "email": "contact.lepuyenvelay@dohm.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
