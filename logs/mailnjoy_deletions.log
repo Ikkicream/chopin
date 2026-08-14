@@ -22045,3 +22045,6 @@
 {"ts": "2026-08-13T20:41:06.011721+00:00", "email": "contact@happylock.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-13T20:41:43.131518+00:00", "email": "aubenas@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-13T20:41:43.516687+00:00", "email": "aubenas@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-14T03:03:02.434453+00:00", "email": "michel.morgado@endie.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-08-14T03:05:17.658301+00:00", "email": "emilie.marien@endie.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-08-14T03:05:36.871408+00:00", "email": "didier.michelas@endie.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
