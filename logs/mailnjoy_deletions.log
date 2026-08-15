@@ -22053,3 +22053,7 @@
 {"ts": "2026-08-14T20:21:18.682114+00:00", "email": "contact.lepuyenvelay@dohm.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-14T20:21:19.279113+00:00", "email": "contact.lepuyenvelay@dohm.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-14T21:06:55.119102+00:00", "email": "alain.ropartz@levenementimmobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-15T20:04:40.408431+00:00", "email": "contact@macom.immo", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-15T20:15:33.388307+00:00", "email": "contact@omizi.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-15T20:15:40.594103+00:00", "email": "boulogne@experial-conseil.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-15T20:27:56.323373+00:00", "email": "contact@osmose-immo.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
