@@ -565,3 +565,36 @@
 [veilleur autoscrape] 2026-08-15 20:00:01 UTC
   {"site": "lcr", "status": "done", "heartbeat_min": 1355.5, "valid": 26, "target": 2000, "action": "rien — statut « done » non reprenable"}
   {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-15 21:00:02 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 11.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-15 22:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 71.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-15 23:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 131.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-16 00:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 191.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-16 01:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 251.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-16 02:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 311.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-16 03:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 371.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-16 04:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 431.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-16 05:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 491.8, "valid": 6, "target": 2000, "action": "rien — statut « done » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-16 06:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 551.8, "valid": 6, "target": 2000, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 08:00 à Paris)"}
+[veilleur autoscrape] 2026-08-16 07:00:01 UTC
+  {"site": "lcr", "status": "done", "heartbeat_min": 611.8, "valid": 6, "target": 2000, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — scraping réservé à la plage 22:00–08:00 (il est 09:00 à Paris)"}
