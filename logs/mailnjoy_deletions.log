@@ -22201,3 +22201,23 @@
 {"ts": "2026-08-17T21:33:03.934509+00:00", "email": "b.fedou@coteparticuliers.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-17T21:33:46.821455+00:00", "email": "alexandre.cabrol@iadfrance.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-18T03:09:16.176219+00:00", "email": "contact@66immobilier.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
+{"ts": "2026-08-18T20:05:10.299827+00:00", "email": "contact@vialan.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:06:02.112306+00:00", "email": "narbonne@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:09:21.293851+00:00", "email": "contact@conciergerie-carcassonnaise.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:10:16.294055+00:00", "email": "elie.rigaud@coteparticuliers.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:10:58.706523+00:00", "email": "agence@3c.immo", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:11:05.502996+00:00", "email": "info@avilla.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:11:05.853611+00:00", "email": "carcassonne@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:11:27.868017+00:00", "email": "contact@agencelezimmo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:11:51.486140+00:00", "email": "contact@compagnie-immobiliere.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:11:58.288410+00:00", "email": "infodoc@mediterranee-immobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:12:06.168342+00:00", "email": "ge@groupe-sm.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-18T20:12:40.035529+00:00", "email": "s.weber@coteparticuliers.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:33:19.990069+00:00", "email": "ludovic@lesclefsdubonheur47.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:33:56.876078+00:00", "email": "contact@lougance.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:37:08.613865+00:00", "email": "montauban@florimmoconseil.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:37:08.900999+00:00", "email": "montauban@florimmoconseil.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:37:13.561489+00:00", "email": "aci@coulon-immobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:37:14.911796+00:00", "email": "aci@coulon-immobilier.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:37:26.257367+00:00", "email": "genevieve.rossines@coteparticuliers.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T20:37:26.989572+00:00", "email": "genevieve.rossines@coteparticuliers.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}

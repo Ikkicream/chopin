@@ -5495,3 +5495,94 @@
   "ok": true,
   "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:45 à Paris)"
 }
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:00 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:15 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:30 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:45 à Paris)"
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "11 Aude",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-18T20:00:02+00:00 start immobilier / dept 11 Aude — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (559 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:11",
+    "sector": "immobilier",
+    "dept": "11",
+    "dept_name": "Aude",
+    "region_name": "Occitanie",
+    "night": "2026-08-18",
+    "started_at": "2026-08-18T20:00:02+00:00",
+    "resumes": 0
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:11",
+    "runs": 1,
+    "valid_total": 45,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+{
+  "ok": true,
+  "closed": true,
+  "valid": 45,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:11",
+    "runs": 2,
+    "valid_total": 90,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "82 Tarn-et-Garonne",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-18T20:30:02+00:00 start immobilier / dept 82 Tarn-et-Garonne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (529 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 82",
+    "valid": 15,
+    "current_city": "Moissac"
+  }
+}
+{
+  "ok": true,
+  "closed": true,
+  "valid": 15,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:82",
+    "runs": 1,
+    "valid_total": 15,
+    "status": "pending"
+  }
+}
