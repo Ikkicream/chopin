@@ -22188,3 +22188,16 @@
 {"ts": "2026-08-17T20:47:32.828081+00:00", "email": "elne@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-17T20:47:40.110093+00:00", "email": "info@agence-py.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-17T20:47:56.587943+00:00", "email": "contact@a-immo66.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:16:03.134205+00:00", "email": "contact@elyseaimmobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:16:16.213968+00:00", "email": "albicathedrale@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:16:25.578388+00:00", "email": "aurelien.ginestet@avenue-grandalbigeois.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-17T21:21:39.920550+00:00", "email": "secretariat.direction@oph-castres.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:22:17.854754+00:00", "email": "contact@doulcier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:23:04.833096+00:00", "email": "contact@patriciagomezimmobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:26:17.381109+00:00", "email": "agence.castres@logeetvous.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:30:03.836650+00:00", "email": "gestion-location@immopolis-investissement.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:30:11.380402+00:00", "email": "contact@agence-cathare.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:32:18.922658+00:00", "email": "contact@palis-immo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:33:03.934509+00:00", "email": "b.fedou@coteparticuliers.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-17T21:33:46.821455+00:00", "email": "alexandre.cabrol@iadfrance.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-18T03:09:16.176219+00:00", "email": "contact@66immobilier.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "acquisition import"}
