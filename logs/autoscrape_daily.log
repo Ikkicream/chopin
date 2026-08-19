@@ -5956,3 +5956,94 @@
   "ok": true,
   "skipped": "scraping réservé à la plage 22:00–08:00 (il est 09:45 à Paris)"
 }
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:00 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:15 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:30 à Paris)"
+}
+{
+  "ok": true,
+  "skipped": "scraping réservé à la plage 22:00–08:00 (il est 21:45 à Paris)"
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "65 Hautes-Pyrénées",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-19T20:00:02+00:00 start immobilier / dept 65 Hautes-Pyrénées — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (559 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": true,
+  "valid": 23,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:65",
+    "runs": 1,
+    "valid_total": 23,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "32 Gers",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-19T20:15:02+00:00 start immobilier / dept 32 Gers — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (544 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": true,
+  "valid": 10,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:32",
+    "runs": 1,
+    "valid_total": 10,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "46 Lot",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-19T20:30:02+00:00 start immobilier / dept 46 Lot — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (529 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": true,
+  "valid": 9,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:46",
+    "runs": 1,
+    "valid_total": 9,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:65",
+    "lcr:immobilier:32",
+    "lcr:immobilier:46"
+  ]
+}

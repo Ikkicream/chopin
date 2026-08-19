@@ -4921,25 +4921,18 @@ def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
     """Liste les contacts du pool utilisés par ce site (avec filtres + recherche).
     `engagement` : openers | clickers (filtre comportemental)."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from contacts_pool_backend import (list_contacts_for_site, count_contacts_for_site,
-                                       ETAPES)
-    filtres = dict(
-        state=state.split(",") if state else None,
-        sectors_in=sectors_in.split(",") if sectors_in else None,
-        source=source.split(",") if source else None,
-        search_email=search or None,
-        engagement=engagement or None,
-    )
-    # `total` est le nombre de contacts correspondant aux filtres, pas le nombre de lignes
-    # rendues : sans lui l'interface ne peut pas paginer, et affichait « 25 contacts »
-    # quelle que soit la taille réelle de la sélection.
+    from contacts_pool_backend import list_contacts_for_site
     return {
-        "contacts": list_contacts_for_site(site_code=site, limit=limit, offset=offset,
-                                           **filtres),
-        "total": count_contacts_for_site(site_code=site, **filtres),
-        "limit": limit, "offset": offset,
-        # Le vocabulaire des étapes vient du serveur : c'est lui qui les calcule.
-        "etapes": ETAPES,
+        "contacts": list_contacts_for_site(
+            site_code=site,
+            state=state.split(",") if state else None,
+            sectors_in=sectors_in.split(",") if sectors_in else None,
+            source=source.split(",") if source else None,
+            search_email=search or None,
+            engagement=engagement or None,
+            limit=limit,
+            offset=offset,
+        )
     }
 
 
@@ -5087,165 +5080,76 @@ def api_pool_count_secteur(site: str, sector: str = ""):
         return JSONResponse(status_code=503, content={"error": f"pool indisponible: {e}"[:200]})
 
 
-# ── Suivi commercial (mini-CRM) ───────────────────────────────────────────────
-# Le rôle et l'identité viennent de la SESSION, jamais du corps de la requête : sinon
-# n'importe qui pourrait s'annoncer administrateur pour voir les contacts d'un collègue.
-
-def _qui(request: Request) -> tuple[str, str]:
-    sess = getattr(request.state, "session", None) or {}
-    return (sess.get("role") or ""), (sess.get("username") or "")
-
-
 @app.get("/api/sites/{site}/a-rappeler")
-def api_a_rappeler(site: str, request: Request, vue: str = "mes"):
-    """Liste d'appels du commercial connecté.
+def api_a_rappeler(site: str):
+    """Contacts à rappeler : ceux passés en `lead` ou `prm`, avec la RAISON de leur passage.
 
-    `vue` : mes | vivier | tous (administrateurs). Le filtrage est appliqué côté serveur
-    par `followup_backend.lister` — l'interface ne fait que demander.
+    Le statut n'est jamais posé à la main : un clic dans un email fait passer le contact de
+    `cold_email` à `prm` tout seul. Afficher la liste sans dire pourquoi chacun s'y trouve
+    reviendrait à demander de rappeler des gens sans savoir ce qu'ils ont fait.
+
+    Chaque ligne porte donc `raison`, `promu_par`, et un drapeau `fiable`. Un contact promu
+    sur la campagne `default` SANS clic enregistré est marqué non fiable : ce flux contient
+    le trafic des boîtes de test et les ouvertures par proxy anti-spam, il a promu au moins
+    une adresse de warmup.
     """
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import followup_backend as fb
-    role, user = _qui(request)
-    try:
-        return fb.lister(site, role, user, vue=vue if vue in ("mes", "vivier", "tous") else "mes")
-    except Exception as e:  # noqa: BLE001
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=503, content={"error": f"suivi indisponible: {e}"[:200]})
-
-
-@app.get("/api/sites/{site}/a-rappeler/count")
-def api_a_rappeler_count(site: str, request: Request):
-    """Compteurs seuls, pour la pastille du menu — pas de fiches, pas de journal.
-
-    Le menu est affiché sur TOUTES les pages et se rafraîchit en boucle : il n'a pas à
-    télécharger 75 fiches pour écrire un nombre. La route renvoie aussi l'écart entre le
-    chiffre du tableau de bord et ce que la liste sait montrer (`en_attente`).
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import followup_backend as fb
-    role, user = _qui(request)
-    try:
-        return fb.compter(site, role, user)
-    except Exception as e:  # noqa: BLE001
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=503, content={"error": f"suivi indisponible: {e}"[:200]})
-
-
-@app.get("/api/sites/{site}/a-rappeler/commerciaux")
-def api_a_rappeler_commerciaux(site: str, request: Request):
-    """Comptes auxquels un contact peut être attribué, restreints à ce site.
-
-    Renvoie aussi `par_defaut` : le commercial qui reçoit les rappels d'office. L'interface
-    ne doit pas le deviner — un nom écrit en dur des deux côtés finit toujours par diverger.
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import followup_backend as fb
-    return {"commerciaux": [u for u in fb.commerciaux()
-                            if not u["sites"] or site in u["sites"]],
-            "par_defaut": fb.commercial_par_defaut(site)}
-
-
-@app.get("/api/sites/{site}/a-rappeler/journal")
-def api_a_rappeler_journal(site: str, request: Request, email: str = ""):
-    """Historique des interactions d'un contact."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import followup_backend as fb
-    if not email:
-        return {"journal": []}
-    return {"email": email, "journal": fb.journal(site, email)}
-
-
-@app.post("/api/sites/{site}/a-rappeler/assigner")
-async def api_a_rappeler_assigner(site: str, request: Request):
-    """Attribue un contact à un commercial, ou le remet au vivier (`vers` absent/null)."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import followup_backend as fb
-    role, user = _qui(request)
-    d = await request.json()
-    vers = d.get("vers") or None
-    # « __moi__ » : l'interface ne connaît pas le nom du compte connecté, et le lui faire
-    # deviner l'obligerait à un appel supplémentaire. On résout ici, où la session fait foi —
-    # un client ne peut donc pas s'attribuer un contact au nom d'un collègue.
-    if vers == "__moi__":
-        vers = user
-    r = fb.assigner(site, d.get("email", ""), vers, role, user)
-    if not r.get("ok"):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=403, content=r)
-    return r
-
-
-@app.post("/api/sites/{site}/a-rappeler/flash")
-async def api_a_rappeler_flash(site: str, request: Request):
-    """Épingle / dépingle un contact : il remonte en tête de la liste d'appels."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import followup_backend as fb
-    role, user = _qui(request)
-    d = await request.json()
-    r = fb.basculer_flash(site, d.get("email", ""), role, user)
-    if not r.get("ok"):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=403, content=r)
-    return r
-
-
-@app.post("/api/sites/{site}/a-rappeler/retirer")
-async def api_a_rappeler_retirer(site: str, request: Request):
-    """Retire un contact de la liste d'appels (ou l'y remet avec `annuler`).
-
-    Retrait et non suppression : le contact reste au référentiel, son journal aussi, et
-    `pg_reconcile` ne le fera pas réapparaître demain matin.
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import followup_backend as fb
-    role, user = _qui(request)
-    d = await request.json()
-    r = fb.retirer(site, d.get("email", ""), role, user, annuler=bool(d.get("annuler")))
-    if not r.get("ok"):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=403, content=r)
-    return r
-
-
-@app.post("/api/sites/{site}/a-rappeler/appel")
-async def api_a_rappeler_appel(site: str, request: Request):
-    """Consigne une interaction : issue, statut, note, prochaine relance."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import followup_backend as fb
-    role, user = _qui(request)
-    d = await request.json()
-    r = fb.enregistrer_appel(
-        site, d.get("email", ""), role, user,
-        statut=d.get("statut") or None,
-        outcome=d.get("outcome") or "",
-        note=d.get("note") or "",
-        next_action_at=d.get("next_action_at"),
-        est_un_appel=bool(d.get("est_un_appel", True)),
-    )
-    if not r.get("ok"):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=403, content=r)
-    return r
-
-
-@app.get("/api/sites/{site}/contacts/pool/count")
-def api_pool_count_secteur(site: str, sector: str = ""):
-    """Combien de contacts contactables pour UN secteur.
-
-    Appelée par l'éditeur de newsletters pour annoncer la taille de la cible avant envoi.
-    La route n'existait pas : l'appel renvoyait 404, la page l'avalait dans un `catch` et
-    n'affichait aucun compteur. Personne ne pouvait le voir — le symptôme d'une route
-    absente et celui d'un compteur à zéro sont identiques à l'écran.
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    if not (sector or "").strip():
-        return {"sector": "", "count": 0, "error": "secteur manquant"}
+    import json as _json
     import contacts_pool_backend as pool
     try:
-        return {"sector": sector, "count": pool.count_available_for_sector(site, sector)}
+        c = pool._conn(read_only=True)
     except Exception as e:  # noqa: BLE001
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=503, content={"error": f"pool indisponible: {e}"[:200]})
+    try:
+        rows = c.execute("""
+            SELECT ct.id, ct.email, ct.prenom, ct.nom, ct.societe, ct.tel, ct.website,
+                   ct.city, ct.dept_code, h.state, h.last_opened_at, h.last_clicked_at,
+                   h.last_contacted_by_site_at, h.state_history, h.last_action_at
+            FROM contact_site_history h
+            JOIN contacts ct ON ct.id = h.contact_id
+            WHERE h.site_code = ? AND h.state IN ('lead', 'prm')
+              AND COALESCE(ct.global_blacklisted, FALSE) = FALSE
+            ORDER BY h.last_clicked_at DESC NULLS LAST, h.last_action_at DESC
+        """, [site]).fetchall()
+    finally:
+        c.close()
+
+    out = []
+    for r in rows:
+        hist = r[13]
+        if isinstance(hist, str):
+            try:
+                hist = _json.loads(hist)
+            except Exception:
+                hist = []
+        dernier = (hist or [])[-1] if hist else {}
+        par = dernier.get("by") or "?"
+        note = dernier.get("note") or ""
+        a_clique = r[11] is not None
+        # Un clic attribué à une vraie campagne est un signal ; « campaign=default » sans
+        # clic horodaté n'en est pas un.
+        fiable = a_clique or (par == "tally") or ("campaign=default" not in note)
+        if par == "tally" or r[9] == "lead":
+            raison = "A rempli le formulaire de contact"
+        elif a_clique:
+            raison = "A cliqué dans un email de campagne"
+        elif "campaign=default" in note:
+            raison = "Clic signalé par Sweego, sans horodatage — à vérifier"
+        else:
+            raison = note or "Promotion manuelle"
+        out.append({
+            "id": r[0], "email": r[1], "prenom": r[2], "nom": r[3], "societe": r[4],
+            "tel": r[5], "website": r[6], "city": r[7], "dept_code": r[8], "state": r[9],
+            "last_opened_at": str(r[10]) if r[10] else None,
+            "last_clicked_at": str(r[11]) if r[11] else None,
+            "last_contacted_at": str(r[12]) if r[12] else None,
+            "promu_par": par, "raison": raison, "fiable": fiable,
+        })
+    return {"site": site, "total": len(out),
+            "fiables": sum(1 for x in out if x["fiable"]),
+            "a_verifier": sum(1 for x in out if not x["fiable"]),
+            "contacts": out}
 
 
 @app.get("/api/sites/{site}/pool/sector-availability")
@@ -6008,18 +5912,6 @@ async def api_segment_update(site: str, sid: str, request: Request):
     return sb.update_segment(sid, site, body, by=(sess or {}).get("username", "ui"))
 
 
-@app.post("/api/sites/{site}/segments/{sid}/duplicate")
-def api_segment_duplicate(site: str, sid: str, request: Request):
-    """Copie un segment sous un NOUVEL identifiant, déverrouillée.
-
-    Le chemin porte un segment de plus que `/segments/{sid}` : aucune ambiguïté de route.
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import segments_backend as sb
-    sess = getattr(request.state, "session", None)
-    return sb.duplicate_segment(sid, site, by=(sess or {}).get("username", "ui"))
-
-
 @app.delete("/api/sites/{site}/segments/{sid}")
 def api_segment_delete(site: str, sid: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
@@ -6051,13 +5943,8 @@ def api_campaign_detail(site: str, cid: str):
         )
     except Exception:
         available = None
-    try:
-        envois = ce.journal_envois(site, cid)
-    except Exception:  # noqa: BLE001
-        envois = []
     return {"ok": True, "campaign": camp, "available": available,
-            "message_html": msg.get("html") or "", "message_name": msg.get("name") or "",
-            "envois": envois}
+            "message_html": msg.get("html") or "", "message_name": msg.get("name") or ""}
 
 
 @app.patch("/api/sites/{site}/campaigns/{cid}")
@@ -6576,42 +6463,6 @@ async def api_autoscrape_start(site: str, request: Request):
     return {"ok": True, "started": True, "site": site, "all_regions": all_regions,
             "region": region or None, "region_name": region_name or None,
             "dept": dept or None, "sectors": sectors, "target_contacts": target_contacts}
-
-
-@app.get("/api/scrape/active")
-def api_scrape_active():
-    """Scrapings en cours, tous sites confondus — pour la barre superadmin.
-
-    La barre est globale : elle ne peut pas interroger une route par site sans savoir
-    lesquels existent. Un run sans battement de cœur depuis 5 min est déclaré interrompu,
-    comme le fait déjà la route par site — sinon un process tué net s'afficherait
-    indéfiniment comme « en cours ».
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import autoscrape_backend as asb
-    import time as _tm
-    items = []
-    for site in ("lcr", "mkd"):
-        try:
-            st = asb.read_status(site)
-        except Exception:
-            continue
-        statut = st.get("status")
-        if statut not in ("running", "starting", "stopping", "cleaning"):
-            continue
-        mort = (_tm.time() - st.get("updated_at", 0)) > 300
-        items.append({
-            "site": site,
-            "status": "interrupted" if mort else statut,
-            "region_name": st.get("region_name") or "",
-            "current_dept": st.get("current_dept") or "",
-            "current_city": st.get("current_city") or "",
-            "valid": st.get("valid") or 0,
-            "target": st.get("target_contacts") or 0,
-            "sectors": st.get("sectors") or [],
-            "updated_at": st.get("updated_at") or 0,
-        })
-    return {"count": len(items), "items": items}
 
 
 @app.get("/api/sites/{site}/autoscrape/status")

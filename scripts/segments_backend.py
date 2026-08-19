@@ -191,6 +191,7 @@ def _row(r) -> dict:
         if d.get(k) is not None:
             d[k] = str(d[k])
     d["summary"] = describe_rules(d["rules"])
+    d["reference"] = reference(d.get("id") or "")
     return d
 
 
@@ -199,9 +200,15 @@ def list_segments(site: str) -> list[dict]:
     c = _conn()
     try:
         rows = c.execute(_SELECT + " WHERE site_code=? ORDER BY created_at DESC", [site]).fetchall()
+        usages = _usages(c)
     finally:
         c.close()
-    return [_row(r) for r in rows]
+    out = []
+    for r in rows:
+        d = _row(r)
+        d["used_by"] = usages.get(d["id"], [])
+        out.append(d)
+    return out
 
 
 def get_segment(sid: str) -> dict | None:
@@ -273,12 +280,93 @@ def update_segment(sid: str, site: str, patch: dict, by: str = "ui") -> dict:
     return {"ok": True, "segment": get_segment(sid)}
 
 
+# ── Identité technique et usage ──────────────────────────────────────────────
+# L'identifiant d'un segment est son UUID, et lui seul : c'est ce que les campagnes
+# enregistrent dans `params.segment_id`, et c'est sur lui que `campaign_engine` retrouve
+# les règles au moment du dispatch. Deux conséquences, appliquées ici :
+#
+#   1. La référence lisible (« SEG-3F9A21 ») est DÉRIVÉE de l'UUID, jamais stockée. Un
+#      second identifiant rangé dans une colonne finit toujours par diverger du premier.
+#   2. Une duplication crée un NOUVEL UUID. Copier un segment sans changer d'identifiant
+#      ferait pointer deux objets modifiables sur la même clé de campagne.
+#
+# Et surtout : on ne supprime pas un segment qu'une campagne utilise. Le moteur refuse de
+# dispatcher quand la cible a disparu (« segment introuvable — campagne bloquée ») ; le
+# problème se découvrait alors le matin de l'envoi. Il se découvre maintenant au clic.
+
+def reference(sid: str) -> str:
+    """Référence courte affichable, dérivée de l'UUID. Jamais utilisée comme clé."""
+    return "SEG-" + (sid or "").replace("-", "")[:6].upper()
+
+
+def _usages(c, sids: list[str] | None = None) -> dict[str, list[dict]]:
+    """Campagnes pointant sur chaque segment, en une requête.
+
+    `campaigns_unified` peut ne pas exister (base neuve) : dans ce cas personne n'utilise
+    de segment, et l'absence de table n'est pas une erreur.
+    """
+    try:
+        rows = c.execute("""
+            SELECT json_extract_string(params, '$.segment_id') AS sid,
+                   id, name, status
+            FROM campaigns_unified
+            WHERE json_extract_string(params, '$.segment_id') IS NOT NULL
+        """).fetchall()
+    except Exception:
+        return {}
+    out: dict[str, list[dict]] = {}
+    for sid, cid, nom, statut in rows:
+        if sids is not None and sid not in sids:
+            continue
+        out.setdefault(sid, []).append({"id": cid, "name": nom, "status": statut})
+    return out
+
+
+def usage(sid: str) -> list[dict]:
+    """Les campagnes qui s'appuient sur ce segment (vide si aucune)."""
+    _ensure_table()
+    c = _conn()
+    try:
+        return _usages(c, [sid]).get(sid, [])
+    finally:
+        c.close()
+
+
+def duplicate_segment(sid: str, site: str, by: str = "ui") -> dict:
+    """Copie un segment sous un nouvel identifiant.
+
+    La copie arrive TOUJOURS déverrouillée : on duplique précisément pour modifier. Le
+    nom reçoit un suffixe numéroté, parce que trois « (copie) » dans une liste ne se
+    distinguent plus les uns des autres.
+    """
+    seg = get_segment(sid)
+    if not seg or seg["site_code"] != site:
+        return {"ok": False, "error": "segment introuvable"}
+
+    existants = {s["name"] for s in list_segments(site)}
+    base = f"{seg['name']} (copie)"
+    nom, n = base, 2
+    while nom in existants:
+        nom, n = f"{base} {n}", n + 1
+
+    return create_segment(site, nom, seg["rules"],
+                          description=seg.get("description") or "", by=by)
+
+
 def delete_segment(sid: str, site: str) -> dict:
     seg = get_segment(sid)
     if not seg or seg["site_code"] != site:
         return {"ok": False, "error": "segment introuvable"}
     if seg["locked"]:
         return {"ok": False, "error": "segment verrouillé — déverrouille-le avant de le supprimer"}
+    # Une campagne dont la cible a disparu ne bascule pas sur un autre ciblage : elle
+    # s'arrête au dispatch suivant. On refuse donc ici, pendant qu'on peut encore choisir.
+    utilise = usage(sid)
+    if utilise:
+        noms = ", ".join(u["name"] for u in utilise[:3])
+        return {"ok": False, "error": f"utilisé par {len(utilise)} campagne(s) : {noms}"
+                                      " — duplique-le ou retire-le de ces campagnes d'abord",
+                "used_by": utilise}
     c = _conn()
     try:
         c.execute("DELETE FROM segments WHERE id=?", [sid])

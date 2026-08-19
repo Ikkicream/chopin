@@ -1,0 +1,362 @@
+#!/usr/bin/env python3
+"""dashboard_stats_backend.py — Statistiques hebdomadaires et inventaire des bases.
+
+Deux besoins distincts, volontairement rendus en DEUX tableaux séparés :
+  - ce qui SORT   : les emails envoyés et ce qu'ils ont produit (ouvertures, clics, échecs)
+  - ce qui ENTRE  : les contacts scrapés et ce qu'il en reste après validation
+
+Les mélanger était précisément ce qui rendait le tableau de bord illisible.
+
+Découpage en semaines : semaines ISO (lundi → dimanche), à l'heure de PARIS. Les horodatages
+sont stockés en UTC ; le scraping tourne de 22 h à 8 h heure de Paris, donc à cheval sur
+minuit UTC. Regrouper sur l'UTC ferait basculer une partie d'une nuit dans la semaine
+précédente. Le regroupement est fait en Python plutôt qu'en SQL : les volumes sont petits
+(quelques milliers de lignes), le résultat est exact aux changements d'heure près, et le code
+survivra tel quel à la migration PostgreSQL.
+"""
+from __future__ import annotations
+
+import os
+import sqlite3
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+import duckdb
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+GOD_DB = BASE_DIR / "data" / "god_mode.duckdb"
+POOL_DB = BASE_DIR / "data" / "contacts.duckdb"
+PARIS = ZoneInfo("Europe/Paris")
+
+_MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin",
+         "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+
+
+# ── Découpage en semaines ─────────────────────────────────────────────────────
+
+def _to_paris(ts) -> datetime | None:
+    """Horodatage de la base → datetime conscient du fuseau de Paris."""
+    if ts is None:
+        return None
+    if isinstance(ts, str):
+        try:
+            ts = datetime.fromisoformat(ts)
+        except ValueError:
+            return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(PARIS)
+
+
+def _monday(d: datetime) -> datetime:
+    """Lundi 00:00 (Paris) de la semaine contenant `d`."""
+    d = d.replace(hour=0, minute=0, second=0, microsecond=0)
+    return d - timedelta(days=d.weekday())
+
+
+def _week_label(monday: datetime) -> str:
+    """« 17–23 août », ou « 28 juil.–3 août » quand la semaine change de mois."""
+    sunday = monday + timedelta(days=6)
+    if monday.month == sunday.month:
+        return f"{monday.day}–{sunday.day} {_MOIS[sunday.month - 1]}"
+    return (f"{monday.day} {_MOIS[monday.month - 1]}–"
+            f"{sunday.day} {_MOIS[sunday.month - 1]}")
+
+
+def _week_skeleton(weeks: int) -> tuple[list[datetime], dict]:
+    """Les `weeks` dernières semaines, la plus récente d'abord, et leur index vide.
+
+    Le squelette est construit AVANT d'interroger les bases : une semaine sans activité doit
+    apparaître avec des zéros, pas disparaître du tableau — c'est justement l'information
+    utile (« on n'a rien envoyé cette semaine-là »).
+    """
+    current = _monday(datetime.now(PARIS))
+    mondays = [current - timedelta(weeks=i) for i in range(weeks)]
+    return mondays, {m.date().isoformat(): {} for m in mondays}
+
+
+def _bucket(rows, index: dict, key: str, mondays: list[datetime], amount_idx: int | None = None):
+    """Range des horodatages dans les semaines du squelette.
+
+    `rows` = [(timestamp,)] ou [(timestamp, quantité)] si `amount_idx` est fourni.
+    """
+    first = mondays[-1]
+    for r in rows:
+        p = _to_paris(r[0])
+        if p is None or p < first:
+            continue
+        k = _monday(p).date().isoformat()
+        if k in index:
+            index[k][key] = index[k].get(key, 0) + (int(r[amount_idx] or 0)
+                                                    if amount_idx is not None else 1)
+
+
+def _god(read_only: bool = True):
+    return duckdb.connect(str(GOD_DB), read_only=read_only)
+
+
+# ── Tableau 1 : ce qui sort ───────────────────────────────────────────────────
+
+def weekly_email_stats(site: str, weeks: int = 8) -> dict:
+    """Emails envoyés par semaine, et ce qu'ils ont produit.
+
+    Sources, et pourquoi celles-là :
+
+    - `envoyes` / `destinataires` : journal `maildoso_sent` (une ligne par destinataire) plus
+      les campagnes de masse Sweego, qui ne fournissent qu'un compteur global.
+    - `redites` = envoyés − destinataires uniques. C'est LE chiffre à surveiller : en août
+      2026, 1 189 envois n'ont touché que 724 personnes, et quatre adresses ont reçu jusqu'à
+      18 fois le même message. Une valeur non nulle ici doit alerter.
+    - `ouvreurs` / `cliqueurs` : `contact_site_history` et NON `sweego_events`. Les emails
+      maildoso sont tracés par le pixel `/api/track/open`, qui écrit dans le pool ;
+      `sweego_events` ne couvre que le canal Sweego et contient en outre le trafic des boîtes
+      de test et des ouvertures par proxy anti-spam — s'en servir donnait des taux à 15 000 %.
+
+    Limite assumée : le pool ne retient que la DERNIÈRE ouverture par contact. Ces colonnes
+    comptent donc des *personnes ayant ouvert cette semaine-là*, pas un nombre d'ouvertures.
+    C'est exactement ce que la table `email_events` de la migration PostgreSQL corrigera.
+    """
+    mondays, idx = _week_skeleton(weeks)
+    depuis = mondays[-1].astimezone(timezone.utc).replace(tzinfo=None)
+
+    c = _god()
+    try:
+        envois = c.execute(
+            "SELECT created_at, lower(to_email) FROM maildoso_sent "
+            "WHERE site_code = ? AND status = 'sent' AND created_at >= ?",
+            [site, depuis]).fetchall()
+        _bucket([(t,) for t, _ in envois], idx, "envoyes", mondays)
+
+        # Destinataires DISTINCTS par semaine : il faut dédupliquer à l'intérieur de chaque
+        # semaine, ce qu'un simple comptage ne saurait pas faire.
+        vus: dict[str, set] = {}
+        for t, em in envois:
+            p = _to_paris(t)
+            if p is None or p < mondays[-1]:
+                continue
+            k = _monday(p).date().isoformat()
+            if k in idx:
+                vus.setdefault(k, set()).add(em)
+
+        _bucket(c.execute(
+            "SELECT created_at, recipients_count FROM mass_campaigns "
+            "WHERE site_code = ? AND created_at >= ?",
+            [site, depuis]).fetchall(), idx, "envoyes", mondays, amount_idx=1)
+
+        # Échecs : on ne retient que les rebonds d'adresses RÉELLEMENT prospectées. Sans ce
+        # filtre, les boîtes de test et de warmup gonflent la colonne.
+        rebonds = c.execute(
+            "SELECT received_at, lower(email) FROM sweego_events "
+            "WHERE site_code = ? AND event_type IN ('hard_bounce', 'complaint') "
+            "AND received_at >= ?", [site, depuis]).fetchall()
+    finally:
+        c.close()
+
+    ouvreurs, cliqueurs, prospects = [], [], set()
+    try:
+        pool = duckdb.connect(str(POOL_DB), read_only=True)
+        try:
+            ouvreurs = pool.execute(
+                "SELECT last_opened_at FROM contact_site_history "
+                "WHERE site_code = ? AND last_opened_at >= ?", [site, depuis]).fetchall()
+            cliqueurs = pool.execute(
+                "SELECT last_clicked_at FROM contact_site_history "
+                "WHERE site_code = ? AND last_clicked_at >= ?", [site, depuis]).fetchall()
+            prospects = {r[0] for r in pool.execute(
+                "SELECT lower(c.email) FROM contacts c "
+                "JOIN contact_site_history h ON h.contact_id = c.id "
+                "WHERE h.site_code = ? AND c.email IS NOT NULL", [site]).fetchall()}
+        finally:
+            pool.close()
+    except Exception:
+        pass  # pool verrouillé : on rend les envois plutôt qu'une erreur
+
+    _bucket(ouvreurs, idx, "ouvreurs", mondays)
+    _bucket(cliqueurs, idx, "cliqueurs", mondays)
+    _bucket([(t,) for t, em in rebonds if em in prospects], idx, "echecs", mondays)
+
+    lignes = []
+    for m in mondays:
+        k = m.date().isoformat()
+        d = idx[k]
+        envoyes = d.get("envoyes", 0)
+        destinataires = len(vus.get(k, ()))
+        ouv = d.get("ouvreurs", 0)
+        lignes.append({
+            "semaine": k,
+            "libelle": _week_label(m),
+            "envoyes": envoyes,
+            "destinataires": destinataires,
+            "redites": max(0, envoyes - destinataires) if destinataires else 0,
+            "ouvreurs": ouv,
+            "cliqueurs": d.get("cliqueurs", 0),
+            "echecs": d.get("echecs", 0),
+            # Rapporté aux destinataires uniques et non aux envois : deux comptages de
+            # personnes, donc comparables. Rapporté aux envois, un renvoi ferait mécaniquement
+            # chuter le taux sans que personne n'ait moins ouvert.
+            "taux_ouverture": round(100 * ouv / destinataires, 1) if destinataires else 0.0,
+        })
+    return {
+        "site": site,
+        "semaines": lignes,
+        "note": ("« Ouvreurs » compte des personnes, pas des ouvertures : le pool ne garde "
+                 "que la dernière ouverture par contact. « Redites » = emails envoyés à "
+                 "quelqu'un qui en avait déjà reçu un cette semaine-là — doit rester à 0."),
+    }
+
+
+# ── Tableau 2 : ce qui entre ──────────────────────────────────────────────────
+
+def weekly_scraping_stats(site: str, weeks: int = 8) -> dict:
+    """Contacts scrapés par semaine, et ce qu'il en reste après validation Mailnjoy."""
+    mondays, idx = _week_skeleton(weeks)
+    depuis = mondays[-1].astimezone(timezone.utc).replace(tzinfo=None)
+
+    c = _god()
+    try:
+        _bucket(c.execute(
+            "SELECT created_at FROM scrappe WHERE site_code = ? AND created_at >= ?",
+            [site, depuis]).fetchall(), idx, "valides", mondays)
+        _bucket(c.execute(
+            "SELECT last_seen FROM scrappe_rejected WHERE site_code = ? AND last_seen >= ?",
+            [site, depuis]).fetchall(), idx, "rejetes", mondays)
+        _bucket(c.execute(
+            "SELECT created_at FROM scrappe_pending WHERE site_code = ? AND created_at >= ?",
+            [site, depuis]).fetchall(), idx, "en_attente", mondays)
+    finally:
+        c.close()
+
+    # Entrées réelles dans le pool : c'est le seul chiffre qui compte vraiment, car un email
+    # déjà connu est validé sans rien ajouter. L'écart avec `valides` est le taux de doublon.
+    try:
+        p = duckdb.connect(str(POOL_DB), read_only=True)
+        try:
+            _bucket(p.execute(
+                "SELECT added_to_site_at FROM contact_site_history "
+                "WHERE site_code = ? AND added_to_site_at >= ?",
+                [site, depuis]).fetchall(), idx, "nouveaux_pool", mondays)
+        finally:
+            p.close()
+    except Exception:
+        pass  # pool verrouillé par un scrape : on rend le reste plutôt qu'une erreur
+
+    lignes = []
+    for m in mondays:
+        d = idx[m.date().isoformat()]
+        valides = d.get("valides", 0)
+        rejetes = d.get("rejetes", 0)
+        traites = valides + rejetes
+        lignes.append({
+            "semaine": m.date().isoformat(),
+            "libelle": _week_label(m),
+            "traites": traites,
+            "valides": valides,
+            "rejetes": rejetes,
+            "en_attente": d.get("en_attente", 0),
+            "nouveaux_pool": d.get("nouveaux_pool", 0),
+            "taux_validation": round(100 * valides / traites, 1) if traites else 0.0,
+        })
+    return {
+        "site": site,
+        "semaines": lignes,
+        "note": ("« Traités » = validés + rejetés. « Nouveaux au pool » exclut les emails "
+                 "déjà connus : l'écart avec « validés » est le taux de doublon du scraping."),
+    }
+
+
+# ── Inventaire des bases ──────────────────────────────────────────────────────
+
+_BASES = [
+    ("god_mode.duckdb",      "data/god_mode.duckdb",      "duckdb",
+     "Scraping, campagnes, envois, journaux"),
+    ("contacts.duckdb",      "data/contacts.duckdb",      "duckdb",
+     "Pool de contacts mutualisé"),
+    ("auth.duckdb",          "data/auth.duckdb",          "duckdb",
+     "Utilisateurs, sessions, connexions"),
+    ("crm/lcr.duckdb",       "data/crm/lcr.duckdb",       "duckdb",
+     "CRM legacy LCR (en cours de migration vers le pool)"),
+    ("crm/mkd.duckdb",       "data/crm/mkd.duckdb",       "duckdb",
+     "CRM legacy MKD (en cours de migration vers le pool)"),
+    ("datagouv_cache.sqlite", "data/datagouv_cache.sqlite", "sqlite",
+     "Cache des appels data.gouv (enrichissement)"),
+]
+
+
+def database_inventory() -> dict:
+    """Toutes les bases, leurs tables, le nombre de lignes et de champs.
+
+    Une base verrouillée par un écrivain est rendue avec son erreur plutôt que de faire
+    échouer l'inventaire entier : sur DuckDB, c'est une situation normale pendant un scrape,
+    et l'écran doit rester lisible.
+    """
+    bases, t_tables, t_champs, t_lignes, t_octets = [], 0, 0, 0, 0
+
+    for nom, rel, moteur, role in _BASES:
+        chemin = BASE_DIR / rel
+        entree = {"nom": nom, "moteur": moteur, "role": role,
+                  "octets": 0, "tables": [], "erreur": None}
+        if not chemin.exists():
+            entree["erreur"] = "fichier absent"
+            bases.append(entree)
+            continue
+        entree["octets"] = os.path.getsize(chemin)
+        t_octets += entree["octets"]
+
+        try:
+            if moteur == "duckdb":
+                c = duckdb.connect(str(chemin), read_only=True)
+                try:
+                    champs = dict(c.execute(
+                        "SELECT table_name, count(*) FROM information_schema.columns "
+                        "GROUP BY 1").fetchall())
+                    noms = sorted(c.execute(
+                        "SELECT table_name FROM information_schema.tables").fetchall())
+                    for (t,) in noms:
+                        n = c.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0]
+                        entree["tables"].append(
+                            {"nom": t, "lignes": int(n), "champs": int(champs.get(t, 0))})
+                finally:
+                    c.close()
+            else:
+                con = sqlite3.connect(f"file:{chemin}?mode=ro", uri=True)
+                try:
+                    noms = [r[0] for r in con.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' "
+                        "AND name NOT LIKE 'sqlite_%' ORDER BY 1")]
+                    for t in noms:
+                        n = con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0]
+                        ch = len(con.execute(f'PRAGMA table_info("{t}")').fetchall())
+                        entree["tables"].append(
+                            {"nom": t, "lignes": int(n), "champs": ch})
+                finally:
+                    con.close()
+        except Exception as e:  # noqa: BLE001
+            entree["erreur"] = str(e)[:200]
+
+        entree["tables"].sort(key=lambda x: -x["lignes"])
+        entree["nb_tables"] = len(entree["tables"])
+        entree["nb_champs"] = sum(t["champs"] for t in entree["tables"])
+        entree["nb_lignes"] = sum(t["lignes"] for t in entree["tables"])
+        t_tables += entree["nb_tables"]
+        t_champs += entree["nb_champs"]
+        t_lignes += entree["nb_lignes"]
+        bases.append(entree)
+
+    return {"bases": bases,
+            "total": {"bases": len(bases), "tables": t_tables,
+                      "champs": t_champs, "lignes": t_lignes, "octets": t_octets},
+            "genere_le": datetime.now(timezone.utc).isoformat()}
+
+
+if __name__ == "__main__":
+    import json
+    import sys
+    quoi = sys.argv[1] if len(sys.argv) > 1 else "inventaire"
+    site = sys.argv[2] if len(sys.argv) > 2 else "lcr"
+    if quoi == "emails":
+        print(json.dumps(weekly_email_stats(site), indent=2, ensure_ascii=False))
+    elif quoi == "scraping":
+        print(json.dumps(weekly_scraping_stats(site), indent=2, ensure_ascii=False))
+    else:
+        print(json.dumps(database_inventory(), indent=2, ensure_ascii=False))

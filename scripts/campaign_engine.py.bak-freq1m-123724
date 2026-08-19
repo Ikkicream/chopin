@@ -25,19 +25,6 @@ GOD_DB = BASE_DIR / "data" / "god_mode.duckdb"
 VALID_CHANNELS = ("sweego", "emelia", "maildoso")
 ACTIVE_STATUSES = ("scheduled", "running")
 
-# FRÉQUENCE MAXIMALE (décision user 2026-08-19) : dès qu'une personne a reçu un email elle
-# est inscrite en base repoussoir et ne reçoit PLUS RIEN pendant 120 jours. Doit rester
-# aligné sur contacts_pool_backend.SUPPRESSION_DAYS — qui est la source de vérité : on la
-# lit plutôt que de la recopier, pour qu'un changement de règle ne laisse pas deux durées
-# divergentes entre le moteur de campagne et le pool.
-# L'import est gardé : campaign_engine est chargé par l'API au démarrage, et une erreur
-# d'import ici la rendrait inaccessible. Le repli conserve la règle (120 jours), il ne
-# l'assouplit pas.
-try:
-    from contacts_pool_backend import SUPPRESSION_DAYS as MIN_DAYS_BETWEEN_EMAILS
-except Exception:  # noqa: BLE001
-    MIN_DAYS_BETWEEN_EMAILS = 120
-
 
 def _conn():
     return duckdb.connect(str(GOD_DB))
@@ -178,26 +165,7 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
         )
     finally:
         c.close()
-    _miroir_campagne(cid)
     return {"ok": True, "id": cid, "status": "scheduled", "utm_campaign": utm_campaign, "plan": plan}
-
-
-def _miroir_campagne(cid: str) -> None:
-    """Recopie la campagne dans PostgreSQL après toute écriture.
-
-    On relit la ligne plutôt que de recopier les arguments de l'appelant : c'est l'état
-    réellement enregistré qui doit être reflété, pas ce qu'on croyait écrire. Best-effort —
-    PostgreSQL n'est pas encore la source de vérité pour les campagnes — mais tout échec est
-    compté par `pg_sync.sync_health()` au lieu d'être avalé.
-    """
-    try:
-        import pg_sync
-        camp = get_campaign(cid)
-        if camp:
-            pg_sync.sync_campaign(camp)
-    except Exception as e:  # noqa: BLE001
-        print(f"[campaign_engine] miroir PostgreSQL indisponible : {type(e).__name__}: {e}",
-              flush=True)
 
 
 def _row_to_dict(r) -> dict:
@@ -231,43 +199,6 @@ def list_campaigns(site: str) -> list[dict]:
     finally:
         c.close()
     return [_row_to_dict(r) for r in rows]
-
-
-def journal_envois(site: str, cid: str) -> list[dict]:
-    """Ce qui est RÉELLEMENT parti pour cette campagne, jour par jour.
-
-    `sent_count` dit un total ; il ne dit ni quand, ni en combien de fois. Or c'est
-    exactement la question qu'on se pose devant une campagne : « elle est partie quand,
-    vers combien de personnes ? ». On lit les journaux d'envoi — `maildoso_sent` (une ligne
-    par destinataire) et `mass_campaigns` (une ligne par envoi de masse) — et non l'état
-    courant du pool, qui écrase la date à chaque nouvel envoi.
-
-    L'identifiant d'un envoi est « {site}-{campagne}-{date} » : un `LIKE` sur le préfixe
-    suffit et évite d'avoir à parser la date.
-    """
-    prefixe = f"{site}-{cid}-%"
-    lignes: dict[str, dict] = {}
-    c = _conn()
-    try:
-        try:
-            for jour, n in c.execute(
-                    "SELECT strftime(created_at, '%Y-%m-%d') AS j, count(*) "
-                    "FROM maildoso_sent WHERE site_code = ? AND status = 'sent' "
-                    "AND campaign_id LIKE ? GROUP BY 1", [site, prefixe]).fetchall():
-                lignes.setdefault(jour, {"jour": jour, "volume": 0, "canal": "maildoso"})["volume"] += int(n)
-        except Exception:
-            pass
-        try:
-            for jour, n in c.execute(
-                    "SELECT strftime(created_at, '%Y-%m-%d') AS j, sum(recipients_count) "
-                    "FROM mass_campaigns WHERE site_code = ? AND campaign_id LIKE ? "
-                    "GROUP BY 1", [site, prefixe]).fetchall():
-                lignes.setdefault(jour, {"jour": jour, "volume": 0, "canal": "sweego"})["volume"] += int(n or 0)
-        except Exception:
-            pass
-    finally:
-        c.close()
-    return sorted(lignes.values(), key=lambda e: e["jour"], reverse=True)
 
 
 def get_campaign(cid: str) -> dict | None:
@@ -396,8 +327,8 @@ def update_campaign(site: str, cid: str, patch: dict, by: str = "ui") -> dict:
         c.execute(f"UPDATE campaigns_unified SET {', '.join(sets)} WHERE id=?", vals + [cid])
     finally:
         c.close()
-    _miroir_campagne(cid)
     return {"ok": True, "id": cid, "campaign": get_campaign(cid)}
+
 
 def set_status(cid: str, status: str, error: str | None = None) -> bool:
     _ensure_table()
@@ -407,8 +338,8 @@ def set_status(cid: str, status: str, error: str | None = None) -> bool:
                   [status, error, cid])
     finally:
         c.close()
-    _miroir_campagne(cid)
     return True
+
 
 def _bump_sent(cid: str, n: int = 1) -> None:
     """Incrémente le compteur d'envois immédiatement, sans attendre la fin du lot.
@@ -444,55 +375,6 @@ def _todays_allowance(camp: dict, today: _date) -> int:
         expected = max(expected, target)  # cadence finie : tout le reliquat
     daily_cap = max(int(s.get("count", 0)) for s in cadence)
     return max(0, min(expected - sent, daily_cap))
-
-
-def _drop_recently_emailed(contacts: list[dict],
-                           days: int = MIN_DAYS_BETWEEN_EMAILS) -> tuple[list[dict], int]:
-    """Retire du lot tout contact ayant déjà reçu un email dans les `days` derniers jours.
-
-    Dernière barrière avant l'envoi, croisant DEUX sources indépendantes du tri du pool :
-
-    1. la **base repoussoir** (`email_suppression`) — le registre de référence, alimenté à
-       chaque envoi réussi, tous canaux ; il survit à la disparition du contact du pool ;
-    2. le **journal d'envois** maildoso (`maildoso_sent`) — la preuve matérielle qu'un
-       message est bien parti, utile si l'inscription en base repoussoir a échoué.
-
-    Redondant par construction : en août 2026, quatre adresses ont reçu jusqu'à 17 fois le
-    même message parce qu'une seule barrière (le cooldown du pool) pouvait échouer en
-    silence. Sweego et Emelia ne journalisant pas par destinataire, la base repoussoir est
-    leur seule couverture ici — d'où le fait qu'elle soit écrite dans la transaction du
-    marquage de contact.
-    """
-    emails = [ct.get("email") for ct in contacts if ct.get("email")]
-    if not emails:
-        return contacts, 0
-    blocked: set[str] = set()
-    try:
-        import contacts_pool_backend as _pool
-        blocked |= _pool.filter_suppressed(emails)
-    except Exception as e:  # noqa: BLE001
-        # Une base repoussoir injoignable ne doit pas faire passer l'envoi en force : on
-        # le signale bruyamment, le journal maildoso ci-dessous reste en couverture.
-        print(f"[campaign_engine] base repoussoir illisible : {e}")
-    c = _conn()
-    try:
-        c.execute("CREATE TEMP TABLE IF NOT EXISTS _batch(email VARCHAR)")
-        c.execute("DELETE FROM _batch")
-        c.executemany("INSERT INTO _batch VALUES (?)",
-                      [(e.lower(),) for e in emails])
-        rows = c.execute(
-            f"""SELECT DISTINCT b.email FROM _batch b
-                JOIN maildoso_sent m ON lower(m.to_email) = b.email
-                WHERE m.status = 'sent'
-                  AND m.created_at > CURRENT_TIMESTAMP - INTERVAL '{int(days)}' DAY"""
-        ).fetchall()
-    finally:
-        c.close()
-    blocked |= {r[0] for r in rows}
-    if not blocked:
-        return contacts, 0
-    kept = [ct for ct in contacts if (ct.get("email") or "").lower() not in blocked]
-    return kept, len(contacts) - len(kept)
 
 
 def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = False) -> dict:
@@ -555,14 +437,6 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
                     seen.add(ct["email"]); contacts.append(ct)
             if len(contacts) >= n:
                 break
-    # Garde-fou dur : on écarte les contacts déjà servis dans le mois. Le lot du jour peut
-    # en sortir plus petit que prévu — c'est voulu : mieux vaut envoyer moins que renvoyer.
-    # En régime normal la pioche les a déjà exclus, donc `dropped` doit rester à 0 ; toute
-    # valeur non nulle signale que le cooldown du pool a laissé passer quelque chose.
-    contacts, dropped = _drop_recently_emailed(contacts)
-    if dropped:
-        print(f"[campaign_engine] {cid} : {dropped} contact(s) écarté(s) — déjà "
-              f"contactés il y a moins de {MIN_DAYS_BETWEEN_EMAILS} jours")
     contacts = contacts[:n]
     emails = [ct["email"] for ct in contacts if ct.get("email")]
     if not emails:
@@ -611,7 +485,6 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
                   [new_sent, "done" if done else "running", _now(), today, cid])
     finally:
         c.close()
-    _miroir_campagne(cid)
     return {"ok": True, "sent": sent.get("sent", 0), "total_sent": new_sent, "done": done}
 
 

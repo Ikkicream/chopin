@@ -330,24 +330,14 @@ def add_prospect_pending(site_code: str, data: dict) -> str:
     return pid
 
 
-# Au-delà de MAILNJOY_MAX_ATTEMPTS tentatives, une ligne pending sort de la file du drain :
-# elle monopoliserait chaque passe (un 500 Mailnjoy coûte ~28 s d'attente par adresse).
-# Mais sortir de la file ne doit PAS vouloir dire disparaître : sans `retire_chronic_pending`,
-# ces lignes devenaient invisibles pour toujours — 397 adresses s'y étaient accumulées entre
-# le 22/05 et le 18/08/2026, sans qu'aucun compteur ne les signale. Après CHRONIC_AGE_DAYS
-# jours (le temps de laisser passer une panne Mailnjoy), elles partent au tombstone.
-MAILNJOY_MAX_ATTEMPTS = 5
-CHRONIC_AGE_DAYS = 7
-
-
 def list_pending(site_code: str = None, limit: int = 500) -> list[dict]:
     c = _conn()
     try:
-        q = f"""SELECT id, site_code, company_name, contact_name, email, phone, sector, city,
+        q = """SELECT id, site_code, company_name, contact_name, email, phone, sector, city,
                       postal_code, website, source, search_query, score, status, raw_data,
                       email_score, email_validation_reasons, region_code, dept_code,
                       created_at, mailnjoy_attempts, mailnjoy_last_error
-               FROM scrappe_pending WHERE mailnjoy_attempts < {MAILNJOY_MAX_ATTEMPTS}"""
+               FROM scrappe_pending WHERE mailnjoy_attempts < 5"""
         params = []
         if site_code:
             q += " AND site_code = ?"; params.append(site_code)
@@ -416,68 +406,6 @@ def bump_pending_error(pending_id: str, err: str) -> None:
                        WHERE id = ?""", [err[:500], pending_id])
     finally:
         c.close()
-
-
-def count_chronic_pending(site_code: str = None) -> int:
-    """Lignes pending sorties de la file du drain (jamais validables en l'état)."""
-    c = _conn_ro()
-    try:
-        q = (f"SELECT COUNT(*) FROM scrappe_pending "
-             f"WHERE mailnjoy_attempts >= {MAILNJOY_MAX_ATTEMPTS}")
-        params = []
-        if site_code:
-            q += " AND site_code = ?"; params.append(site_code)
-        return int(c.execute(q, params).fetchone()[0] or 0)
-    finally:
-        c.close()
-
-
-def retire_chronic_pending(site_code: str = None, age_days: int = CHRONIC_AGE_DAYS) -> dict:
-    """Sort de `scrappe_pending` les lignes que Mailnjoy n'a jamais su valider.
-
-    Elles partent au tombstone `scrappe_rejected` avec le motif
-    `unverifiable_mailnjoy_500` : elles ne rentreront donc plus jamais dans le pool
-    d'envoi (une adresse non vérifiée = un bounce potentiel, donc de la réputation
-    d'expéditeur brûlée) et ne seront plus re-scrapées ni re-checkées à crédit perdu.
-
-    `age_days` laisse une panne Mailnjoy passer avant de condamner une adresse : seules
-    les lignes à bout de tentatives ET anciennes sont retirées. Pour les repêcher un jour,
-    filtrer `scrappe_rejected` sur `decision = 'unverifiable'`.
-    """
-    _ensure_rejected_table()
-    c = _conn()
-    try:
-        q = (f"SELECT id, email, site_code, mailnjoy_last_error FROM scrappe_pending "
-             f"WHERE mailnjoy_attempts >= {MAILNJOY_MAX_ATTEMPTS} "
-             f"AND created_at < CURRENT_TIMESTAMP - INTERVAL '{int(age_days)}' DAY")
-        params = []
-        if site_code:
-            q += " AND site_code = ?"; params.append(site_code)
-        rows = c.execute(q, params).fetchall()
-        for pid, email, site, err in rows:
-            em = (email or "").strip().lower()
-            if em:
-                exists = c.execute("SELECT 1 FROM scrappe_rejected WHERE email = ?",
-                                   [em]).fetchone()
-                reason = f"unverifiable_mailnjoy_500 ({(err or 'http_500')[:60]})"
-                if exists:
-                    c.execute("""UPDATE scrappe_rejected
-                                   SET times_seen = times_seen + 1,
-                                       last_seen = CURRENT_TIMESTAMP,
-                                       decision = 'unverifiable', reason = ?
-                                 WHERE email = ?""", [reason, em])
-                else:
-                    c.execute("""INSERT INTO scrappe_rejected
-                                 (email, decision, reason, site_code)
-                                 VALUES (?, 'unverifiable', ?, ?)""",
-                              [em, reason, site or ""])
-            c.execute("DELETE FROM scrappe_pending WHERE id = ?", [pid])
-    finally:
-        c.close()
-    # On rend les adresses retirées : l'appelant doit encore nettoyer leur copie dans le
-    # pool (dual-write du scrape), ce qui relève de contacts.duckdb et pas de cette couche.
-    return {"retired": len(rows),
-            "emails": [(e or "").strip().lower() for _, e, _, _ in rows if e]}
 
 
 

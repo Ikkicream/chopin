@@ -20,19 +20,9 @@ import duckdb
 BASE_DIR = Path(__file__).parent.parent
 POOL_DB = BASE_DIR / "data" / "contacts.duckdb"
 
-# RÈGLE ABSOLUE (décision user 2026-08-19) : dès qu'une personne a reçu UN email, elle est
-# inscrite dans la base repoussoir (`email_suppression`) avec son flag à 0 et la date de
-# l'envoi, et ne reçoit PLUS RIEN pendant 120 jours — tous sites et tous canaux confondus.
-# Les cooldowns du pool sont alignés sur cette durée : ils sont la première barrière, la
-# base repoussoir est la seconde (et fait foi, cf. `is_suppressed`).
-#
-# Historique : le cooldown même-site était à 7 jours. Résultat sur août 2026 : 1 189 envois
-# pour 724 destinataires (39 % de redites), jusqu'à 98 renvois sur 100 le 15/08 — les
-# contacts touchés début août redevenaient éligibles au bout d'une semaine et le tri les
-# repêchait en priorité. Ne jamais redescendre sans décision utilisateur explicite.
-SUPPRESSION_DAYS = 120
-COOLDOWN_GLOBAL_DAYS = SUPPRESSION_DAYS
-COOLDOWN_SAME_SITE_DAYS = SUPPRESSION_DAYS
+# Cooldowns (cf. specs/contacts-model.md §3.2 + §3.5)
+COOLDOWN_GLOBAL_DAYS = 30
+COOLDOWN_SAME_SITE_DAYS = 7
 
 # State ranking (un état "supérieur" ne peut pas être downgradé sauf blacklisted qui est terminal)
 STATE_RANK = {
@@ -51,11 +41,6 @@ _EXTRA_COLS: dict[str, str] = {
     "job_title":    "VARCHAR",   # ← jobTitle (intitulé de poste libre)
     "civility":     "VARCHAR",   # ← civility (Monsieur / Madame)
     "job_function": "VARCHAR",   # ← function (rôle normalisé majuscules)
-    # Origine du prénom : NULL / "saisi" quand il vient d'un import ou d'une saisie humaine,
-    # "email:<forme>" quand il a été DÉDUIT de l'adresse (cf. name_extract). Sans cette
-    # trace, impossible de distinguer une donnée vérifiée d'une déduction, ni de revenir
-    # en arrière si la règle d'extraction se révèle fausse.
-    "prenom_source": "VARCHAR",
 }
 _MIGRATED = False
 
@@ -100,25 +85,6 @@ CREATE TABLE IF NOT EXISTS contact_enrichment (
 """
 
 
-# Base repoussoir : toute adresse ayant reçu un email y entre avec `contactable = 0` et la
-# date de l'envoi. Table à part et non colonne de `contacts` : elle doit survivre à la
-# suppression d'un contact du pool (sinon un re-scrape du même site le ferait réapparaître
-# vierge le lendemain — c'est exactement ce qui produisait les boucles de renvoi).
-SUPPRESSION_DDL = """
-CREATE TABLE IF NOT EXISTS email_suppression (
-    email        VARCHAR PRIMARY KEY,   -- normalisé (strip + lower)
-    contactable  INTEGER NOT NULL,      -- le flag : 0 = ne rien envoyer
-    last_sent_at TIMESTAMP,             -- date du dernier email reçu
-    release_at   TIMESTAMP,             -- last_sent_at + SUPPRESSION_DAYS
-    site_code    VARCHAR,
-    campaign_id  VARCHAR,
-    reason       VARCHAR,
-    created_at   TIMESTAMP,
-    updated_at   TIMESTAMP
-)
-"""
-
-
 def _ensure_schema() -> None:
     """Ajoute les colonnes manquantes à `contacts`. Idempotent, 1×/process."""
     global _MIGRATED
@@ -136,9 +102,6 @@ def _ensure_schema() -> None:
             # script — on la garantit ici pour que le LEFT JOIN de pick_for_campaign
             # ne casse jamais sur une DB fraîche, avant le 1er enrichissement.
             c.execute(_ENRICHMENT_DDL)
-            c.execute(SUPPRESSION_DDL)
-            c.execute("CREATE INDEX IF NOT EXISTS idx_suppression_release "
-                      "ON email_suppression(release_at)")
         finally:
             c.close()
         _MIGRATED = True
@@ -176,52 +139,6 @@ def _now() -> datetime:
 
 def _normalize_email(email: str) -> str:
     return (email or "").strip().lower()
-
-
-# ── Bascule des lectures vers PostgreSQL (étape 4 de la migration) ───────────
-# Piloté par PG_READS dans .env, pour revenir en arrière en une minute sans redéployer.
-# Seules les lectures qui décident QUI reçoit un email sont basculées : une divergence s'y
-# paie en renvois et en réputation. Les écritures continuent d'aller dans DuckDB (source de
-# vérité) ET dans PostgreSQL (miroir `pg_sync`) jusqu'à l'étape 5.
-# Équivalence prouvée sur les données réelles : tests/test_pg_equivalence.py.
-_PG_READS: bool | None = None
-
-
-def _pg_reads() -> bool:
-    global _PG_READS
-    if _PG_READS is None:
-        val = ""
-        try:
-            for ligne in (BASE_DIR / ".env").read_text().splitlines():
-                if ligne.startswith("PG_READS="):
-                    val = ligne.split("=", 1)[1].strip()
-        except Exception:
-            val = ""
-        _PG_READS = val == "1"
-    return _PG_READS
-
-
-def _pg():
-    import pool_pg
-    return pool_pg
-
-
-
-def _miroir(fn, *a, **k) -> None:
-    """Recopie best-effort vers PostgreSQL (étape 3 de la migration).
-
-    Encapsulé ici pour que les fonctions d'écriture restent lisibles, et pour garantir
-    qu'un incident PostgreSQL ne remonte JAMAIS dans le chemin DuckDB : à ce stade
-    PostgreSQL est une copie, pas la source de vérité. Les échecs sont comptés et
-    journalisés par `pg_sync`, ils ne sont pas avalés.
-    """
-    try:
-        import pg_sync
-        getattr(pg_sync, fn)(*a, **k)
-    except Exception as e:  # noqa: BLE001
-        print(f"[pool] miroir PostgreSQL indisponible ({fn}) : {type(e).__name__}: {e}",
-              flush=True)
-
 
 
 def _maybe_parse(v):
@@ -266,24 +183,6 @@ def create_in_pool(data: dict, primary_source: str | None = None,
     if not email or "@" not in email:
         return None
 
-    # Prénom / nom déduits de l'adresse quand la source ne les fournit pas — c'est le cas de
-    # TOUT le scraping, qui ne collecte que des données d'entreprise. Sept des dix modèles
-    # d'email utilisent `{{prenom}}` : sans ça, les envois commencent par « Bonjour, ».
-    # Ne remplit que le vide, et trace l'origine pour rester réversible.
-    if not (data.get("prenom") or "").strip():
-        try:
-            import name_extract
-            devine = name_extract.extraire(email)
-            if devine["prenom"] or devine["nom"]:
-                if devine["prenom"]:
-                    data = {**data, "prenom": devine["prenom"]}
-                if devine["nom"] and not (data.get("nom") or "").strip():
-                    data = {**data, "nom": devine["nom"]}
-                data = {**data, "prenom_source": f"email:{devine['forme']}"}
-        except Exception as e:  # noqa: BLE001
-            print(f"[pool] extraction du prénom indisponible : {type(e).__name__}: {e}",
-                  flush=True)
-
     c = conn or _conn()
     own_conn = conn is None
     try:
@@ -327,9 +226,9 @@ def create_in_pool(data: dict, primary_source: str | None = None,
             INSERT INTO contacts
             (id, email, prenom, nom, societe, tel, website, city, dept_code, region_code,
              postal_code, sectors, primary_source, email_score, email_validation_reasons,
-             mailnjoy_check, job_title, civility, job_function, prenom_source,
+             mailnjoy_check, job_title, civility, job_function,
              global_blacklisted, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE,
                     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         """, [
             cid, email, data.get("prenom"), data.get("nom"), data.get("societe"),
@@ -341,12 +240,7 @@ def create_in_pool(data: dict, primary_source: str | None = None,
             json.dumps(data.get("email_validation_reasons")) if data.get("email_validation_reasons") else None,
             json.dumps(data.get("mailnjoy_check")) if data.get("mailnjoy_check") else None,
             data.get("job_title"), data.get("civility"), data.get("job_function"),
-            data.get("prenom_source"),
         ])
-        # Promotion sous condition : un contact fraîchement scrapé n'est presque jamais
-        # éligible (Mailnjoy et l'enrichissement n'ont pas encore tourné). L'appel n'est pas
-        # inutile pour autant — un ré-import d'un contact déjà propre doit passer la porte.
-        _miroir("promote_contact", cid)
         return cid
     finally:
         if own_conn:
@@ -374,7 +268,6 @@ def set_global_blacklist(email: str, reason: str = "") -> bool:
         """, [email])
     finally:
         c.close()
-    _miroir("sync_blacklist", email, reason)
     return True
 
 
@@ -433,7 +326,6 @@ def upsert_site_history(contact_id: str, site_code: str, state: str = "cold_emai
              added_to_site_at, state_history, last_action_at)
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)
         """, [hid, contact_id, site_code, account_id, state, source, json.dumps(history)])
-        _miroir("promote_contact", contact_id)
     finally:
         if own_conn:
             c.close()
@@ -468,174 +360,14 @@ def change_state_for_site(contact_id: str, site_code: str, new_state: str,
         """, [new_state, json.dumps(history), existing["id"]])
     finally:
         c.close()
-    _miroir("promote_contact", contact_id)
     return True
-
-
-# ── Base repoussoir ────────────────────────────────────────────────────────────
-# Clause SQL partagée par toutes les pioches. `NOT EXISTS` et non `NOT IN` : `NOT IN` sur
-# une sous-requête contenant un NULL vaut NULL, donc écarte TOUTE la table (même piège que
-# le COALESCE des exclusions de segment, cf. `segment_clause`).
-SUPPRESSION_CLAUSE_SQL = f"""
-            AND NOT EXISTS (
-                SELECT 1 FROM email_suppression sup
-                WHERE sup.email = lower(c.email)
-                  AND sup.contactable = 0
-                  AND sup.last_sent_at > CURRENT_TIMESTAMP - INTERVAL '{SUPPRESSION_DAYS}' DAY
-            )"""
-
-
-def suppress(email: str, site_code: str = "", campaign_id: str = "",
-             sent_at: datetime | None = None, reason: str = "email envoyé") -> None:
-    """Inscrit une adresse dans la base repoussoir : flag à 0 + date de l'envoi.
-
-    Appelé à CHAQUE envoi réussi. Idempotent : un nouvel envoi repousse la date de
-    libération de `SUPPRESSION_DAYS` jours à partir du dernier email reçu.
-    """
-    em = _normalize_email(email)
-    if not em:
-        return
-    at = sent_at or _now()
-    release = at + timedelta(days=SUPPRESSION_DAYS)
-    c = _conn()
-    try:
-        _suppress_conn(c, em, site_code, campaign_id, at, release, reason)
-    finally:
-        c.close()
-
-
-def _suppress_conn(c, em: str, site_code: str, campaign_id: str,
-                   at: datetime, release: datetime, reason: str) -> None:
-    """Écriture de la base repoussoir sur une connexion existante (imports en masse)."""
-    row = c.execute("SELECT last_sent_at FROM email_suppression WHERE email = ?",
-                    [em]).fetchone()
-    if row:
-        # On ne recule jamais la date de libération : le dernier envoi fait foi.
-        c.execute("""UPDATE email_suppression
-                     SET contactable = 0,
-                         last_sent_at = GREATEST(COALESCE(last_sent_at, ?), ?),
-                         release_at = GREATEST(COALESCE(release_at, ?), ?),
-                         site_code = COALESCE(NULLIF(?, ''), site_code),
-                         campaign_id = COALESCE(NULLIF(?, ''), campaign_id),
-                         reason = ?, updated_at = CURRENT_TIMESTAMP
-                     WHERE email = ?""",
-                  [at, at, release, release, site_code, campaign_id, reason, em])
-    else:
-        c.execute("""INSERT INTO email_suppression
-                     (email, contactable, last_sent_at, release_at, site_code,
-                      campaign_id, reason, created_at, updated_at)
-                     VALUES (?, 0, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)""",
-                  [em, at, release, site_code, campaign_id, reason])
-
-
-def is_suppressed(email: str) -> bool:
-    """True si l'adresse a reçu un email il y a moins de SUPPRESSION_DAYS jours."""
-    if _pg_reads():
-        return _pg().is_suppressed(email)
-    em = _normalize_email(email)
-    if not em:
-        return False
-    c = _conn(read_only=True)
-    try:
-        row = c.execute(
-            f"""SELECT 1 FROM email_suppression
-                WHERE email = ? AND contactable = 0
-                  AND last_sent_at > CURRENT_TIMESTAMP - INTERVAL '{SUPPRESSION_DAYS}' DAY""",
-            [em]).fetchone()
-    finally:
-        c.close()
-    return bool(row)
-
-
-def filter_suppressed(emails: list[str]) -> set[str]:
-    """Sous-ensemble des adresses actuellement bloquées (une seule requête pour un lot)."""
-    if _pg_reads():
-        return _pg().filter_suppressed(emails)
-    ems = [_normalize_email(e) for e in emails if e]
-    if not ems:
-        return set()
-    c = _conn(read_only=True)
-    try:
-        c.execute("CREATE TEMP TABLE IF NOT EXISTS _sup_probe(email VARCHAR)")
-        c.execute("DELETE FROM _sup_probe")
-        c.executemany("INSERT INTO _sup_probe VALUES (?)", [(e,) for e in ems])
-        rows = c.execute(
-            f"""SELECT p.email FROM _sup_probe p
-                JOIN email_suppression s ON s.email = p.email
-                WHERE s.contactable = 0
-                  AND s.last_sent_at > CURRENT_TIMESTAMP - INTERVAL '{SUPPRESSION_DAYS}' DAY"""
-        ).fetchall()
-    finally:
-        c.close()
-    return {r[0] for r in rows}
-
-
-def release_expired() -> int:
-    """Repasse le flag à 1 pour les adresses sorties des SUPPRESSION_DAYS jours.
-
-    Hygiène/lisibilité seulement : les requêtes de pioche filtrent déjà sur `last_sent_at`,
-    la libération est donc automatique même si personne n'appelle cette fonction.
-    """
-    c = _conn()
-    try:
-        n = c.execute(
-            f"""SELECT COUNT(*) FROM email_suppression
-                WHERE contactable = 0
-                  AND last_sent_at <= CURRENT_TIMESTAMP - INTERVAL '{SUPPRESSION_DAYS}' DAY"""
-        ).fetchone()[0]
-        if n:
-            c.execute(
-                f"""UPDATE email_suppression SET contactable = 1,
-                       updated_at = CURRENT_TIMESTAMP
-                    WHERE contactable = 0
-                      AND last_sent_at <= CURRENT_TIMESTAMP - INTERVAL '{SUPPRESSION_DAYS}' DAY""")
-    finally:
-        c.close()
-    return int(n or 0)
-
-
-def suppression_stats() -> dict:
-    """Compteurs de la base repoussoir pour l'UI/monitoring."""
-    if _pg_reads():
-        return _pg().suppression_stats()
-    c = _conn(read_only=True)
-    try:
-        row = c.execute(
-            f"""SELECT COUNT(*),
-                       COUNT(*) FILTER (WHERE contactable = 0
-                           AND last_sent_at > CURRENT_TIMESTAMP - INTERVAL '{SUPPRESSION_DAYS}' DAY),
-                       MIN(release_at), MAX(release_at)
-                FROM email_suppression""").fetchone()
-    finally:
-        c.close()
-    return {"total": int(row[0] or 0), "bloques": int(row[1] or 0),
-            "prochaine_liberation": str(row[2]) if row[2] else None,
-            "derniere_liberation": str(row[3]) if row[3] else None,
-            "jours": SUPPRESSION_DAYS}
 
 
 def mark_pushed_to_emelia(contact_id: str, site_code: str, campaign_id: str,
                           emelia_contact_id: str = "") -> None:
-    """Appelé après push réussi : enregistre campaign + last_contacted.
-
-    UPSERT et non simple UPDATE. Un contact sans ligne `contact_site_history` pour ce site
-    (14 cas constatés le 19/08/2026 : contacts créés sans rattachement) déclenchait un
-    UPDATE à zéro ligne, en silence — aucun cooldown n'était posé, donc la pioche du
-    lendemain le reprenait, et ainsi de suite : quatre adresses ont reçu 11 à 17 fois le
-    même email en août. On crée la ligne manquante avant de marquer, puis on VÉRIFIE que
-    le cooldown est bien posé : un marquage muet est le pire des échecs ici, il se paie en
-    réputation d'expéditeur.
-    """
+    """Appelé après push réussi : enregistre campaign + last_contacted."""
     c = _conn()
     try:
-        exists = c.execute(
-            "SELECT 1 FROM contact_site_history WHERE contact_id = ? AND site_code = ?",
-            [contact_id, site_code]).fetchone()
-        if not exists:
-            upsert_site_history(contact_id, site_code, state="cold_email",
-                                source="campaign", by="campaign_engine",
-                                note=f"ligne créée au marquage d'envoi ({campaign_id})",
-                                conn=c)
         c.execute("""
             UPDATE contact_site_history
             SET emelia_campaign_id = ?, emelia_contact_id = ?,
@@ -644,28 +376,8 @@ def mark_pushed_to_emelia(contact_id: str, site_code: str, campaign_id: str,
                 last_action_at = CURRENT_TIMESTAMP
             WHERE contact_id = ? AND site_code = ?
         """, [campaign_id, emelia_contact_id or "pushed", contact_id, site_code])
-        ok = c.execute(
-            "SELECT COUNT(*) FROM contact_site_history "
-            "WHERE contact_id = ? AND site_code = ? AND last_contacted_by_site_at IS NOT NULL",
-            [contact_id, site_code]).fetchone()
-        if not ok or not ok[0]:
-            raise RuntimeError(
-                f"cooldown non posé pour {contact_id}/{site_code} — risque de renvoi")
-        # Base repoussoir : l'adresse sort du circuit pour SUPPRESSION_DAYS jours. On la
-        # pose sur la MÊME connexion que le marquage, donc dans la même transaction : un
-        # contact marqué comme contacté sans être repoussé serait renvoyable.
-        row = c.execute("SELECT email FROM contacts WHERE id = ?", [contact_id]).fetchone()
-        if row and row[0]:
-            at = _now()
-            _suppress_conn(c, _normalize_email(row[0]), site_code, campaign_id,
-                           at, at + timedelta(days=SUPPRESSION_DAYS), "email envoyé")
     finally:
         c.close()
-    # Journal PostgreSQL : c'est CET événement qui alimente `v_suppression`, donc la
-    # fenêtre de 120 jours après la bascule. Le manquer rouvrirait la porte aux renvois.
-    if row and row[0]:
-        _miroir("record_send", _normalize_email(row[0]), site_code,
-                contact_id=contact_id, campaign_id=campaign_id)
 
 
 def record_emelia_event(contact_id: str, site_code: str, event_type: str,
@@ -697,110 +409,6 @@ def record_emelia_event(contact_id: str, site_code: str, event_type: str,
 # ──────────────────────────────────────────────────────────────────────────────
 # Liste / search / stats
 # ──────────────────────────────────────────────────────────────────────────────
-# ── Étape d'un contact dans la chaîne de traitement ──────────────────────────
-# Les écrans montraient l'état COMMERCIAL (cold_email, lead, PRM, client) en l'appelant
-# « état ». Ce n'est pas la question qu'on se pose devant une liste de contacts fraîchement
-# collectés : on veut savoir où ils en sont de la CHAÎNE — scrapé, vérifié, enrichi,
-# contactable. Deux axes différents, qu'on affiche désormais séparément.
-#
-# L'étape est calculée ici, à un seul endroit, à partir de ce que les scripts écrivent
-# réellement : `mailnjoy_check` (nettoyage des adresses), `contact_enrichment` (SIRET
-# data.gouv), `email_suppression` (repos de 120 jours), `global_blacklisted`. La règle est
-# une cascade : la première condition bloquante gagne.
-
-ETAPES = {
-    "blacklisted": {"label": "Blacklisté",
-                    "aide": "Désinscrit, plainte ou rebond dur — ne sera jamais recontacté."},
-    "ecarte":      {"label": "Écarté",
-                    "aide": "Adresse invalide ou risquée, ou entreprise fermée / administration."},
-    "repos":       {"label": "En repos",
-                    "aide": "A reçu un email il y a moins de 120 jours — intouchable jusque-là."},
-    "a_verifier":  {"label": "À vérifier",
-                    "aide": "Collecté, mais l'adresse n'est pas encore passée chez Mailnjoy."},
-    "verifie":     {"label": "Vérifié",
-                    "aide": "Adresse valide. Société non retrouvée au SIRET : contactable quand même."},
-    "pret":        {"label": "Prêt",
-                    "aide": "Adresse valide et société retrouvée (SIRET/NAF) : peut entrer en campagne."},
-}
-
-
-def _etape_contact(d: dict) -> str:
-    """L'étape d'un contact, en cascade. La première condition bloquante l'emporte."""
-    if d.get("global_blacklisted"):
-        return "blacklisted"
-
-    mn = d.get("mailnjoy_check")
-    decision = ""
-    if isinstance(mn, dict):
-        decision = str(mn.get("decision") or "")
-    if decision in ("invalid", "risky", "unknown", "rejected"):
-        return "ecarte"
-    if d.get("enrichissement_exclu"):
-        return "ecarte"                    # entreprise fermée ou administration
-    if d.get("en_repos_jusquau"):
-        return "repos"
-    if decision != "valid":
-        return "a_verifier"                # jamais vérifié, ou encore en attente
-    if d.get("siret"):
-        return "pret"
-    return "verifie"
-
-
-def _filtre_contacts(site_code: str, state, sectors_in, source, search_email, engagement):
-    """Le FROM/WHERE commun à la liste et au comptage.
-
-    Écrit une fois : deux clauses séparées finissent par diverger, et la pagination
-    annonce alors un nombre de pages qui ne correspond pas à ce qu'on voit.
-    """
-    q = """
-        FROM contacts c
-        JOIN contact_site_history csh ON c.id = csh.contact_id
-        LEFT JOIN contact_enrichment e ON e.contact_id = c.id
-        LEFT JOIN email_suppression sup
-               ON sup.email = lower(c.email) AND sup.release_at > CURRENT_TIMESTAMP
-        WHERE csh.site_code = ?
-    """
-    params: list = [site_code]
-    if engagement == "openers":
-        q += " AND csh.last_opened_at IS NOT NULL"
-    elif engagement == "clickers":
-        q += " AND csh.last_clicked_at IS NOT NULL"
-    if state:
-        q += f" AND csh.state IN ({','.join(['?'] * len(state))})"
-        params.extend(state)
-    if source:
-        q += f" AND csh.source IN ({','.join(['?'] * len(source))})"
-        params.extend(source)
-    if search_email:
-        # La recherche portait sur la seule adresse alors que le champ dit « email, nom,
-        # prénom, société » : elle ne trouvait rien par société.
-        q += " AND (lower(c.email) LIKE ? OR lower(COALESCE(c.societe,'')) LIKE ?"
-        q += " OR lower(COALESCE(c.nom,'')) LIKE ? OR lower(COALESCE(c.prenom,'')) LIKE ?"
-        q += " OR COALESCE(c.tel,'') LIKE ?)"
-        motif = f"%{search_email.lower()}%"
-        params.extend([motif, motif, motif, motif, f"%{search_email}%"])
-    if sectors_in:
-        sub = " OR ".join(["c.sectors::VARCHAR LIKE ?"] * len(sectors_in))
-        q += f" AND ({sub})"
-        for x in sectors_in:
-            params.append(f"%{x}%")
-    return q, params
-
-
-def count_contacts_for_site(site_code: str, state: list[str] | None = None,
-                            sectors_in: list[str] | None = None,
-                            source: list[str] | None = None,
-                            search_email: str | None = None,
-                            engagement: str | None = None) -> int:
-    """Nombre total de contacts correspondant aux filtres — pour la pagination."""
-    q, params = _filtre_contacts(site_code, state, sectors_in, source, search_email, engagement)
-    c = _conn(read_only=True)
-    try:
-        return int(c.execute("SELECT count(*) " + q, params).fetchone()[0] or 0)
-    finally:
-        c.close()
-
-
 def list_contacts_for_site(site_code: str, state: list[str] | None = None,
                            sectors_in: list[str] | None = None,
                            source: list[str] | None = None,
@@ -808,7 +416,6 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
                            engagement: str | None = None,
                            limit: int = 500, offset: int = 0) -> list[dict]:
     """Liste les contacts utilisés par un site (JOIN contacts × contact_site_history)."""
-    depuis, params = _filtre_contacts(site_code, state, sectors_in, source, search_email, engagement)
     q = """
         SELECT c.id, c.email, c.prenom, c.nom, c.societe, c.tel, c.website,
                c.city, c.dept_code, c.region_code,
@@ -821,12 +428,35 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
                csh.emelia_replied_at, csh.emelia_bounced_at, csh.emelia_unsubscribed_at,
                csh.last_contacted_by_site_at, csh.notes,
                csh.last_opened_at, csh.last_clicked_at,
-               csh.last_open_channel, csh.last_click_channel,
-               c.mailnjoy_check, e.siret, e.match_quality, e.excluded, e.exclusion_reason,
-               sup.release_at
-    """ + depuis
+               csh.last_open_channel, csh.last_click_channel
+        FROM contacts c
+        JOIN contact_site_history csh ON c.id = csh.contact_id
+        WHERE csh.site_code = ?
+    """
+    params: list = [site_code]
+    if engagement == "openers":
+        q += " AND csh.last_opened_at IS NOT NULL"
+    elif engagement == "clickers":
+        q += " AND csh.last_clicked_at IS NOT NULL"
+    if state:
+        placeholders = ",".join(["?"] * len(state))
+        q += f" AND csh.state IN ({placeholders})"
+        params.extend(state)
+    if source:
+        placeholders = ",".join(["?"] * len(source))
+        q += f" AND csh.source IN ({placeholders})"
+        params.extend(source)
+    if search_email:
+        q += " AND lower(c.email) LIKE ?"
+        params.append(f"%{search_email.lower()}%")
+    # sectors_in : on filtre par texte JSON LIKE pour simplicité (DuckDB)
+    if sectors_in:
+        sub = " OR ".join(["c.sectors::VARCHAR LIKE ?"] * len(sectors_in))
+        q += f" AND ({sub})"
+        for s in sectors_in:
+            params.append(f"%{s}%")
     q += " ORDER BY csh.last_action_at DESC NULLS LAST LIMIT ? OFFSET ?"
-    params = list(params) + [limit, offset]
+    params.extend([limit, offset])
 
     c = _conn(read_only=True)
     try:
@@ -847,19 +477,12 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
         "last_contacted_by_site_at", "notes",
         "last_opened_at", "last_clicked_at",
         "last_open_channel", "last_click_channel",
-        "mailnjoy_check", "siret", "match_quality", "enrichissement_exclu",
-        "enrichissement_motif", "en_repos_jusquau",
     ]
     out = []
     for r in rows:
         d = dict(zip(cols, r))
         d["sectors"] = _maybe_parse(d.get("sectors"))
         d["state_history"] = _maybe_parse(d.get("state_history"))
-        d["mailnjoy_check"] = _maybe_parse(d.get("mailnjoy_check"))
-        if d.get("en_repos_jusquau"):
-            d["en_repos_jusquau"] = str(d["en_repos_jusquau"])
-        d["etape"] = _etape_contact(d)
-        d["etape_label"] = ETAPES[d["etape"]]["label"]
         for ts_col in ("added_to_site_at", "last_action_at", "email_sent_at",
                        "emelia_opened_at", "emelia_clicked_at", "emelia_replied_at",
                        "emelia_bounced_at", "emelia_unsubscribed_at",
@@ -987,12 +610,6 @@ SOURCE_RANK_SQL = """
     END
 """
 
-# Priorité absolue aux contacts que ce site n'a JAMAIS sollicités. Sans cette clé en tête de
-# tri, le classement source/score ramenait les mêmes contacts dès leur sortie de cooldown :
-# le 15/08/2026, 98 des 100 envois du jour étaient des renvois alors que 2 126 contacts
-# immobilier n'avaient jamais rien reçu. On épuise le pool frais avant de recontacter.
-NEVER_CONTACTED_FIRST_SQL = "(csh.last_contacted_by_site_at IS NULL) DESC"
-
 
 def record_engagement(site_code: str, email: str, kind: str, channel: str,
                       at: str | None = None, only_if_null: bool = False) -> bool:
@@ -1020,10 +637,6 @@ def record_engagement(site_code: str, email: str, kind: str, channel: str,
             """, params)
     finally:
         c.close()
-    # Un seul événement dans le journal, du type réellement observé. DuckDB pose aussi
-    # l'ouverture quand il reçoit un clic (une seule date par contact, il faut choisir) ;
-    # le journal, lui, n'a pas cette contrainte et ne doit pas inventer d'ouverture.
-    _miroir("record_event", email, kind, site_code, channel, at=at)
     return True
 
 
@@ -1144,7 +757,6 @@ def _segment_query(site_code: str, rules: dict, cleaned_within_days: int,
                   AND csh2.site_code != ?
                   AND csh2.last_contacted_by_site_at > CURRENT_TIMESTAMP - INTERVAL '{COOLDOWN_GLOBAL_DAYS}' DAY
             )
-            {SUPPRESSION_CLAUSE_SQL}
         {tail_sql}
     """
     params = [site_code, cutoff, *seg_params, site_code, *(extra_params or [])]
@@ -1160,9 +772,6 @@ def count_for_segment(site_code: str, rules: dict, cleaned_within_days: int = 18
     intermittence : on patiente plus longtemps que le défaut (2,8 s) pour un compteur
     affiché à l'écran, quitte à répondre en quelques secondes plutôt qu'en erreur.
     """
-    if _pg_reads():
-        return _pg().count_for_segment(site_code, rules,
-                                       cleaned_within_days=cleaned_within_days)
     q, params = _segment_query(site_code, rules, cleaned_within_days,
                                "SELECT COUNT(*)", "")
     _ensure_schema()
@@ -1178,9 +787,6 @@ def count_for_segment(site_code: str, rules: dict, cleaned_within_days: int = 18
 def pick_for_segment(site_code: str, rules: dict, limit: int = 30,
                      cleaned_within_days: int = 180) -> list[dict]:
     """Pioche les N meilleurs contacts d'un segment (même tri que pick_for_campaign)."""
-    if _pg_reads():
-        return _pg().pick_for_segment(site_code, rules, limit=limit,
-                                      cleaned_within_days=cleaned_within_days)
     cols = ["id", "email", "prenom", "nom", "societe", "tel", "website",
             "city", "dept_code", "region_code", "sectors",
             "primary_source", "email_score", "global_blacklisted",
@@ -1190,7 +796,6 @@ def pick_for_segment(site_code: str, rules: dict, limit: int = 30,
                   "c.primary_source, c.email_score, c.global_blacklisted, "
                   "csh.state, csh.last_contacted_by_site_at")
     tail = f"""ORDER BY
-            {NEVER_CONTACTED_FIRST_SQL},
             {SOURCE_RANK_SQL},
             c.email_score DESC NULLS LAST,
             c.updated_at DESC
@@ -1251,10 +856,6 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
 
     Tri : source (tally>serper>csv>manual), email_score desc, updated_at desc
     """
-    if _pg_reads():
-        return _pg().pick_for_campaign(
-            site_code, sector, limit=limit, cleaned_within_days=cleaned_within_days,
-            regions=regions, depts=depts, engagement=engagement)
     cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
     geo_sql, geo_params = _geo_clause(regions, depts)
     eng_sql = _engagement_clause(engagement)
@@ -1297,9 +898,7 @@ def pick_for_campaign(site_code: str, sector: str, limit: int = 30,
                   AND csh2.site_code != ?
                   AND csh2.last_contacted_by_site_at > CURRENT_TIMESTAMP - INTERVAL '{cooldown_global_days}' DAY
             )
-            {SUPPRESSION_CLAUSE_SQL}
         ORDER BY
-            {NEVER_CONTACTED_FIRST_SQL},
             {SOURCE_RANK_SQL},
             c.email_score DESC NULLS LAST,
             c.updated_at DESC
@@ -1329,10 +928,6 @@ def count_available_for_sector(site_code: str, sector: str, cleaned_within_days:
                                depts: list[str] | None = None,
                                engagement: str | None = None) -> int:
     """Count des contacts disponibles pour pioche dans un secteur (filtres identiques à pick_for_campaign)."""
-    if _pg_reads():
-        return _pg().count_available_for_sector(
-            site_code, sector, cleaned_within_days=cleaned_within_days,
-            regions=regions, depts=depts, engagement=engagement)
     cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
     geo_sql, geo_params = _geo_clause(regions, depts)
     eng_sql = _engagement_clause(engagement)
@@ -1367,7 +962,6 @@ def count_available_for_sector(site_code: str, sector: str, cleaned_within_days:
                   AND csh2.site_code != ?
                   AND csh2.last_contacted_by_site_at > CURRENT_TIMESTAMP - INTERVAL '{COOLDOWN_GLOBAL_DAYS}' DAY
             )
-            {SUPPRESSION_CLAUSE_SQL}
     """
     c = _conn(read_only=True)
     try:

@@ -81,40 +81,15 @@ Un contact peut être :
   - **Update** des champs de `contacts` qui sont NULL (jamais override les valeurs déjà fournies par une autre source)
   - **Insert** d'une nouvelle row dans `contact_site_history` SI le site qui l'ajoute n'y est pas déjà
 
-### 3.2 Cooldown et base repoussoir (Q8.2 — révisé le 2026-08-19)
-
-**RÈGLE ABSOLUE** : dès qu'une personne a reçu **un** email, elle est inscrite dans la
-base repoussoir `email_suppression` (flag `contactable = 0` + date de l'envoi) et **ne
-reçoit plus rien pendant 120 jours**, tous sites et tous canaux confondus.
-
+### 3.2 Cooldown cross-site (Q8.2)
+Quand un site veut ajouter / pusher un contact :
 ```
-COOLDOWN_DAYS = SUPPRESSION_DAYS = 120   (contacts_pool_backend.py)
+last_contact_global = MAX(last_contacted_by_site_at) FROM contact_site_history WHERE contact_id = ?
+if (today - last_contact_global) < COOLDOWN_DAYS:
+    REFUSE l'ajout / le push
+    + message : "contact contacté par {site_X} il y a {N} jours, attente cooldown"
 ```
-
-Deux barrières redondantes, parce qu'une seule peut échouer en silence :
-
-| Barrière | Support | Rôle |
-|---|---|---|
-| Cooldown du pool | `contact_site_history.last_contacted_by_site_at` | filtre de la pioche (même site + cross-site) |
-| Base repoussoir | `email_suppression` | registre par **adresse**, écrit à chaque envoi, survit à la suppression du contact du pool |
-
-La base repoussoir fait foi : elle est indexée sur l'email normalisé, pas sur l'id du
-contact. Un contact purgé puis re-scrapé demain retrouve donc son blocage — c'est
-précisément le trou par lequel passaient les renvois en boucle.
-
-**Pourquoi 120 et non 7** : le cooldown même-site était à 7 jours. Sur août 2026 cela a
-produit 1 189 envois pour 724 destinataires (39 % de redites), et jusqu'à 98 renvois sur
-100 le 15/08 — les contacts touchés début août redevenaient éligibles au bout d'une
-semaine, et le tri (source puis score) les ramenait en tête devant les contacts frais.
-Ne jamais redescendre sans décision utilisateur explicite.
-
-**Tri de la pioche** : les contacts jamais sollicités par le site passent AVANT tous les
-autres (`NEVER_CONTACTED_FIRST_SQL`). On épuise le pool frais avant de recontacter qui que
-ce soit.
-
-**Libération** : automatique. Les requêtes filtrent sur `last_sent_at`, donc une adresse
-redevient éligible d'elle-même à J+120 ; `release_expired()` ne fait que remettre le flag
-à 1 pour la lisibilité.
+**Valeur par défaut** : `COOLDOWN_DAYS = 30` (à valider).
 
 ### 3.3 Blacklist GLOBALE (Q8.4)
 Si **`contacts.global_blacklisted = TRUE`** :
@@ -147,22 +122,15 @@ WHERE
         -- jamais contacté par ce site
         csh.last_contacted_by_site_at IS NULL
         OR
-        -- contacté il y a > 120 jours (Q3.2, révisé 2026-08-19)
-        csh.last_contacted_by_site_at < NOW() - INTERVAL 120 DAY
+        -- contacté il y a > 7 jours (Q3.2)
+        csh.last_contacted_by_site_at < NOW() - INTERVAL 7 DAY
     )
     -- cooldown global
     AND NOT EXISTS (
         SELECT 1 FROM contact_site_history csh2
         WHERE csh2.contact_id = c.id
-          AND csh2.last_contacted_by_site_at > NOW() - INTERVAL 120 DAY
+          AND csh2.last_contacted_by_site_at > NOW() - INTERVAL 30 DAY
           AND csh2.site_code != 'lcr'
-    )
-    -- base repoussoir : toute adresse ayant reçu un email dans les 120 jours
-    AND NOT EXISTS (
-        SELECT 1 FROM email_suppression sup
-        WHERE sup.email = lower(c.email)
-          AND sup.contactable = 0
-          AND sup.last_sent_at > NOW() - INTERVAL 120 DAY
     )
 ORDER BY
     -- 1. Source : tally(0) > serper(1) > csv(2) > manual(3)
@@ -228,9 +196,9 @@ Script one-shot `scripts/migrate_contacts_to_pool.py` :
 
 ## 7. Risques & questions résiduelles
 
-1. **RGPD (B2B only, posture allégée)** — Genesis cible exclusivement le cold email B2B vers des contacts professionnels publics (sites web, annuaires, Pages Jaunes). La doctrine CNIL 2026 reste favorable pour le B2B sous réserve de : (a) opt-out fonctionnel dans chaque mail (géré par Emelia), (b) mention identité expéditeur dans le pied (cf. onboarding step 8), (c) sources publiques licites. Les garde-fous techniques retenus (blacklist globale, base repoussoir 120j) servent **autant la qualité business** (ne pas spammer un contact 3 fois en 1 mois) **que la conformité**. Pas de paranoïa "CNIL 4% CA" à entretenir.
+1. **RGPD (B2B only, posture allégée)** — Genesis cible exclusivement le cold email B2B vers des contacts professionnels publics (sites web, annuaires, Pages Jaunes). La doctrine CNIL 2026 reste favorable pour le B2B sous réserve de : (a) opt-out fonctionnel dans chaque mail (géré par Emelia), (b) mention identité expéditeur dans le pied (cf. onboarding step 8), (c) sources publiques licites. Les garde-fous techniques retenus (blacklist globale, cooldown 30j) servent **autant la qualité business** (ne pas spammer un contact 3 fois en 1 mois) **que la conformité**. Pas de paranoïa "CNIL 4% CA" à entretenir.
 
-2. **Concurrence cross-comptes** — Premier arrivé = locké 120 jours pour les autres (cooldown + base repoussoir, cf. §3.2).
+2. **Concurrence cross-comptes** — Premier arrivé = locké 7 jours pour les autres (cooldown).
 
 3. **Volume** — DuckDB tient 100k+ contacts. On est très loin (35 rows aujourd'hui).
 
@@ -239,6 +207,6 @@ Script one-shot `scripts/migrate_contacts_to_pool.py` :
 ## 8. ✅ Validation user (actée 2026-05-22)
 
 - [x] Schéma 2 tables `contacts` + `contact_site_history` validé
-- [x] ~~Cooldown global 30 jours, re-push même site 7 jours~~ → **120 jours partout + base repoussoir** (révisé le 2026-08-19, cf. §3.2)
+- [x] Cooldown global 30 jours, re-push même site 7 jours validés
 - [x] Blacklist globale via Emelia UNSUBSCRIBE/BOUNCE validée (RGPD allégé B2B mais respect du choix utilisateur garanti)
 - [x] Migration douce (archive 30j puis suppression) validée

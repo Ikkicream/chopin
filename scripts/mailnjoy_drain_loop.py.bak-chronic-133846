@@ -25,13 +25,7 @@ def main() -> None:
             else:
                 res = check_pending_queue()
                 # log compact
-                # `chronic_remaining` et `retired_chronic` DOIVENT figurer ici : 397 lignes
-                # se sont accumulées hors de la file entre mai et août 2026 précisément
-                # parce qu'aucun log ne les mentionnait. Les taire, c'est reproduire le bug.
-                summary = {k: res.get(k) for k in
-                           ("total", "valid", "risky", "invalid", "errored",
-                            "retired_chronic", "retired_pool_copies", "chronic_remaining",
-                            "credit_left", "error") if res.get(k) is not None}
+                summary = {k: res.get(k) for k in ("total", "valid", "risky", "invalid", "errored", "credit_left", "error") if res.get(k) is not None}
                 print(f"[{datetime.now(timezone.utc).isoformat()}] {json.dumps(summary)}", flush=True)
         except Exception as e:  # noqa: BLE001
             print(f"[{datetime.now(timezone.utc).isoformat()}] ERR {e}", flush=True)

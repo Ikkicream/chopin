@@ -96,44 +96,6 @@ def _delete_unverified_pool_copy(email: str) -> None:
         pass
 
 
-def _delete_errored_pool_copy(email: str) -> int:
-    """Supprime la copie pool d'une adresse définitivement non vérifiable.
-
-    Pendant de `_delete_unverified_pool_copy`, pour l'autre cas : la copie porte un
-    `mailnjoy_check` avec `decision='error'` (Mailnjoy a répondu, mais en erreur), donc
-    elle échappait au nettoyage — 294 copies traînaient ainsi dans le pool. Elles n'étaient
-    pas envoyables (la pioche exige `decision='valid'`), mais le nettoyage nocturne les
-    re-checkait à crédit perdu. On ne touche jamais un contact déjà contacté, vérifié
-    valide, ou blacklisté.
-    """
-    if not email:
-        return 0
-    try:
-        import duckdb
-        c = duckdb.connect(str(BASE_DIR / "data" / "contacts.duckdb"))
-        try:
-            rows = c.execute(
-                "SELECT id FROM contacts WHERE lower(email) = ? "
-                "AND json_extract_string(mailnjoy_check, '$.decision') = 'error' "
-                "AND (global_blacklisted IS NULL OR global_blacklisted = FALSE)",
-                [email.strip().lower()]).fetchall()
-            n = 0
-            for (cid,) in rows:
-                contacte = c.execute(
-                    "SELECT 1 FROM contact_site_history WHERE contact_id = ? "
-                    "AND last_contacted_by_site_at IS NOT NULL", [cid]).fetchone()
-                if contacte:
-                    continue  # jamais supprimer l'historique d'un contact déjà sollicité
-                c.execute("DELETE FROM contact_site_history WHERE contact_id = ?", [cid])
-                c.execute("DELETE FROM contacts WHERE id = ?", [cid])
-                n += 1
-            return n
-        finally:
-            c.close()
-    except Exception:
-        return 0
-
-
 def is_configured() -> bool:
     """True si les credentials Mailnjoy sont remplis dans .env."""
     return bool(_load_env_var("MAILNJOY_ID")) and bool(_load_env_var("MAILNJOY_SECRET"))
@@ -361,24 +323,6 @@ def check_pending_queue(site_code: str | None = None, delay_ms: int = 200, max_r
             stats["errored"] += 1
 
         time.sleep(delay_ms / 1000.0)
-
-    # Sortie de file : les adresses à bout de tentatives partent au tombstone après un
-    # délai de grâce. Sans ça, elles restaient dans scrappe_pending, invisibles au drain
-    # ET à tout compteur — 397 s'y étaient empilées en trois mois sans que rien ne le dise.
-    # Les deux chiffres remontent dans les stats pour que le silence ne revienne pas.
-    try:
-        retire = gm.retire_chronic_pending(site_code=site_code)
-        stats["retired_chronic"] = retire["retired"]
-        # La copie pool suit le pending : sinon elle reste indéfiniment en 'error' et le
-        # nettoyage nocturne la re-checke à crédit perdu.
-        stats["retired_pool_copies"] = sum(_delete_errored_pool_copy(e)
-                                           for e in retire.get("emails", []))
-        stats["chronic_remaining"] = gm.count_chronic_pending(site_code=site_code)
-        if stats["chronic_remaining"]:
-            print(f"[mailnjoy] {stats['chronic_remaining']} pending hors file "
-                  f"(>= {gm.MAILNJOY_MAX_ATTEMPTS} tentatives, en attente du délai de grâce)")
-    except Exception as e:  # noqa: BLE001
-        stats["retired_chronic_error"] = str(e)
 
     return stats
 
