@@ -112,7 +112,8 @@ _AUTH_OPEN_PATHS = {
     "/api/maintenance",
 }
 _ADMIN_PREFIXES = ("/api/auth/users", "/api/auth/logs", "/api/enrichment/run",
-                   "/api/admin/maintenance", "/api/admin/database")
+                   "/api/admin/maintenance", "/api/admin/database",
+                   "/api/admin/secteurs")
 
 # Codes site connus (isolation multi-tenant). Chargé une fois depuis le registre, fallback statique.
 _KNOWN_SITE_CODES: set | None = None
@@ -5126,6 +5127,93 @@ def _lancer_enrichissement(limite: int | None = None) -> dict:
     return {"ok": True, "message": "Enrichissement lancé en tâche de fond."}
 
 
+@app.get("/api/admin/pression")
+def api_pression_marketing(limite: int = 50):
+    """Pression marketing : combien de communications chaque contact a reçues sur 30 jours.
+
+    La règle (décision user du 2026-08-20) : un contact ne reçoit pas plus de N
+    communications par mois glissant, tous canaux et tous sites confondus. Elle remplace la
+    fenêtre de 120 jours POUR LES SEGMENTS — une action ciblée « relancer ceux qui ont
+    ouvert » ne peut pas exclure ceux qui ont ouvert.
+
+    Comptée sur `email_events`, seul journal qui garde chaque envoi.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import pool_pg
+    maxi = pool_pg.pression_max()
+    jours = pool_pg.PRESSION_JOURS
+    try:
+        repartition = [{"envois": int(r[0]), "contacts": int(r[1])} for r in pool_pg._q(f"""
+            SELECT n, count(*) FROM (
+                SELECT email, count(*) AS n FROM email_events
+                WHERE event_type = 'sent' AND occurred_at > now() - interval '{jours} days'
+                GROUP BY 1) x
+            GROUP BY 1 ORDER BY 1""")]
+        au_plafond = [{"email": r[0], "envois": int(r[1]),
+                       "dernier": str(r[2])[:16], "libre_le": str(r[3])[:10]}
+                      for r in pool_pg._q(f"""
+            SELECT email, count(*) AS n, max(occurred_at),
+                   min(occurred_at) + interval '{jours} days'
+            FROM email_events
+            WHERE event_type = 'sent' AND occurred_at > now() - interval '{jours} days'
+            GROUP BY 1 HAVING count(*) >= %(maxi)s
+            ORDER BY 2 DESC LIMIT %(limite)s""",
+            {"maxi": maxi or 10 ** 6, "limite": min(500, max(1, limite))})]
+        total = pool_pg._q(f"""
+            SELECT count(DISTINCT email) FROM email_events
+            WHERE event_type = 'sent' AND occurred_at > now() - interval '{jours} days'""")[0][0]
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": f"pression illisible: {e}"[:200]})
+
+    return {"max": maxi, "jours": jours, "repartition": repartition,
+            "au_plafond": au_plafond, "contactes_30j": int(total or 0),
+            "reglage": "PRESSION_MAX_MOIS dans .env"}
+
+
+@app.get("/api/admin/secteurs")
+def api_secteurs(site: str = "lcr"):
+    """La politique des secteurs : prioritaire / secondaire / interdit.
+
+    Ce classement pilote l'ordre de la file de scraping et le ciblage Basile — il n'est
+    pas déclaratif. `source` dit s'il s'agit du choix enregistré ou de la proposition par
+    défaut, et `file` chiffre ce que le classement change concrètement dans la file.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import secteurs_backend as sb
+    try:
+        out = sb.politique(site)
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503,
+                            content={"error": f"politique illisible: {e}"[:200]})
+    try:
+        out["file"] = sb.resume_file(site)
+    except Exception:  # noqa: BLE001 — la file est un indicateur, pas le contenu de la page
+        out["file"] = {}
+    return out
+
+
+@app.put("/api/admin/secteurs")
+async def api_secteurs_put(request: Request):
+    """Enregistre le classement. Réservé aux admins (cf. `_ADMIN_PREFIXES`).
+
+    Sort dans la foulée de la file les cibles des secteurs devenus interdits : sans ça, le
+    classement serait vrai à l'écran et faux dans la nuit qui suit.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import secteurs_backend as sb
+    corps = await request.json()
+    site = (corps.get("site") or "lcr").strip()
+    _r, user = _qui(request)
+    try:
+        return sb.enregistrer(site, corps, par=user or "ui")
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503,
+                            content={"error": f"enregistrement impossible: {e}"[:200]})
+
+
 @app.get("/api/admin/etat-technique")
 def api_etat_technique(historique: int = 0):
     """Relevé technique de la plateforme — le contrôle du matin.
@@ -6110,8 +6198,16 @@ async def api_segments_preview(site: str, request: Request):
     if not ok:
         return {"ok": False, "error": err, "summary": sb.describe_rules(rules)}
     try:
-        return {"ok": True, "count": pool.count_for_segment(site, rules),
-                "summary": sb.describe_rules(rules)}
+        out = {"ok": True, "count": pool.count_for_segment(site, rules),
+               "summary": sb.describe_rules(rules)}
+        # Pourquoi ce compteur vaut ce qu'il vaut. Un ciblage « a ouvert » renvoie
+        # couramment 0 — non par erreur, mais parce qu'un contact qui a ouvert a REÇU, et
+        # qu'il est donc en repos 120 jours. Sans cette explication, le zéro passe pour un bug.
+        try:
+            out["explication"] = pool.expliquer_segment(site, rules)
+        except Exception:
+            out["explication"] = None
+        return out
     except Exception as e:  # noqa: BLE001
         # Verrou DuckDB : la base est en écriture (scrape / nettoyage). Ce n'est pas une
         # erreur de règles — `retryable` dit à l'UI de rester utilisable et de réessayer.

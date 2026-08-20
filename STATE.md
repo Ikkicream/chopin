@@ -3,8 +3,37 @@
 > Source de vérité unique pour reprendre le projet sans re-expliquer le contexte.
 > À mettre à jour AVANT toute fin de session ('à demain', 'j'en ai marre', etc.).
 
+> **Reste à faire : voir `RESTE-A-FAIRE.md`** (plan par lots + anomalies ouvertes,
+> tenu à jour depuis le 2026-08-20).
+
 ## Dernière mise à jour
+2026-08-20 (session fermée anormalement — état des lieux repris dans RESTE-A-FAIRE.md)
 2026-08-19 (Prénoms depuis l'email + MINI-CRM commercial avec attribution des rappels)
+
+## 🔧 2026-08-20 (13h50) — Trois correctifs de fond après une session interrompue
+
+**1. La règle des 120 jours ne dépend plus de DuckDB.** `mark_pushed_to_emelia` écrit
+désormais le journal PostgreSQL (`email_events`, qui alimente `v_suppression`) **avant**
+d'ouvrir `contacts.duckdb`, quand l'appelant lui passe l'adresse — `campaign_engine` le
+fait maintenant sur les deux canaux. Motif : le 20/08 à 8h31, un scrape tenait le pool,
+le marquage a levé, et `david.daries@gers-immobilier.fr` a reçu son email **sans ligne de
+repoussoir** — renvoyable. Réparé à la main (gelé jusqu'au 18/12), et la cause est
+supprimée : le rempart qui compte s'écrit en premier, sur la base qui n'a pas de verrou.
+
+**2. Le scraping 24 h/24 ne s'arrête plus à midi.** `MAX_TARGETS_PER_NIGHT` (3, taillé
+pour une nuit de dix heures) devient `_max_cibles()` : 3 par nuit en mode fenêtre, **12
+par jour en mode continu**. Le frein reste le quota de 1 000 contacts/jour. `_night_id()`
+suit le jour calendaire en continu, aligné sur ce quota. Deux **créneaux réservés** où
+aucune passe ne démarre : `06:20-07:20` (enrichissement + réconciliation) et
+`08:20-10:00` (dispatch de campagnes) — c'est la collision de ce matin, supprimée.
+
+**3. `pg_reconcile` a tourné pour la première fois.** `pg_gate._duck()` réessaie pendant
+dix minutes au lieu d'abandonner au deuxième essai : en 24 h/24, un scrape peut tenir le
+pool à 6h30. Résultat du premier passage : PostgreSQL 8 216 → **8 170**, aligné sur le
+pool (46 contacts disparus du pool retirés — 0 rappel, 0 événement perdus, vérifié avant).
+Répartition : ok 6 316 · spam 1 482 · à vérifier 200 · exclu 152 · ko 20.
+
+**Reste à faire : voir `RESTE-A-FAIRE.md`.** Lot 2 (secteurs) attend toujours l'arbitrage.
 
 ## 🔝 REPRISE — session du 2026-08-19 (à lire en premier)
 
@@ -114,6 +143,24 @@ actif, maintenance levée. Pool DuckDB 7 916 contacts · PostgreSQL 6 194 contac
   contacts/mois, soit 5 % du volume visé. Serper ne peut donc être qu'un complément.
   `SERPER_RESERVE=5000` dans `.env` : sous ce seuil, la collecte **continue sur Basile seul**
   au lieu de s'arrêter. `SCRAPE_MAX_JOUR=1000`.
+- **L'exclusion d'un segment se combine en ET par défaut** (`exclude_match`, 2026-08-20).
+  Elle était figée en OU : ajouter « secteur immobilier » à une exclusion « a ouvert »
+  retirait TOUT l'immobilier, alors que l'intention évidente est « retirer les immobiliers
+  QUI ont ouvert ». Les valeurs d'une même famille restent en OU (« exclure banque ou
+  assurance »). Sélecteur ET/OU dans l'éditeur, comme à l'inclusion.
+  `conflits_rules()` ne signale un critère des deux côtés QUE si l'exclusion est en OU —
+  en ET c'est légitime. `expliquer_segment` rend `inclus` et `retires_par_exclusion`.
+- **PRESSION MARKETING — remplace les 120 jours POUR LES SEGMENTS (décision user 2026-08-20).**
+  Un segment sert une action ciblée : « relancer ceux qui ont ouvert » ne peut pas exclure
+  ceux qui ont ouvert. La fenêtre de 120 jours ne s'applique donc plus aux segments ; à la
+  place, **4 communications maximum par mois glissant** (`PRESSION_MAX_MOIS` dans `.env`,
+  `pool_pg._PRESSION_SQL`), tous canaux et tous sites confondus. Effet mesuré : « ouvreurs »
+  passe de 1 à 348 contactables, « immobilier + Paris + ouvert » de 0 à 4.
+  **Les 120 jours restent en vigueur pour le cold email sans segment** (`_ELIGIBLE`).
+  Comptée sur `email_events` — le pool DuckDB ne garde qu'une date de dernier envoi et ne
+  sait pas compter : c'est pourquoi `count_for_segment` / `pick_for_segment` passent
+  DÉSORMAIS TOUJOURS par PostgreSQL, sans regarder `PG_READS`.
+  Page de contrôle : `/admin/pression`.
 - **La page Vision lit PostgreSQL depuis le 2026-08-20** (`pool_pg.vision_contacts` et
   `pool_pg.enrichment_stats`), avec repli DuckDB si PostgreSQL est injoignable. Équivalence
   vérifiée chiffre par chiffre avant bascule : étapes, enrichissement et secteurs

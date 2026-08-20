@@ -6478,3 +6478,717 @@
     "current_city": "Le Taillan-Médoc"
   }
 }
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 33",
+    "valid": 221,
+    "current_city": "Mérignac"
+  }
+}
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:33",
+    "sector": "immobilier",
+    "dept": "33",
+    "dept_name": "Gironde",
+    "region_name": "Nouvelle-Aquitaine",
+    "night": "2026-08-20",
+    "started_at": "2026-08-20T09:15:04+00:00",
+    "resumes": 0
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:33",
+    "runs": 1,
+    "valid_total": 228,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 33",
+    "valid": 228,
+    "current_city": "Léognan"
+  }
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1756101) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 3 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 8 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 8 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 228,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:33",
+    "runs": 2,
+    "valid_total": 456,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota de la nuit atteint (3/3 cibles)",
+  "cibles_de_la_nuit": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33"
+  ]
+}
+[daily] 2026-08-20T13:34:36+00:00 start immobilier / dept 64 Pyrénées-Atlantiques — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (945 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 64",
+    "valid": 63,
+    "current_city": "Biarritz"
+  }
+}
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:64",
+    "sector": "immobilier",
+    "dept": "64",
+    "dept_name": "Pyrénées-Atlantiques",
+    "region_name": "Nouvelle-Aquitaine",
+    "night": "2026-08-20",
+    "started_at": "2026-08-20T13:34:36+00:00",
+    "resumes": 0
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:64",
+    "runs": 1,
+    "valid_total": 121,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "87 Haute-Vienne",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T14:15:04+00:00 start immobilier / dept 87 Haute-Vienne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (904 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:87",
+    "sector": "immobilier",
+    "dept": "87",
+    "dept_name": "Haute-Vienne",
+    "region_name": "Nouvelle-Aquitaine",
+    "night": "2026-08-20",
+    "started_at": "2026-08-20T14:15:04+00:00",
+    "resumes": 0
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:87",
+    "runs": 1,
+    "valid_total": 34,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 64",
+    "valid": 121,
+    "current_city": "Hendaye"
+  }
+}
+[mailnjoy] 8 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 14 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 15 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 15 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 121,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:64",
+    "runs": 2,
+    "valid_total": 242,
+    "status": "pending"
+  }
+}
+[mailnjoy] 14 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 15 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 15 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 34,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:87",
+    "runs": 2,
+    "valid_total": 68,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "17 Charente-Maritime",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T15:00:04+00:00 start immobilier / dept 17 Charente-Maritime — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (859 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 17",
+    "valid": 52,
+    "current_city": "Rochefort"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 17",
+    "valid": 52,
+    "current_city": "Rochefort"
+  }
+}
+[mailnjoy] 15 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 15 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 17 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 17 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 52,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:17",
+    "runs": 1,
+    "valid_total": 52,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "86 Vienne",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T15:45:04+00:00 start immobilier / dept 86 Vienne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (814 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 86",
+    "valid": 27,
+    "current_city": "Buxerolles"
+  }
+}
+[mailnjoy] 17 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 17 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 17 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 18 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 18 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 27,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:86",
+    "runs": 1,
+    "valid_total": 27,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "40 Landes",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T16:15:05+00:00 start immobilier / dept 40 Landes — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (784 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 40",
+    "valid": 31,
+    "current_city": "Saint-Paul-lès-Dax"
+  }
+}
+[serper_places] error: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+[mailnjoy] 18 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 18 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 18 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 19 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 19 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 31,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:40",
+    "runs": 1,
+    "valid_total": 31,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "79 Deux-Sèvres",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T16:45:03+00:00 start immobilier / dept 79 Deux-Sèvres — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (754 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 19 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 19 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 20,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:79",
+    "runs": 1,
+    "valid_total": 20,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "47 Lot-et-Garonne",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T17:00:04+00:00 start immobilier / dept 47 Lot-et-Garonne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (739 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 47",
+    "valid": 24,
+    "current_city": "Villeneuve-sur-Lot"
+  }
+}
+[mailnjoy] 19 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 19 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 24,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:47",
+    "runs": 1,
+    "valid_total": 24,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "16 Charente",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T17:30:03+00:00 start immobilier / dept 16 Charente — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (709 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 25,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:16",
+    "runs": 1,
+    "valid_total": 25,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "24 Dordogne",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T17:45:04+00:00 start immobilier / dept 24 Dordogne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (694 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 24,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:24",
+    "runs": 1,
+    "valid_total": 24,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}

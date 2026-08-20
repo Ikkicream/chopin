@@ -225,10 +225,12 @@ def _segment_sql(rules: dict) -> tuple[str, dict, bool]:
     """Règles d'un segment → fragment SQL PostgreSQL.
 
     Même sémantique que la version DuckDB : dans une famille les valeurs sont en OU, entre
-    familles c'est `match` qui décide, et l'exclusion est toujours en OU.
+    familles c'est `match` qui décide — et, côté exclusion, `exclude_match` (« ET » par
+    défaut : on décrit la sous-population à retirer).
     """
     r = {"include": rules.get("include") or {}, "exclude": rules.get("exclude") or {},
-         "match": str(rules.get("match") or "AND").upper()}
+         "match": str(rules.get("match") or "AND").upper(),
+         "exclude_match": str(rules.get("exclude_match") or "AND").upper()}
     params: dict = {}
     n = [0]
 
@@ -261,22 +263,74 @@ def _segment_sql(rules: dict) -> tuple[str, dict, bool]:
     inc = cote(r["include"], r["match"], "inc")
     if inc:
         sql += f" AND {inc}"
-    exc = cote(r["exclude"], "OR", "exc")
+    exc = cote(r["exclude"], r.get("exclude_match", "AND"), "exc")
     if exc:
         # `NOT COALESCE(...)` et non `NOT (...)` : voir la note de `_geo`, même piège NULL.
         sql += f" AND NOT COALESCE({exc}, false)"
     return sql, params, bool(r["include"].get("engagement"))
 
 
+# ── Pression marketing (décision user 2026-08-20) ─────────────────────────────
+# Les 120 jours ne s'appliquent PAS aux segments. Un segment sert une action ciblée, du
+# 1 à 1 : « relancer ceux qui ont ouvert » n'a aucun sens si ceux qui ont ouvert sont
+# précisément gelés pour avoir reçu. La règle allait à contresens de son propre usage.
+#
+# À la place, une règle de PRESSION : un contact ne reçoit pas plus de N communications par
+# mois glissant, tous canaux et tous sites confondus. C'est le garde-fou qui empêche le
+# retour de l'accident d'août 2026 — quatre adresses avaient reçu 11 à 18 emails en trente
+# jours ; elles seraient bloquées par cette règle.
+#
+# Comptée sur `email_events`, seul journal qui garde CHAQUE envoi. Le pool DuckDB ne
+# retient qu'une date de dernier envoi par contact : il ne peut pas compter. C'est
+# pourquoi les segments passent désormais par PostgreSQL, quel que soit `PG_READS`.
+DEFAUT_PRESSION_MAX = 4
+
+
+def pression_max() -> int:
+    """Nombre maximum de communications par mois glissant. 0 = pas de limite."""
+    try:
+        for ligne in (BASE_DIR / ".env").read_text().splitlines():
+            if ligne.startswith("PRESSION_MAX_MOIS="):
+                return max(0, int(ligne.split("=", 1)[1].strip() or DEFAUT_PRESSION_MAX))
+    except Exception:
+        pass
+    return DEFAUT_PRESSION_MAX
+
+
+PRESSION_JOURS = 30
+
+# Fragment réutilisé par la pioche, le comptage et l'explication : une seule écriture.
+_PRESSION_SQL = f"""
+    (SELECT count(*) FROM email_events ev
+      WHERE ev.email = ct.email AND ev.event_type = 'sent'
+        AND ev.occurred_at > now() - interval '{PRESSION_JOURS} days') < %(pression)s
+"""
+
+# Éligibilité d'un SEGMENT : tout ce qui protège la réputation d'expéditeur (adresse
+# valide et fraîche, non blacklistée, entreprise non exclue, enrichie) — mais la fenêtre
+# de 120 jours est remplacée par la pression mensuelle.
+_ELIGIBLE_SEGMENT = f"""
+    ct.etat = 'ok'
+    AND e.contact_id IS NOT NULL
+    AND NOT ct.global_blacklisted
+    AND NOT COALESCE(e.excluded, false)
+    AND ct.mailnjoy_decision = 'valid'
+    AND ct.mailnjoy_checked_at >= now() - interval '%(cleaned)s days'
+    AND (cs.state IS NULL OR cs.state = ANY(%(etats)s))
+    AND {_PRESSION_SQL}
+"""
+
+
 def pick_for_segment(site_code: str, rules: dict, limit: int = 30,
                      cleaned_within_days: int = CLEANED_WITHIN_DAYS) -> list[dict]:
     seg_sql, seg_p, eng = _segment_sql(rules)
     params: dict = {"site": site_code, "cleaned": cleaned_within_days,
-                    "etats": _ETATS_REENGAGEMENT if eng else _ETATS_FROID, "limit": limit}
+                    "etats": _ETATS_REENGAGEMENT if eng else _ETATS_FROID, "limit": limit,
+                    "pression": pression_max() or 10 ** 6}
     params.update(seg_p)
     besoin_eng = "eng." in seg_sql
     sql = (_SELECT + _FROM + (_JOIN_ENG if besoin_eng else "")
-           + " WHERE " + _ELIGIBLE + seg_sql + _ORDRE + " LIMIT %(limit)s")
+           + " WHERE " + _ELIGIBLE_SEGMENT + seg_sql + _ORDRE + " LIMIT %(limit)s")
     return [_ligne(r) for r in _q(sql, params)]
 
 
@@ -285,11 +339,12 @@ def count_for_segment(site_code: str, rules: dict,
                       patience_s: float = 6.0) -> int:
     seg_sql, seg_p, eng = _segment_sql(rules)
     params: dict = {"site": site_code, "cleaned": cleaned_within_days,
-                    "etats": _ETATS_REENGAGEMENT if eng else _ETATS_FROID}
+                    "etats": _ETATS_REENGAGEMENT if eng else _ETATS_FROID,
+                    "pression": pression_max() or 10 ** 6}
     params.update(seg_p)
     besoin_eng = "eng." in seg_sql
     sql = ("SELECT count(*)" + _FROM + (_JOIN_ENG if besoin_eng else "")
-           + " WHERE " + _ELIGIBLE + seg_sql)
+           + " WHERE " + _ELIGIBLE_SEGMENT + seg_sql)
     r = _q(sql, params)
     return int(r[0][0]) if r else 0
 
@@ -479,4 +534,59 @@ def enrichment_stats() -> dict:
         "last_enriched_at": str(dernier) if dernier else None,
         "mailnjoy": {"missing": int(mn[0]), "valid": int(mn[1]), "other": int(mn[2])},
         "source": "postgresql",
+    }
+
+
+def expliquer_segment(site_code: str, rules: dict,
+                      cleaned_within_days: int = CLEANED_WITHIN_DAYS) -> dict:
+    """Pourquoi un segment ne ramène-t-il pas plus de monde ?
+
+    Rend la population qui correspond au CIBLAGE, puis ce qui la retient : pression
+    mensuelle atteinte, adresse non valide, entreprise exclue, blacklist. Sans ça, un
+    compteur à zéro passe pour une panne.
+    """
+    seg_sql, seg_p, eng = _segment_sql(rules)
+    params: dict = {"site": site_code, "cleaned": cleaned_within_days,
+                    "etats": _ETATS_REENGAGEMENT if eng else _ETATS_FROID,
+                    "pression": pression_max() or 10 ** 6}
+    params.update(seg_p)
+    besoin_eng = "eng." in seg_sql
+    # Population de l'INCLUSION seule : c'est elle qu'il faut comparer au résultat final
+    # pour savoir combien de contacts les exclusions retirent.
+    seg_inc, seg_inc_p, _ = _segment_sql({"match": rules.get("match", "AND"),
+                                          "include": (rules.get("include") or {}),
+                                          "exclude": {}})
+    p_inc = dict(params); p_inc.update(seg_inc_p)
+    inclus = _q("SELECT count(*)" + _FROM + (_JOIN_ENG if "eng." in seg_inc else "")
+                + " WHERE " + _ELIGIBLE_SEGMENT + seg_inc, p_inc)
+    inclus = int(inclus[0][0]) if inclus else 0
+
+    sql = (f"""
+        SELECT count(*),
+               count(*) FILTER (WHERE ct.global_blacklisted),
+               count(*) FILTER (WHERE COALESCE(e.excluded, false)),
+               count(*) FILTER (WHERE ct.mailnjoy_decision IS DISTINCT FROM 'valid'
+                                   OR ct.mailnjoy_checked_at < now() - interval '%(cleaned)s days'),
+               count(*) FILTER (WHERE NOT ({_PRESSION_SQL}))
+        """ + _FROM + (_JOIN_ENG if besoin_eng else "")
+        + " WHERE (cs.state IS NULL OR cs.state = ANY(%(etats)s))" + seg_sql)
+    r = _q(sql, params)
+    correspondants, blacklist, exclus, email_ko, pression = r[0] if r else (0, 0, 0, 0, 0)
+    import segments_backend as _sb
+    contactables = count_for_segment(site_code, rules, cleaned_within_days=cleaned_within_days)
+    return {
+        "correspondants": int(correspondants or 0),
+        "inclus": inclus,
+        # Ce que les exclusions retirent. Quand ce nombre égale la population incluse, le
+        # segment s'annule lui-même — c'est le symptôme d'un critère répété des deux côtés.
+        "retires_par_exclusion": max(0, inclus - contactables),
+        "conflits": _sb.conflits_rules(rules),
+        "ecartes": {
+            "pression": int(pression or 0),
+            "blacklist": int(blacklist or 0),
+            "email_non_valide": int(email_ko or 0),
+            "entreprise_exclue": int(exclus or 0),
+        },
+        "pression_max": pression_max(),
+        "pression_jours": PRESSION_JOURS,
     }

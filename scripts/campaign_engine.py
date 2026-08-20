@@ -759,7 +759,8 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
             try:
                 if ecm.add_contact(emelia_cid, contact):
                     added += 1
-                    mark_pushed_to_emelia(ct["id"], site, emelia_cid, "")
+                    mark_pushed_to_emelia(ct["id"], site, emelia_cid, "",
+                                          email=ct.get("email"))
             except Exception:
                 pass
 
@@ -796,7 +797,11 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
         # l'exclut de la prochaine pioche — c'est ce qui empêche le renvoi.
         def _on_sent(ct: dict) -> None:
             try:
-                mark_pushed_to_emelia(ct["id"], site, campaign_id, "")
+                # L'adresse est transmise : elle permet d'écrire le journal PostgreSQL
+                # (la barrière des 120 jours) avant d'ouvrir DuckDB, donc même si le
+                # pool est tenu par un scrape.
+                mark_pushed_to_emelia(ct["id"], site, campaign_id, "",
+                                      email=ct.get("email"))
             except Exception as e:  # noqa: BLE001
                 print(f"[campaign_engine] marquage contact {ct.get('email')} échoué : {e}")
             _bump_sent(camp["id"], 1)

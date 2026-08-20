@@ -1,0 +1,20 @@
+{
+  "pool": 8170,
+  "presents_avant": 8216,
+  "a_retirer": 46,
+  "a_creer": 0,
+  "dry_run": false,
+  "evenements_conserves": 0,
+  "presents_apres": 8170,
+  "par_etat": {
+    "ok": 6316,
+    "spam": 1482,
+    "a_verifier": 200,
+    "exclu": 152,
+    "ko": 20
+  },
+  "attributions_auto": {
+    "lcr": 0,
+    "mkd": 0
+  }
+}

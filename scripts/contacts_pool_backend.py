@@ -625,7 +625,7 @@ def suppression_stats() -> dict:
 
 
 def mark_pushed_to_emelia(contact_id: str, site_code: str, campaign_id: str,
-                          emelia_contact_id: str = "") -> None:
+                          emelia_contact_id: str = "", email: str | None = None) -> None:
     """Appelé après push réussi : enregistre campaign + last_contacted.
 
     UPSERT et non simple UPDATE. Un contact sans ligne `contact_site_history` pour ce site
@@ -635,7 +635,20 @@ def mark_pushed_to_emelia(contact_id: str, site_code: str, campaign_id: str,
     même email en août. On crée la ligne manquante avant de marquer, puis on VÉRIFIE que
     le cooldown est bien posé : un marquage muet est le pire des échecs ici, il se paie en
     réputation d'expéditeur.
+
+    `email` (facultatif) : quand l'appelant connaît déjà l'adresse, le journal PostgreSQL
+    est écrit AVANT d'ouvrir DuckDB. Motif, constaté le 2026-08-20 : un scrape tenait
+    `contacts.duckdb`, `_conn()` a fini par lever, et l'événement d'envoi n'a jamais été
+    journalisé — l'email était parti mais l'adresse restait renvoyable, faute de ligne dans
+    `v_suppression`. Depuis la bascule c'est ce journal qui PORTE la fenêtre de 120 jours :
+    il ne doit plus dépendre de la disponibilité d'un fichier DuckDB. Le cooldown du pool
+    reste posé juste après, mais il n'est plus le seul rempart.
     """
+    journalise = False
+    if email:
+        _miroir("record_send", _normalize_email(email), site_code,
+                contact_id=contact_id, campaign_id=campaign_id)
+        journalise = True
     c = _conn()
     try:
         exists = c.execute(
@@ -673,7 +686,7 @@ def mark_pushed_to_emelia(contact_id: str, site_code: str, campaign_id: str,
         c.close()
     # Journal PostgreSQL : c'est CET événement qui alimente `v_suppression`, donc la
     # fenêtre de 120 jours après la bascule. Le manquer rouvrirait la porte aux renvois.
-    if row and row[0]:
+    if row and row[0] and not journalise:
         _miroir("record_send", _normalize_email(row[0]), site_code,
                 contact_id=contact_id, campaign_id=campaign_id)
 
@@ -1220,14 +1233,14 @@ def _segment_side_sql(side: dict, match: str) -> tuple[str, list]:
 def segment_clause(rules: dict) -> tuple[str, list, bool]:
     """Règles d'un segment → (fragment SQL, params, utilise_engagement).
 
-    L'exclusion est TOUJOURS soustraite en bloc (OU entre ses critères) : un contact qui
-    coche une seule exclusion sort du segment, quel que soit le mode de combinaison.
+    L'exclusion est soustraite en bloc ; la façon dont SES critères se combinent entre eux
+    suit `exclude_match` (« ET » par défaut depuis le 2026-08-20 : on décrit une
+    sous-population à retirer, pas une liste de repoussoirs indépendants).
     """
     import segments_backend as sb
     r = sb.normalize_rules(rules)
     inc_sql, inc_params = _segment_side_sql(r["include"], r["match"])
-    # Côté exclusion, les critères sont en OU : « exclu si secteur X OU dépt Y ».
-    exc_sql, exc_params = _segment_side_sql(r["exclude"], "OR")
+    exc_sql, exc_params = _segment_side_sql(r["exclude"], r.get("exclude_match", "AND"))
 
     sql, params = "", []
     if inc_sql:
@@ -1301,9 +1314,11 @@ def count_for_segment(site_code: str, rules: dict, cleaned_within_days: int = 18
     intermittence : on patiente plus longtemps que le défaut (2,8 s) pour un compteur
     affiché à l'écran, quitte à répondre en quelques secondes plutôt qu'en erreur.
     """
-    if _pg_reads():
-        return _pg().count_for_segment(site_code, rules,
-                                       cleaned_within_days=cleaned_within_days)
+    # Toujours PostgreSQL depuis le 2026-08-20, sans regarder `PG_READS` : la règle de
+    # pression (4 communications par mois glissant) se compte sur `email_events`, et le pool
+    # DuckDB ne garde qu'une date de dernier envoi par contact — il ne sait pas compter.
+    return _pg().count_for_segment(site_code, rules,
+                                   cleaned_within_days=cleaned_within_days)
     q, params = _segment_query(site_code, rules, cleaned_within_days,
                                "SELECT COUNT(*)", "")
     _ensure_schema()
@@ -1316,12 +1331,71 @@ def count_for_segment(site_code: str, rules: dict, cleaned_within_days: int = 18
     return int(row[0]) if row else 0
 
 
+def expliquer_segment(site_code: str, rules: dict, cleaned_within_days: int = 180) -> dict:
+    """Délégué à PostgreSQL — voir `pool_pg.expliquer_segment`."""
+    return _pg().expliquer_segment(site_code, rules, cleaned_within_days=cleaned_within_days)
+
+
+def _expliquer_segment_duckdb(site_code: str, rules: dict, cleaned_within_days: int = 180) -> dict:
+    """Pourquoi un segment ne ramène-t-il personne ?
+
+    Un ciblage « a ouvert » renvoie couramment 0. Ce n'est pas une panne : quelqu'un qui a
+    ouvert un email l'a forcément REÇU, il est donc en repos pour 120 jours. Le compteur
+    disait « 0 contactable aujourd'hui » sans dire pourquoi, et ce zéro passait pour un bug.
+
+    On rend donc, à côté du contactable, la population qui correspond au CIBLAGE et le
+    détail de ce qui la retient — repos, blacklist, adresse non valide, entreprise exclue —
+    plus la date de sortie de repos la plus proche.
+    """
+    seg_sql, seg_params, uses_eng = segment_clause(rules)
+    state_sql = ("(csh.state IS NULL OR csh.state IN ('cold_email','prm','lead'))" if uses_eng
+                 else "(csh.state IS NULL OR csh.state = 'cold_email')")
+    cutoff = (_now() - timedelta(days=cleaned_within_days)).isoformat()
+
+    q = f"""
+        SELECT count(*),
+               count(*) FILTER (WHERE COALESCE(c.global_blacklisted, FALSE)),
+               count(*) FILTER (WHERE COALESCE(e.excluded, FALSE)),
+               count(*) FILTER (WHERE COALESCE(json_extract_string(c.mailnjoy_check, '$.decision'), '') <> 'valid'
+                                   OR COALESCE(json_extract_string(c.mailnjoy_check, '$.checked_at'), '') < ?),
+               count(*) FILTER (WHERE sup.email IS NOT NULL),
+               min(sup.release_at) FILTER (WHERE sup.email IS NOT NULL)
+        FROM contacts c
+        LEFT JOIN contact_site_history csh
+            ON c.id = csh.contact_id AND csh.site_code = ?
+        LEFT JOIN contact_enrichment e ON e.contact_id = c.id
+        LEFT JOIN email_suppression sup
+            ON sup.email = lower(c.email) AND sup.contactable = 0
+           AND sup.last_sent_at > CURRENT_TIMESTAMP - INTERVAL '{SUPPRESSION_DAYS}' DAY
+        WHERE {state_sql} {seg_sql}
+    """
+    params = [cutoff, site_code] + list(seg_params)
+
+    c = _conn(read_only=True)
+    try:
+        r = c.execute(q, params).fetchone()
+    finally:
+        c.close()
+
+    correspondants, blacklist, exclus, email_ko, repos, liberation = r
+    return {
+        "correspondants": int(correspondants or 0),
+        "ecartes": {
+            "repos": int(repos or 0),
+            "blacklist": int(blacklist or 0),
+            "email_non_valide": int(email_ko or 0),
+            "entreprise_exclue": int(exclus or 0),
+        },
+        "prochaine_liberation": str(liberation)[:10] if liberation else None,
+    }
+
+
 def pick_for_segment(site_code: str, rules: dict, limit: int = 30,
                      cleaned_within_days: int = 180) -> list[dict]:
     """Pioche les N meilleurs contacts d'un segment (même tri que pick_for_campaign)."""
-    if _pg_reads():
-        return _pg().pick_for_segment(site_code, rules, limit=limit,
-                                      cleaned_within_days=cleaned_within_days)
+    # Voir `count_for_segment` : les segments vivent côté PostgreSQL.
+    return _pg().pick_for_segment(site_code, rules, limit=limit,
+                                  cleaned_within_days=cleaned_within_days)
     cols = ["id", "email", "prenom", "nom", "societe", "tel", "website",
             "city", "dept_code", "region_code", "sectors",
             "primary_source", "email_score", "global_blacklisted",

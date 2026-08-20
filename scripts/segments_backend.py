@@ -119,7 +119,7 @@ def save_count(sid: str, count: int) -> None:
 
 # ── Règles ───────────────────────────────────────────────────────────────────
 def empty_rules() -> dict:
-    return {"match": "AND",
+    return {"match": "AND", "exclude_match": "AND",
             "include": {"sectors": [], "regions": [], "depts": [], "engagement": None},
             "exclude": {"sectors": [], "regions": [], "depts": [], "engagement": None}}
 
@@ -129,6 +129,12 @@ def normalize_rules(rules: dict | None) -> dict:
     r = rules or {}
     out = empty_rules()
     out["match"] = "OR" if str(r.get("match", "AND")).upper() == "OR" else "AND"
+    # Mode de combinaison de l'EXCLUSION, ajouté le 2026-08-20. Il était figé à « OU » :
+    # ajouter « secteur immobilier » à une exclusion « a ouvert » retirait TOUT
+    # l'immobilier, alors que l'intention évidente est « retirer les immobiliers QUI ont
+    # ouvert ». Défaut « ET » : on décrit une sous-population à retirer. Les valeurs d'une
+    # MÊME famille restent en OU (« exclure banque ou assurance »), comme à l'inclusion.
+    out["exclude_match"] = "OR" if str(r.get("exclude_match", "AND")).upper() == "OR" else "AND"
     for side in ("include", "exclude"):
         src = r.get(side) or {}
         for fam in FAMILIES:
@@ -145,6 +151,34 @@ def normalize_rules(rules: dict | None) -> dict:
         eng = (src.get("engagement") or "").strip() or None
         out[side]["engagement"] = eng
     return out
+
+
+def conflits_rules(rules: dict) -> list[str]:
+    """Critères présents des DEUX CÔTÉS — inclus et exclus à la fois.
+
+    Les deux cartes de l'éditeur se ressemblent, et on remplit volontiers la seconde comme
+    la première « pour dire sur quelle population exclure ». Le résultat est un segment qui
+    s'annule lui-même : tout ce qui entre par l'inclusion ressort par l'exclusion, et le
+    compteur affiche 0 sans que rien n'explique pourquoi (cas remonté le 2026-08-20 :
+    « secteur immobilier ET dépt 75 — SAUF secteur immobilier ou dépt 75 »).
+
+    On rend la liste en clair, pour que l'interface puisse le dire avant d'enregistrer.
+    """
+    r = normalize_rules(rules)
+    # En mode « ET », répéter un critère de l'inclusion dans l'exclusion est LÉGITIME :
+    # « immobilier » + « a ouvert » côté exclusion veut dire « retire les immobiliers qui
+    # ont ouvert ». Ce n'est un piège qu'en mode « OU », où le critère répété suffit à
+    # tout faire sortir.
+    if r.get("exclude_match", "AND") != "OR":
+        return []
+    inc, exc = r["include"], r["exclude"]
+    conflits: list[str] = []
+    for famille, etiquette in (("sectors", "secteur"), ("regions", "région"), ("depts", "dépt")):
+        communs = sorted(set(inc.get(famille) or []) & set(exc.get(famille) or []))
+        conflits += [f"{etiquette} {c}" for c in communs]
+    if inc.get("engagement") and inc["engagement"] == exc.get("engagement"):
+        conflits.append(ENGAGEMENT_LABELS.get(inc["engagement"], inc["engagement"]))
+    return conflits
 
 
 def validate_rules(rules: dict) -> tuple[bool, str]:
@@ -181,7 +215,8 @@ def describe_rules(rules: dict) -> str:
     txt = (f" {'ET' if r['match'] == 'AND' else 'OU'} ").join(inc) if inc else "tout le pool"
     exc = side_txt("exclude")
     if exc:
-        txt += " — SAUF " + " ou ".join(exc)
+        colle = " et " if r.get("exclude_match", "AND") == "AND" else " ou "
+        txt += " — SAUF " + colle.join(exc)
     return txt
 
 

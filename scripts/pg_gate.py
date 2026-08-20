@@ -100,12 +100,28 @@ _FROM = """
 """
 
 
-def _duck():
+def _duck(tentatives: int = 30, pause_s: float = 20.0):
+    """Ouvre le pool, patiemment.
+
+    Depuis le passage du scraping en 24 h/24 (2026-08-20), un scrape peut tenir
+    `contacts.duckdb` à n'importe quelle heure — y compris pendant l'enrichissement de
+    6h30 et la réconciliation qui le suit. Deux essais consécutifs ne suffisaient plus :
+    la réconciliation mourait sur le verrou et PostgreSQL restait en retard, ce qui est
+    précisément la panne qu'elle est censée réparer. On attend donc jusqu'à dix minutes,
+    ce qui couvre le nettoyage Mailnjoy entre deux villes, avant d'abandonner.
+    """
+    import time
     import duckdb
-    try:
-        return duckdb.connect(str(POOL_DB))
-    except Exception:
-        return duckdb.connect(str(POOL_DB), read_only=True)
+    derniere = None
+    for i in range(tentatives):
+        for read_only in (False, True):
+            try:
+                return duckdb.connect(str(POOL_DB), read_only=read_only)
+            except Exception as e:  # noqa: BLE001
+                derniere = e
+        if i < tentatives - 1:
+            time.sleep(pause_s)
+    raise derniere
 
 
 def _colonnes() -> str:

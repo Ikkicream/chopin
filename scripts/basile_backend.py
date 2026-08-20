@@ -606,6 +606,18 @@ def run_sector_for_city(site: str, sector: str, city_name: str,
     Retourne {"valid", "rejected", "duplicates", "errors", "status", ...}
     """
     global BASILE_BLOCKED_STATUS
+    # Un secteur interdit ne se collecte jamais, quel que soit le point d'entrée. La file de
+    # scraping l'écarte déjà ; ce contrôle-ci vaut pour les appels directs (CLI, relance
+    # manuelle, futur Lot 4) — un concurrent ou un cabinet soumis au démarchage réglementé
+    # collecté « par erreur » ne se rattrape pas après coup.
+    try:
+        import secteurs_backend as sb
+        if sb.est_interdit(sector, site):
+            return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 0,
+                    "status": "interdit", "sector": sector, "city": city_name}
+    except Exception:  # noqa: BLE001 — politique illisible : on ne bloque pas la collecte
+        pass
+
     nafs = SECTOR_NAF.get(sector)
     if not nafs:
         return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 0, "status": "no_naf",

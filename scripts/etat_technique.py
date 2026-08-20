@@ -185,7 +185,10 @@ def _crm() -> dict:
 _TACHES = {
     "enrichissement data.gouv": "logs/datagouv_enrich.log",
     "réconciliation PostgreSQL": "logs/pg_reconcile.log",
-    "dispatch campagnes": "logs/campaign-dispatch.log",
+    # Le cron écrit dans memory/shared, pas dans logs/ : le chemin logs/ n'a jamais existé,
+    # donc la tuile « dispatch campagnes » affichait « absent » alors que la tâche tournait
+    # tous les jours. Un indicateur faux est pire que pas d'indicateur — il use la confiance.
+    "dispatch campagnes": "memory/shared/campaign-dispatch.log",
     "sauvegarde": "backups/backup.log",
 }
 
@@ -208,16 +211,27 @@ def _taches() -> dict:
 
 
 def _services() -> dict:
-    """Process PM2 attendus. On ne redémarre rien : on constate."""
+    """Process PM2 attendus. On ne redémarre rien : on constate.
+
+    On interroge PM2 lui-même. L'ancien `pgrep -af "PM2|uvicorn|next"` cherchait le NOM PM2
+    (« genesis-dashboard ») dans la ligne de commande des process — or il n'y figure pas :
+    les trois services étaient donc annoncés éteints en permanence, y compris à l'instant où
+    ils répondaient. Depuis root, PM2 ne voit pas les process d'autoblog : on repasse par lui.
+    """
     attendus = ("genesis-dashboard", "genesis-ui", "genesis-mailnjoy-drain")
     etat = {n: False for n in attendus}
-    try:
-        r = subprocess.run(["pgrep", "-af", "PM2|uvicorn|next"], capture_output=True, text=True)
-        texte = r.stdout
-        for n in attendus:
-            etat[n] = n in texte
-    except Exception:
-        pass
+    for cmd in (["pm2", "jlist"], ["sudo", "-n", "-u", "autoblog", "pm2", "jlist"]):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+            procs = json.loads(r.stdout or "[]")
+        except Exception:  # noqa: BLE001 — PM2 absent ou sortie illisible : on tente la suite
+            continue
+        for p in procs:
+            nom = p.get("name")
+            if nom in etat and (p.get("pm2_env") or {}).get("status") == "online":
+                etat[nom] = True
+        if any(etat.values()):
+            break
     return etat
 
 

@@ -4,11 +4,13 @@ autoscrape_daily.py — Scraping automatique quotidien, piloté par la populatio
 Remplace `autoscrape_plan.py` (plan régional en dur, terminé le 2026-07-16 et arrêté
 faute de secteur suivant activé). Règles demandées par Camille le 2026-08-06 :
 
-  1. MAX_TARGETS_PER_NIGHT cibles par nuit (3), une à la fois, et UNIQUEMENT si aucun
+  1. Un plafond de cibles par période — 3 par nuit en mode fenêtre, 12 par jour en mode
+     continu (`_max_cibles`) —, une à la fois, et UNIQUEMENT si aucun
      scrape ne tourne déjà (cron, UI ou reprise manuelle : on ne double jamais un run).
      Tout est terminé avant 8h00 heure de Paris — cf. « Butoirs horaires » plus bas :
      à 8h30 UTC le dispatch de campagnes a besoin de DuckDB, qui n'admet qu'un écrivain.
-  2. Secteur prioritaire : immobilier, puis le reste de SECTOR_PRIORITY dans l'ordre.
+  2. Ordre des secteurs : la politique réglée à l'écran (`secteurs_backend`) — les
+     prioritaires d'abord, puis les secondaires ; les interdits ne sont jamais collectés.
   3. Cibles ordonnées par population DÉCROISSANTE — région d'abord, puis département
      à l'intérieur de la région.
   4. Cible de contacts : TARGET_PER_TARGET (2000) pour chaque couple secteur × dept.
@@ -25,8 +27,9 @@ dont la géo est épuisée avant 2000 redevient `pending` : elle sera rejouée q
 les autres auront eu leur passe (de nouvelles entreprises apparaissent), dans la limite
 des 3 passes.
 
-Fenêtre : le scraping reste confiné à 22h–08h (heure de Paris) par `autoscrape_backend`
-— DuckDB n'admet qu'un écrivain, un scrape de jour gèlerait les compteurs de l'UI.
+Fenêtre : réglée par `SCRAPE_WINDOW` dans `.env` — « 24h » (défaut depuis le 2026-08-20)
+= continu. Le frein n'est plus l'horaire mais le quota de contacts du jour. Seule plage
+protégée : `DISPATCH_RESERVE_UTC`, réservée au routage des emails.
 
 État  : memory/autoscrape/<site>-daily.json · pause : <site>-daily-pause.flag
 Table : autoscrape_targets (god_mode.duckdb)
@@ -53,8 +56,29 @@ GOD_DB = BASE_DIR / "data" / "god_mode.duckdb"
 # ── Règles du plan ───────────────────────────────────────────────────────────────
 TARGET_PER_TARGET = 2000      # contacts visés par couple secteur × département
 MAX_RUNS_PER_TARGET = 3       # passes maximum sur une même cible (règle Camille)
-MAX_TARGETS_PER_NIGHT = 3     # cibles travaillées par nuit (2026-08-06 : 1 → 3)
+MAX_TARGETS_PER_NIGHT = 3     # cibles par nuit en mode FENÊTRE (2026-08-06 : 1 → 3)
+MAX_TARGETS_PER_DAY = 12      # cibles par jour en mode CONTINU (2026-08-20)
+# En 24 h/24, le plafond de 3 cibles — taillé pour une nuit de dix heures — arrêtait la
+# collecte en fin de matinée et laissait la machine inactive le reste de la journée
+# (constaté le 2026-08-20 : plus rien après 11h12). Le vrai frein en mode continu est le
+# quota de contacts du jour (`asb.DEFAUT_MAX_JOUR`, 1000), qui protège la facture Serper ;
+# ce compteur-ci ne sert plus qu'de garde-fou contre une file qui s'emballerait.
 MAX_RESUMES_PER_PASS = 8      # garde-fou : une passe qui ne finit jamais est close d'office
+
+# Créneau réservé au routage des emails (heure serveur = UTC). Le dispatch de campagnes
+# tourne à 08:30 UTC et dure jusqu'à ~09:05 ; il écrit dans god_mode.duckdb ET dans le
+# pool, qui n'admettent qu'un écrivain. Le 2026-08-20 un scrape tenait les deux fichiers :
+# le dispatch a envoyé ses 52 emails mais s'est arrêté sur un verrou, et un contact est
+# resté sans sa ligne de repoussoir — donc renvoyable. On ne DÉMARRE plus de passe dans
+# cette plage ; ce qui tourne déjà n'est pas interrompu (le journal PostgreSQL, écrit
+# avant DuckDB depuis ce jour, protège de toute façon la règle des 120 jours).
+DISPATCH_RESERVE_UTC = ("08:20", "10:00")
+
+# Même raison pour l'entretien du matin : `datagouv_enrich` (06:30 UTC) puis `pg_reconcile`
+# lisent le pool. En 24 h/24 un scrape peut le tenir à cette heure-là — c'est ce qui a
+# empêché la réconciliation de tourner. On lui réserve son créneau.
+ENTRETIEN_RESERVE_UTC = ("06:20", "07:20")
+CRENEAUX_RESERVES = (ENTRETIEN_RESERVE_UTC, DISPATCH_RESERVE_UTC)
 
 # Butoirs horaires : ils vivent dans `autoscrape_backend` (SCRAPE_STOP / CLEANUP_STOP,
 # 07:20 et 07:50 heure de Paris) pour s'appliquer à TOUS les points d'entrée — ici, le
@@ -63,6 +87,9 @@ MIN_MINUTES_TO_START = 45     # sous ce reliquat, on ne démarre plus de NOUVELL
 
 # Secteur prioritaire en tête. Les suivants sont consommés dans cet ordre, une fois que
 # toutes les cibles « immobilier » ont eu leur passe.
+# Repli seul : la SOURCE est la politique des secteurs (`secteurs_backend`, Lot 2), que
+# Camille règle à l'écran. Cette liste ne sert plus que si PostgreSQL est injoignable — ne
+# jamais la modifier pour changer une priorité, ça ne prendrait pas effet.
 SECTOR_PRIORITY = [
     "immobilier",
     "agence-marketing",
@@ -81,6 +108,23 @@ SECTOR_PRIORITY = [
     "comptable",
     "consultant",
 ]
+
+def _secteurs(site: str = SITE) -> list[str]:
+    """Secteurs collectables, dans l'ordre voulu : prioritaires puis secondaires.
+
+    Les interdits en sont absents — ils ne sont donc ni semés dans la file, ni piochés.
+    Repli sur `SECTOR_PRIORITY` si la politique est illisible : mieux vaut collecter selon
+    l'ancien ordre que de ne rien collecter du tout.
+    """
+    try:
+        import secteurs_backend as sb
+        ordre = sb.ordre_scraping(site)
+        return ordre or list(SECTOR_PRIORITY)
+    except Exception as e:  # noqa: BLE001
+        print(f"[autoscrape] politique des secteurs illisible ({e}) — repli sur l'ordre codé",
+              flush=True)
+        return list(SECTOR_PRIORITY)
+
 
 STATE_PATH = BASE_DIR / "memory" / "autoscrape" / f"{SITE}-daily.json"
 PAUSE_PATH = BASE_DIR / "memory" / "autoscrape" / f"{SITE}-daily-pause.flag"
@@ -157,11 +201,31 @@ def _night_id(now=None) -> str:
     à 00h30 compteraient pour deux jours différents et on démarrerait deux cibles la
     même nuit, alors que Camille en demande une par jour.
     """
+    import autoscrape_backend as asb
     from zoneinfo import ZoneInfo
     now = now or datetime.now(ZoneInfo("Europe/Paris"))
-    if now.hour < 8:
+    # En mode continu il n'y a plus de nuit : le compteur suit le jour calendaire, comme le
+    # quota de contacts. Sans ça, une collecte de 2 h du matin serait imputée à la veille
+    # alors que le quota Serper, lui, est déjà remis à zéro — deux comptes désalignés.
+    if asb._fenetre() is not None and now.hour < 8:
         now = now - timedelta(days=1)
     return now.date().isoformat()
+
+
+def _max_cibles() -> int:
+    """Plafond de cibles par période : 3 par nuit en mode fenêtre, 12 par jour en continu."""
+    import autoscrape_backend as asb
+    return MAX_TARGETS_PER_NIGHT if asb._fenetre() is not None else MAX_TARGETS_PER_DAY
+
+
+def _creneau_reserve(now=None) -> tuple[str, str] | None:
+    """Le créneau réservé en cours (heure serveur), ou None."""
+    now = now or datetime.now()
+    hm = now.strftime("%H:%M")
+    for debut, fin in CRENEAUX_RESERVES:
+        if debut <= hm < fin:
+            return debut, fin
+    return None
 
 
 def _night_worked(st: dict) -> list[str]:
@@ -212,7 +276,8 @@ def seed_targets(site: str = SITE) -> dict:
 
     region_pop, dept_pop, region_name, dept_name = _population_index()
     depts = [d for d in metropole_departments() if dept_pop.get(d["code"])]
-    expected = len(SECTOR_PRIORITY) * len(depts)
+    secteurs = _secteurs(site)
+    expected = len(secteurs) * len(depts)
     c = _conn(read_only=True)
     try:
         have = c.execute("SELECT COUNT(*) FROM autoscrape_targets WHERE site_code=?",
@@ -223,7 +288,7 @@ def seed_targets(site: str = SITE) -> dict:
         return {"ok": True, "created": 0, "total": have}
 
     rows = []
-    for sector in SECTOR_PRIORITY:
+    for sector in secteurs:
         for d in depts:
             code = d["code"]
             rows.append((f"{site}:{sector}:{code}", site, sector, d.get("region_code"),
@@ -264,7 +329,14 @@ def next_target(site: str = SITE) -> dict | None:
     cols = ["id", "sector", "region_code", "region_name", "dept_code", "dept_name",
             "region_pop", "dept_pop", "runs", "valid_total", "status"]
     items = [dict(zip(cols, r)) for r in rows]
-    prio = {s: i for i, s in enumerate(SECTOR_PRIORITY)}
+    # Un secteur interdit ne doit jamais être pioché, même si sa cible est restée `pending`
+    # (classement changé après la création de la file). C'est le second rideau : le premier
+    # est `retirer_cibles_interdites`, qui les sort de la file au moment de l'enregistrement.
+    secteurs = _secteurs(site)
+    prio = {s: i for i, s in enumerate(secteurs)}
+    items = [t for t in items if t["sector"] in prio]
+    if not items:
+        return None
     items.sort(key=lambda t: (t["runs"], prio.get(t["sector"], 999),
                               -(t["region_pop"] or 0), -(t["dept_pop"] or 0)))
     return items[0]
@@ -389,6 +461,14 @@ def decide(site: str = SITE) -> dict:
     if plafond:
         return {"action": "skip", "why": motif}
 
+    # Créneaux réservés : on ne prend DuckDB ni au routage des emails, ni à l'entretien.
+    creneau = _creneau_reserve()
+    if creneau:
+        quoi = ("entretien du matin (enrichissement + réconciliation)"
+                if creneau == ENTRETIEN_RESERVE_UTC else "dispatch de campagnes")
+        return {"action": "skip",
+                "why": f"créneau réservé au {quoi} ({creneau[0]}-{creneau[1]} serveur)"}
+
     if cur:
         ours = _progress_is_ours(prog, cur)
         pstatus = prog.get("status") if ours else None
@@ -411,10 +491,11 @@ def decide(site: str = SITE) -> dict:
                 "valid": int(prog.get("valid") or 0)}
 
     worked = _night_worked(st)
-    if len(worked) >= MAX_TARGETS_PER_NIGHT:
-        return {"action": "skip", "why": f"quota de la nuit atteint "
-                                         f"({len(worked)}/{MAX_TARGETS_PER_NIGHT} cibles)",
-                "cibles_de_la_nuit": worked}
+    if len(worked) >= _max_cibles():
+        periode = "de la nuit" if asb._fenetre() is not None else "du jour"
+        return {"action": "skip", "why": f"quota {periode} atteint "
+                                         f"({len(worked)}/{_max_cibles()} cibles)",
+                "cibles_de_la_periode": worked}
 
     # Démarrer une cible 20 min avant le butoir ne sert à rien : on brûle un créneau de
     # la nuit pour trois villes. Sous ce seuil, la nuit est finie.
@@ -583,7 +664,7 @@ def targets(limit: int = 20, site: str = SITE) -> dict:
     finally:
         c.close()
     nxt = []
-    prio = {s: i for i, s in enumerate(SECTOR_PRIORITY)}
+    prio = {s: i for i, s in enumerate(_secteurs(site))}
     c = _conn(read_only=True)
     try:
         cand = c.execute(
@@ -592,6 +673,9 @@ def targets(limit: int = 20, site: str = SITE) -> dict:
             [site, MAX_RUNS_PER_TARGET]).fetchall()
     finally:
         c.close()
+    # « Prochaines cibles » doit montrer ce qui va RÉELLEMENT tourner : les secteurs
+    # interdits n'y ont pas leur place, ils ne seront jamais pioches.
+    cand = [r for r in cand if r[0] in prio]
     cand = sorted(cand, key=lambda r: (r[6], prio.get(r[0], 999), -(r[4] or 0), -(r[5] or 0)))
     for r in cand[:limit]:
         nxt.append({"secteur": r[0], "dept": f"{r[1]} {r[2]}", "region": r[3],
@@ -607,18 +691,28 @@ def status() -> dict:
     import autoscrape_backend as asb
     st = load_state()
     worked = _night_worked(st)
-    return {"paused": PAUSE_PATH.exists(), "nuit": _night_id(),
-            "cibles_de_la_nuit": f"{len(worked)}/{MAX_TARGETS_PER_NIGHT}", "detail": worked,
+    continu = asb._fenetre() is None
+    # Les butoirs affichés doivent décrire le régime RÉEL : en continu ils ne s'appliquent
+    # pas (cf. `night_deadlines`), et les annoncer laissait croire que la collecte allait
+    # s'arrêter à 7 h 20 alors qu'elle tourne toute la journée.
+    butoirs = ({"scraping": "sans objet (mode continu)",
+                "nettoyage": "sans objet (mode continu)",
+                "creneaux_reserves": [f"{d}-{f} serveur" for d, f in CRENEAUX_RESERVES]}
+               if continu else
+               {"scraping": f"{asb.SCRAPE_STOP} Paris (dans "
+                            f"{int(asb.seconds_until_paris(asb.SCRAPE_STOP) / 60)} min)",
+                "nettoyage": f"{asb.CLEANUP_STOP} Paris (dans "
+                             f"{int(asb.seconds_until_paris(asb.CLEANUP_STOP) / 60)} min)"})
+    return {"paused": PAUSE_PATH.exists(),
+            "periode": _night_id(), "mode": "continu" if continu else "fenetre",
+            "cibles_de_la_periode": f"{len(worked)}/{_max_cibles()}", "detail": worked,
             "cible_en_cours": st.get("current"),
             "ecritures_en_attente": len(st.get("pending_writes") or []),
-            "butoirs": {"scraping": f"{asb.SCRAPE_STOP} Paris (dans "
-                                    f"{int(asb.seconds_until_paris(asb.SCRAPE_STOP) / 60)} min)",
-                        "nettoyage": f"{asb.CLEANUP_STOP} Paris (dans "
-                                     f"{int(asb.seconds_until_paris(asb.CLEANUP_STOP) / 60)} min)"},
+            "butoirs": butoirs,
             "decision": decide(), "live": asb.read_status(SITE),
             "regles": {"cible_contacts": TARGET_PER_TARGET,
                        "passes_max": MAX_RUNS_PER_TARGET,
-                       "cibles_par_nuit": MAX_TARGETS_PER_NIGHT},
+                       "cibles_par_periode": _max_cibles()},
             **targets(limit=5)}
 
 

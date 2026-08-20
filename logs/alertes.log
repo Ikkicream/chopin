@@ -1,0 +1,75 @@
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/alertes.py", line 192, in <module>
+    print(json.dumps(controler(forcer="--force" in sys.argv),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/alertes.py", line 177, in controler
+    _sauver_etat(etat)
+  File "/home/autoblog/genesis/scripts/alertes.py", line 89, in _sauver_etat
+    ETAT_PATH.write_text(json.dumps(e, ensure_ascii=False, indent=2))
+  File "/usr/lib/python3.12/pathlib.py", line 1049, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/pathlib.py", line 1015, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/home/autoblog/genesis/memory/alertes.json'
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/alertes.py", line 192, in <module>
+    print(json.dumps(controler(forcer="--force" in sys.argv),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/alertes.py", line 177, in controler
+    _sauver_etat(etat)
+  File "/home/autoblog/genesis/scripts/alertes.py", line 89, in _sauver_etat
+    ETAT_PATH.write_text(json.dumps(e, ensure_ascii=False, indent=2))
+  File "/usr/lib/python3.12/pathlib.py", line 1049, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/pathlib.py", line 1015, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/home/autoblog/genesis/memory/alertes.json'
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
