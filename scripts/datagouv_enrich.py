@@ -278,6 +278,23 @@ def _denom_variants(denom: str) -> list[str]:
     return variants
 
 
+def _flottant(valeur):
+    """Coordonnée data.gouv → float, ou None.
+
+    L'API ne renvoie pas toujours un nombre : une entreprise en diffusion restreinte reçoit
+    la chaîne « [NON-DIFFUSIBLE] » à la place. `float()` levait alors une ValueError qui
+    faisait tomber TOUT l'enrichissement — et, le cron enchaînant en `&&`, la
+    réconciliation PostgreSQL qui suit ne tournait jamais. Une coordonnée manquante ne
+    justifie pas d'arrêter la chaîne : on la laisse vide.
+    """
+    if valeur in (None, "", "[NON-DIFFUSIBLE]"):
+        return None
+    try:
+        return float(valeur)
+    except (TypeError, ValueError):
+        return None
+
+
 def enrich_contact(contact: dict, client: DataGouvClient) -> dict:
     """Retourne un dict prêt pour l'INSERT (toutes les clés de COLS)."""
     cid = contact["id"]
@@ -379,8 +396,8 @@ def enrich_contact(contact: dict, client: DataGouvClient) -> dict:
         code_insee=siege.get("commune"),
         dept_code=siege.get("departement"),
         region_code=siege.get("region"),
-        latitude=float(siege["latitude"]) if siege.get("latitude") else None,
-        longitude=float(siege["longitude"]) if siege.get("longitude") else None,
+        latitude=_flottant(siege.get("latitude")),
+        longitude=_flottant(siege.get("longitude")),
         etat_administratif=raw.get("etat_administratif"),
         date_creation=_clean_date(raw.get("date_creation")),
         date_fermeture=_clean_date(raw.get("date_fermeture")),
@@ -522,6 +539,27 @@ def main() -> int:
         log.info("  %s", json.dumps(s, ensure_ascii=False))
     if args.dry_run:
         log.info("(--dry-run : aucune écriture en base)")
+    else:
+        # Journal des EXÉCUTIONS, distinct de la date du dernier contact enrichi.
+        # Confondre les deux faisait crier « enrichissement en retard » chaque fois qu'un
+        # run n'avait rien à traiter : il tournait bien, tous les jours, mais n'écrivait
+        # aucune ligne — donc la « dernière date d'enrichissement » ne bougeait plus.
+        try:
+            journal = BASE_DIR / "logs" / "datagouv_runs.jsonl"
+            journal.parent.mkdir(parents=True, exist_ok=True)
+            with journal.open("a") as f:
+                f.write(json.dumps({
+                    "fin": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    "duree_s": round(dur, 1),
+                    "candidats": len(worklist),
+                    "enrichis": enriched,
+                    "non_trouves": unmatched,
+                    "exclus": excluded,
+                    "appels_api": stats["api_calls"],
+                    "cache": stats["cache_hits"],
+                }, ensure_ascii=False) + "\n")
+        except Exception as e:  # noqa: BLE001
+            log.warning("journal d'exécution non écrit : %s", e)
     return 0
 
 

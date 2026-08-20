@@ -76,7 +76,17 @@ def _q(sql: str, params: tuple = ()) -> list[tuple]:
 # Éligibilité de base, identique pour la pioche, les segments et les compteurs : une seule
 # écriture, donc aucun risque qu'un compteur affiche autre chose que ce qui partira.
 _ELIGIBLE = f"""
-    NOT ct.global_blacklisted
+    -- Le verdict stocké d'abord (modèle du 2026-08-20 : PostgreSQL accueille TOUS les
+    -- contacts, `etat` dit à qui on a le droit d'écrire). Les conditions qui suivent le
+    -- recalculent depuis les faits bruts : elles restent, en second rideau, pour qu'un
+    -- état momentanément périmé ne puisse jamais faire partir un email de travers.
+    ct.etat = 'ok'
+    -- L'enrichissement data.gouv reste EXIGÉ pour envoyer (porte d'entrée « option C ») :
+    -- il l'était implicitement via `etat`, il l'est désormais explicitement ici, à sa
+    -- place. L'état dit si l'adresse est bonne ; c'est cette clause qui dit si on a le
+    -- droit d'écrire.
+    AND e.contact_id IS NOT NULL
+    AND NOT ct.global_blacklisted
     AND NOT COALESCE(e.excluded, false)
     AND ct.mailnjoy_decision = 'valid'
     AND ct.mailnjoy_checked_at >= now() - interval '%(cleaned)s days'
@@ -326,3 +336,147 @@ def pool_sectors(min_count: int = 1) -> list[str]:
               WHERE NOT ct.global_blacklisted
               GROUP BY s HAVING count(*) >= %s ORDER BY count(*) DESC""", (min_count,))
     return [x[0] for x in r]
+
+
+# ── Vision : l'état de la base, lu dans PostgreSQL ────────────────────────────
+# La page Vision lisait le pool DuckDB — donc le fichier que le scraping verrouille. Elle
+# lit désormais PostgreSQL, où tous les contacts vivent depuis le 2026-08-20 avec leur
+# `etat`. Même forme de sortie que `contacts_pool_backend.vision_contacts` : les deux
+# peuvent être comparées côte à côte, et c'est ce qui a servi à valider la bascule.
+#
+# La cascade des étapes est écrite dans le MÊME ORDRE que côté DuckDB — blacklisté, écarté,
+# en repos, à vérifier, prêt, vérifié. Changer l'ordre changerait les chiffres sans que
+# personne ne comprenne pourquoi.
+_ETAPE_PG = """
+    CASE
+        WHEN ct.etat = 'spam' THEN 'blacklisted'
+        WHEN ct.etat IN ('ko', 'exclu') THEN 'ecarte'
+        WHEN sup.email IS NOT NULL THEN 'repos'
+        WHEN ct.etat = 'a_verifier' THEN 'a_verifier'
+        WHEN e.siret IS NOT NULL THEN 'pret'
+        ELSE 'verifie'
+    END
+"""
+# « Prêt » exige un SIRET retrouvé, « Vérifié » se contente d'une adresse valide : c'est
+# exactement l'ordre de la cascade DuckDB, et c'est ce que dit la légende à l'écran —
+# « société non retrouvée au SIRET : contactable quand même ».
+
+_VISION_FROM = """
+    FROM contacts ct
+    JOIN contact_sites cs ON cs.contact_id = ct.id AND cs.site_code = %(site)s
+    LEFT JOIN contact_enrichment e ON e.contact_id = ct.id
+    LEFT JOIN v_suppression sup ON sup.email = ct.email AND sup.release_at > now()
+"""
+
+
+def vision_contacts(site_code: str, secteurs_max: int = 5) -> dict:
+    """Étapes, enrichissement, engagement et secteurs — depuis PostgreSQL."""
+    p = {"site": site_code}
+    total = _q("SELECT count(*) " + _VISION_FROM, p)[0][0]
+    etapes = {r[0]: int(r[1]) for r in
+              _q(f"SELECT ({_ETAPE_PG}) AS etape, count(*) {_VISION_FROM} GROUP BY 1", p)}
+
+    enrichi, non_trouve, exclu = _q(f"""
+        SELECT count(*) FILTER (WHERE e.siret IS NOT NULL),
+               count(*) FILTER (WHERE e.contact_id IS NOT NULL AND e.siret IS NULL
+                                  AND NOT COALESCE(e.excluded, false)),
+               count(*) FILTER (WHERE COALESCE(e.excluded, false))
+        {_VISION_FROM}""", p)[0]
+
+    # Engagement : compté sur le JOURNAL d'événements, pas sur un dernier état. Le pool
+    # n'garde que le dernier signal par contact et sous-compte donc les ouvreurs.
+    contactes, ouvreurs, cliqueurs = _q("""
+        SELECT count(DISTINCT email) FILTER (WHERE event_type = 'sent'),
+               count(DISTINCT email) FILTER (WHERE event_type = 'open'),
+               count(DISTINCT email) FILTER (WHERE event_type = 'click')
+        FROM email_events WHERE site_code = %(site)s""", p)[0]
+
+    secteurs = _q("""
+        SELECT s AS secteur, count(*) AS n
+        FROM contacts ct
+        JOIN contact_sites cs ON cs.contact_id = ct.id AND cs.site_code = %(site)s,
+             unnest(ct.sectors) AS s
+        WHERE s <> '' GROUP BY 1 ORDER BY n DESC""", p)
+
+    liste = [{"secteur": r[0], "n": int(r[1])} for r in secteurs]
+    tete, reste = liste[:secteurs_max], liste[secteurs_max:]
+    if reste:
+        tete.append({"secteur": "Autres", "n": sum(x["n"] for x in reste),
+                     "detail": len(reste)})
+
+    import contacts_pool_backend as _cpb           # vocabulaire des étapes, défini une fois
+    return {
+        "site": site_code,
+        "total": int(total),
+        "etapes": {cle: etapes.get(cle, 0) for cle in _cpb.ETAPES},
+        "etapes_libelles": _cpb.ETAPES,
+        "enrichissement": {
+            "siret_trouve": int(enrichi or 0),
+            "siret_non_trouve": int(non_trouve or 0),
+            "exclus": int(exclu or 0),
+            "jamais_traite": max(0, int(total) - int(enrichi or 0) - int(non_trouve or 0) - int(exclu or 0)),
+        },
+        "engagement": {
+            "contactes": int(contactes or 0),
+            "ouvreurs": int(ouvreurs or 0),
+            "cliqueurs": int(cliqueurs or 0),
+        },
+        "secteurs": tete,
+        "source": "postgresql",
+    }
+
+
+def enrichment_stats() -> dict:
+    """Statistiques data.gouv, depuis PostgreSQL — même forme que la version DuckDB.
+
+    Le miroir PostgreSQL ne portait que (contact_id, excluded, raw) : le SIRET dormait dans
+    le JSON, les motifs d'exclusion et les signaux n'existaient pas. Les colonnes ont été
+    ajoutées et synchronisées le 2026-08-20 (`pg_sync_enrichment.py`), ce qui rend cette
+    lecture possible.
+    """
+    total_societe, in_table, enriched, unmatched, exclus = _q("""
+        SELECT (SELECT count(*) FROM contacts WHERE societe IS NOT NULL AND societe <> ''),
+               (SELECT count(*) FROM contact_enrichment),
+               (SELECT count(*) FROM contact_enrichment WHERE siret IS NOT NULL),
+               (SELECT count(*) FROM contact_enrichment
+                 WHERE siret IS NULL AND NOT COALESCE(excluded, false)),
+               (SELECT count(*) FROM contact_enrichment WHERE COALESCE(excluded, false))
+    """)[0]
+
+    signaux = _q("""SELECT count(*) FILTER (WHERE est_rge),
+                           count(*) FILTER (WHERE est_qualiopi),
+                           count(*) FILTER (WHERE est_ess) FROM contact_enrichment""")[0]
+    motifs = {r[0]: int(r[1]) for r in _q("""
+        SELECT exclusion_reason, count(*) FROM contact_enrichment
+        WHERE COALESCE(excluded, false) AND exclusion_reason IS NOT NULL GROUP BY 1""")}
+    dernier = _q("SELECT max(enriched_at) FROM contact_enrichment")[0][0]
+
+    # « Reste à traiter » : les contacts qui ont un nom de société mais aucune ligne
+    # d'enrichissement. C'est le seul chiffre qui dit si le cron a du travail devant lui.
+    # Les blacklistés sont exclus : on ne dépense pas d'appel data.gouv pour quelqu'un
+    # qu'on ne recontactera jamais.
+    reste = _q("""
+        SELECT count(*) FROM contacts ct
+        LEFT JOIN contact_enrichment e ON e.contact_id = ct.id
+        WHERE ct.societe IS NOT NULL AND ct.societe <> '' AND e.contact_id IS NULL
+          AND NOT COALESCE(ct.global_blacklisted, false)""")[0][0]
+
+    # Idem pour le nettoyage : compter les 1 482 blacklistés comme « à vérifier » ferait
+    # croire à un retard de vérification qui n'existe pas — on ne vérifie pas une adresse
+    # qu'on s'interdit d'écrire.
+    mn = _q("""SELECT count(*) FILTER (WHERE mailnjoy_decision IS NULL),
+                      count(*) FILTER (WHERE mailnjoy_decision = 'valid'),
+                      count(*) FILTER (WHERE mailnjoy_decision IS NOT NULL
+                                         AND mailnjoy_decision <> 'valid')
+               FROM contacts WHERE NOT COALESCE(global_blacklisted, false)""")[0]
+
+    return {
+        "total_societe": int(total_societe), "in_table": int(in_table),
+        "enriched": int(enriched), "unmatched": int(unmatched),
+        "hard_excluded": int(exclus), "remaining": int(reste),
+        "signals": {"rge": int(signaux[0]), "qualiopi": int(signaux[1]), "ess": int(signaux[2])},
+        "hard_exclusion_reasons": motifs,
+        "last_enriched_at": str(dernier) if dernier else None,
+        "mailnjoy": {"missing": int(mn[0]), "valid": int(mn[1]), "other": int(mn[2])},
+        "source": "postgresql",
+    }

@@ -158,6 +158,16 @@ def _connect_with_retry(read_only: bool = False, attempts: int = 8, sleep_s: flo
         except Exception as e:  # noqa: BLE001
             last = e
             msg = str(e).lower()
+            # Conflit de CONFIGURATION, à ne pas confondre avec le verrou : dans un même
+            # process, DuckDB met l'instance en cache et refuse une seconde connexion qui
+            # ne demande pas la même chose. Ce n'est pas une question de temps — réessayer
+            # à l'identique échouera toujours. On bascule donc sur l'autre configuration :
+            # c'est le même fichier, et l'instance déjà ouverte décide.
+            if "different configuration" in msg:
+                try:
+                    return duckdb.connect(str(POOL_DB), read_only=not read_only)
+                except Exception as e2:  # noqa: BLE001
+                    last = e2
             if ("lock" in msg or "conflicting" in msg) and i < attempts - 1:
                 time.sleep(sleep_s)
                 continue
@@ -724,29 +734,29 @@ ETAPES = {
 }
 
 
-def _etape_contact(d: dict) -> str:
-    """L'étape d'un contact, en cascade. La première condition bloquante l'emporte."""
-    if d.get("global_blacklisted"):
-        return "blacklisted"
+# La cascade est écrite UNE FOIS, en SQL. Elle était en Python : impossible de filtrer ou
+# de compter par étape sans ramener toute la base, et une seconde écriture en SQL aurait
+# fini par diverger de la première. Ici, la même expression sert à afficher l'étape, à
+# filtrer dessus et à la compter.
+#
+# `_ETAPE_SQL` suppose les jointures posées par `_filtre_contacts` : `e` (enrichissement
+# data.gouv) et `sup` (repos de 120 jours).
+_ETAPE_SQL = """
+CASE
+    WHEN COALESCE(c.global_blacklisted, FALSE) THEN 'blacklisted'
+    WHEN json_extract_string(c.mailnjoy_check, '$.decision') IS NOT NULL
+     AND json_extract_string(c.mailnjoy_check, '$.decision') <> 'valid' THEN 'ecarte'
+    WHEN COALESCE(e.excluded, FALSE) THEN 'ecarte'
+    WHEN sup.email IS NOT NULL THEN 'repos'
+    WHEN json_extract_string(c.mailnjoy_check, '$.decision') IS NULL THEN 'a_verifier'
+    WHEN e.siret IS NOT NULL THEN 'pret'
+    ELSE 'verifie'
+END
+"""
 
-    mn = d.get("mailnjoy_check")
-    decision = ""
-    if isinstance(mn, dict):
-        decision = str(mn.get("decision") or "")
-    if decision in ("invalid", "risky", "unknown", "rejected"):
-        return "ecarte"
-    if d.get("enrichissement_exclu"):
-        return "ecarte"                    # entreprise fermée ou administration
-    if d.get("en_repos_jusquau"):
-        return "repos"
-    if decision != "valid":
-        return "a_verifier"                # jamais vérifié, ou encore en attente
-    if d.get("siret"):
-        return "pret"
-    return "verifie"
 
-
-def _filtre_contacts(site_code: str, state, sectors_in, source, search_email, engagement):
+def _filtre_contacts(site_code: str, state, sectors_in, source, search_email, engagement,
+                    etape=None):
     """Le FROM/WHERE commun à la liste et au comptage.
 
     Écrit une fois : deux clauses séparées finissent par diverger, et la pagination
@@ -784,6 +794,11 @@ def _filtre_contacts(site_code: str, state, sectors_in, source, search_email, en
         q += f" AND ({sub})"
         for x in sectors_in:
             params.append(f"%{x}%")
+    if etape:
+        etapes = [x for x in (etape if isinstance(etape, (list, tuple)) else [etape]) if x]
+        if etapes:
+            q += f" AND ({_ETAPE_SQL}) IN ({','.join(['?'] * len(etapes))})"
+            params.extend(etapes)
     return q, params
 
 
@@ -791,9 +806,11 @@ def count_contacts_for_site(site_code: str, state: list[str] | None = None,
                             sectors_in: list[str] | None = None,
                             source: list[str] | None = None,
                             search_email: str | None = None,
-                            engagement: str | None = None) -> int:
+                            engagement: str | None = None,
+                            etape: list[str] | None = None) -> int:
     """Nombre total de contacts correspondant aux filtres — pour la pagination."""
-    q, params = _filtre_contacts(site_code, state, sectors_in, source, search_email, engagement)
+    q, params = _filtre_contacts(site_code, state, sectors_in, source, search_email,
+                                 engagement, etape)
     c = _conn(read_only=True)
     try:
         return int(c.execute("SELECT count(*) " + q, params).fetchone()[0] or 0)
@@ -801,14 +818,106 @@ def count_contacts_for_site(site_code: str, state: list[str] | None = None,
         c.close()
 
 
+def compter_par_etape(site_code: str, state=None, sectors_in=None, source=None,
+                      search_email=None, engagement=None) -> dict:
+    """Combien de contacts à chaque étape, pour les filtres en cours.
+
+    Sert l'onglet de filtrage ET la page Vision : un compteur affiché à côté d'un filtre
+    doit venir de la même requête que le filtre, sinon les deux se contredisent.
+    """
+    q, params = _filtre_contacts(site_code, state, sectors_in, source, search_email,
+                                 engagement, None)
+    c = _conn(read_only=True)
+    try:
+        rows = c.execute(f"SELECT ({_ETAPE_SQL}) AS etape, count(*) {q} GROUP BY 1", params).fetchall()
+    finally:
+        c.close()
+    return {cle: 0 for cle in ETAPES} | {r[0]: int(r[1]) for r in rows}
+
+
+def vision_contacts(site_code: str, secteurs_max: int = 8) -> dict:
+    """Tout ce qu'il faut savoir de la base de contacts d'un site, en une requête par angle.
+
+    Quatre questions, et elles ne se répondent pas l'une l'autre :
+      - où en sont les contacts dans la chaîne de traitement (étapes) ;
+      - combien ont une société retrouvée au SIRET (enrichissement) ;
+      - combien ont ouvert, cliqué (engagement) ;
+      - comment ils se répartissent par secteur (le donut).
+    """
+    depuis, params = _filtre_contacts(site_code, None, None, None, None, None, None)
+    c = _conn(read_only=True)
+    try:
+        total = int(c.execute("SELECT count(*) " + depuis, params).fetchone()[0] or 0)
+        etapes = {r[0]: int(r[1]) for r in c.execute(
+            f"SELECT ({_ETAPE_SQL}) AS etape, count(*) {depuis} GROUP BY 1", params).fetchall()}
+
+        # Enrichissement : trois issues possibles, plus « pas encore passé ».
+        enrichi, non_trouve, exclu = c.execute(f"""
+            SELECT count(*) FILTER (WHERE e.siret IS NOT NULL),
+                   count(*) FILTER (WHERE e.contact_id IS NOT NULL AND e.siret IS NULL
+                                      AND NOT COALESCE(e.excluded, FALSE)),
+                   count(*) FILTER (WHERE COALESCE(e.excluded, FALSE))
+            {depuis}""", params).fetchone()
+
+        # Engagement : des PERSONNES, une seule fois chacune (le pool ne garde que le
+        # dernier événement par contact).
+        ouvreurs, cliqueurs, contactes = c.execute(f"""
+            SELECT count(*) FILTER (WHERE csh.last_opened_at IS NOT NULL),
+                   count(*) FILTER (WHERE csh.last_clicked_at IS NOT NULL),
+                   count(*) FILTER (WHERE csh.email_sent_at IS NOT NULL
+                                       OR csh.last_contacted_by_site_at IS NOT NULL)
+            {depuis}""", params).fetchone()
+
+        # Requête à part : DuckDB refuse un UNNEST combiné aux jointures externes de
+        # `_filtre_contacts` (« non-inner join on correlated columns »). Les secteurs
+        # n'ont besoin ni de l'enrichissement ni du repos, la jointure minimale suffit.
+        secteurs = c.execute("""
+            SELECT TRIM(sv.value) AS secteur, count(*) AS n
+            FROM contacts c
+            JOIN contact_site_history csh ON csh.contact_id = c.id,
+                 UNNEST(CAST(c.sectors AS VARCHAR[])) AS sv(value)
+            WHERE csh.site_code = ? AND c.sectors IS NOT NULL
+            GROUP BY 1 HAVING TRIM(sv.value) <> '' ORDER BY n DESC""",
+            [site_code]).fetchall()
+    finally:
+        c.close()
+
+    liste = [{"secteur": r[0], "n": int(r[1])} for r in secteurs]
+    tete, reste = liste[:secteurs_max], liste[secteurs_max:]
+    if reste:
+        tete.append({"secteur": "Autres", "n": sum(x["n"] for x in reste),
+                     "detail": len(reste)})
+
+    return {
+        "site": site_code,
+        "total": total,
+        "etapes": {cle: etapes.get(cle, 0) for cle in ETAPES},
+        "etapes_libelles": ETAPES,
+        "enrichissement": {
+            "siret_trouve": int(enrichi or 0),
+            "siret_non_trouve": int(non_trouve or 0),
+            "exclus": int(exclu or 0),
+            "jamais_traite": max(0, total - int(enrichi or 0) - int(non_trouve or 0) - int(exclu or 0)),
+        },
+        "engagement": {
+            "contactes": int(contactes or 0),
+            "ouvreurs": int(ouvreurs or 0),
+            "cliqueurs": int(cliqueurs or 0),
+        },
+        "secteurs": tete,
+    }
+
+
 def list_contacts_for_site(site_code: str, state: list[str] | None = None,
                            sectors_in: list[str] | None = None,
                            source: list[str] | None = None,
                            search_email: str | None = None,
                            engagement: str | None = None,
+                           etape: list[str] | None = None,
                            limit: int = 500, offset: int = 0) -> list[dict]:
     """Liste les contacts utilisés par un site (JOIN contacts × contact_site_history)."""
-    depuis, params = _filtre_contacts(site_code, state, sectors_in, source, search_email, engagement)
+    depuis, params = _filtre_contacts(site_code, state, sectors_in, source, search_email,
+                                      engagement, etape)
     q = """
         SELECT c.id, c.email, c.prenom, c.nom, c.societe, c.tel, c.website,
                c.city, c.dept_code, c.region_code,
@@ -823,7 +932,7 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
                csh.last_opened_at, csh.last_clicked_at,
                csh.last_open_channel, csh.last_click_channel,
                c.mailnjoy_check, e.siret, e.match_quality, e.excluded, e.exclusion_reason,
-               sup.release_at
+               sup.release_at, """ + _ETAPE_SQL + """ AS etape
     """ + depuis
     q += " ORDER BY csh.last_action_at DESC NULLS LAST LIMIT ? OFFSET ?"
     params = list(params) + [limit, offset]
@@ -848,7 +957,7 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
         "last_opened_at", "last_clicked_at",
         "last_open_channel", "last_click_channel",
         "mailnjoy_check", "siret", "match_quality", "enrichissement_exclu",
-        "enrichissement_motif", "en_repos_jusquau",
+        "enrichissement_motif", "en_repos_jusquau", "etape",
     ]
     out = []
     for r in rows:
@@ -858,8 +967,7 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
         d["mailnjoy_check"] = _maybe_parse(d.get("mailnjoy_check"))
         if d.get("en_repos_jusquau"):
             d["en_repos_jusquau"] = str(d["en_repos_jusquau"])
-        d["etape"] = _etape_contact(d)
-        d["etape_label"] = ETAPES[d["etape"]]["label"]
+        d["etape_label"] = ETAPES.get(d.get("etape") or "", {}).get("label", "—")
         for ts_col in ("added_to_site_at", "last_action_at", "email_sent_at",
                        "emelia_opened_at", "emelia_clicked_at", "emelia_replied_at",
                        "emelia_bounced_at", "emelia_unsubscribed_at",
@@ -867,6 +975,39 @@ def list_contacts_for_site(site_code: str, state: list[str] | None = None,
             if d.get(ts_col):
                 d[ts_col] = str(d[ts_col])
         out.append(d)
+    return out
+
+
+def engagement_par_canal(site_code: str) -> dict:
+    """Ouvreurs et cliqueurs UNIQUES par canal de routage, pour ce site.
+
+    Le suivi Maildoso passait pour inexistant (« pas de tracking en SMTP ») alors que le
+    pixel `/api/track/open` et la redirection de clic écrivent bien dans le pool, avec le
+    canal. 348 ouvreurs et 58 cliqueurs Maildoso étaient donc comptés nulle part.
+
+    Limite assumée, la même que partout ailleurs sur ces colonnes : le pool ne retient que
+    la DERNIÈRE ouverture par contact. On compte donc des PERSONNES ayant ouvert, pas un
+    nombre d'ouvertures — c'est ce que `email_events` corrigera après la migration.
+    """
+    c = _conn(read_only=True)
+    try:
+        ouvertures = c.execute(
+            "SELECT COALESCE(last_open_channel, 'inconnu'), count(*) "
+            "FROM contact_site_history "
+            "WHERE site_code = ? AND last_opened_at IS NOT NULL GROUP BY 1",
+            [site_code]).fetchall()
+        clics = c.execute(
+            "SELECT COALESCE(last_click_channel, 'inconnu'), count(*) "
+            "FROM contact_site_history "
+            "WHERE site_code = ? AND last_clicked_at IS NOT NULL GROUP BY 1",
+            [site_code]).fetchall()
+    finally:
+        c.close()
+    out: dict[str, dict] = {}
+    for canal, n in ouvertures:
+        out.setdefault(canal, {"ouvreurs": 0, "cliqueurs": 0})["ouvreurs"] = int(n)
+    for canal, n in clics:
+        out.setdefault(canal, {"ouvreurs": 0, "cliqueurs": 0})["cliqueurs"] = int(n)
     return out
 
 

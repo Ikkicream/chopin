@@ -424,11 +424,13 @@ def scrape_sector(site_code: str, sector: str, cities: list[str] = None,
                     # au lieu de crasher toute la ville (cf. autoscrape). Avec un petit retry.
                     try:
                         try:
-                            _dup = (gm.email_recently_validated(email, days=30)
+                            _dup = (gm.email_deja_en_base(email)
+                                    or gm.email_recently_validated(email, days=30)
                                     or gm.email_in_pending(email) or gm.email_rejected(email))
                         except Exception:
                             time.sleep(0.5)
-                            _dup = (gm.email_recently_validated(email, days=30)
+                            _dup = (gm.email_deja_en_base(email)
+                                    or gm.email_recently_validated(email, days=30)
                                     or gm.email_in_pending(email) or gm.email_rejected(email))
                         if _dup:
                             duplicates += 1

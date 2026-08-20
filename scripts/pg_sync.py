@@ -108,12 +108,17 @@ def promote_contact(contact_id: str) -> bool:
         return False
     try:
         import pg_gate
-        d = pg_gate.contact_eligible(contact_id)
+        # Depuis le 2026-08-20, PostgreSQL accueille TOUT LE MONDE : on lit le contact quel
+        # que soit son état, et c'est l'état qui dira à qui on a le droit d'écrire. La
+        # lecture « éligible ou rien » supprimait de la base un contact devenu mauvais —
+        # et on le re-scrapait trois semaines plus tard, faute de s'en souvenir.
+        d = pg_gate.contact_tel_quel(contact_id)
     except Exception as e:  # noqa: BLE001
         _echec("promote_contact/lecture", e, {"contact_id": contact_id})
         return False
 
     if d is None:
+        # Disparu du pool pour de bon : là, oui, on retire.
         return _retirer_par_id(contact_id)
 
     mn = d.get("mailnjoy_check") or {}
@@ -133,8 +138,9 @@ def promote_contact(contact_id: str) -> bool:
         INSERT INTO contacts (id, email, prenom, nom, societe, tel, website, city,
             dept_code, region_code, postal_code, sectors, primary_source, email_score,
             mailnjoy_decision, mailnjoy_checked_at, mailnjoy_check, global_blacklisted,
-            created_at, updated_at)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, false, now(), now())
+            created_at, updated_at, etat, etat_motif, etat_at)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, false, now(), now(),
+                %s,%s,now())
         ON CONFLICT (email) DO UPDATE SET
             prenom = COALESCE(EXCLUDED.prenom, contacts.prenom),
             nom = COALESCE(EXCLUDED.nom, contacts.nom),
@@ -149,12 +155,16 @@ def promote_contact(contact_id: str) -> bool:
             mailnjoy_decision = EXCLUDED.mailnjoy_decision,
             mailnjoy_checked_at = EXCLUDED.mailnjoy_checked_at,
             mailnjoy_check = EXCLUDED.mailnjoy_check,
+            etat = EXCLUDED.etat,
+            etat_motif = EXCLUDED.etat_motif,
+            etat_at = now(),
             updated_at = now()
     """, (d.get("id"), (d.get("email") or "").strip().lower(), d.get("prenom"), d.get("nom"),
           d.get("societe"), d.get("tel"), d.get("website"), d.get("city"), d.get("dept_code"),
           d.get("region_code"), d.get("postal_code"), secteurs, d.get("primary_source"),
           d.get("email_score"), mn.get("decision"), mn.get("checked_at"),
-          json.dumps(mn) if mn else None),
+          json.dumps(mn) if mn else None,
+          d.get("etat") or "a_verifier", d.get("etat_motif")),
         {"email": d.get("email")})
 
     # L'état par site suit le contact : sans lui, la pioche PostgreSQL considérerait un

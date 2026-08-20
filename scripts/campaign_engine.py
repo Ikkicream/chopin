@@ -5,7 +5,8 @@ Une "campagne unifiée" = un message envoyé sur UN canal (sweego|emelia|maildos
 (secteurs, filtrée Mailnjoy valid < 6 mois), étalée dans le temps selon un planning calculé par
 `deliverability_agent` (cap dur par canal). Un cron quotidien (`dispatch_due`) exécute le lot du jour.
 
-Table : campaigns_unified (data/god_mode.duckdb).
+Table : `campaigns` (PostgreSQL) depuis le 2026-08-19 — voir la note sur le stockage
+plus bas. Les journaux d'envoi restent dans data/god_mode.duckdb pour l'instant.
 CLI : `python3 scripts/campaign_engine.py dispatch` (appelé par cron).
 """
 from __future__ import annotations
@@ -39,8 +40,74 @@ except Exception:  # noqa: BLE001
     MIN_DAYS_BETWEEN_EMAILS = 120
 
 
+# ── Stockage ──────────────────────────────────────────────────────────────────
+# Les CAMPAGNES vivent dans PostgreSQL depuis le 2026-08-19. Motif : `god_mode.duckdb`
+# n'admet qu'un seul écrivain, et cette table est lue à chaque ouverture du tableau de bord
+# comme de la page Campagnes. Tant qu'elle vivait dans ce fichier, un scrape ou un
+# nettoyage rendait ces écrans indisponibles — « liste des campagnes indisponible ».
+#
+# La double écriture existait déjà (`_miroir_campagne` recopiait vers PostgreSQL) : la
+# migration a donc consisté à INVERSER le sens, pas à copier des données. La table DuckDB
+# reste en place, intacte, comme filet de retour arrière.
+#
+# Les JOURNAUX d'envoi (`maildoso_sent`, `mass_campaigns`) restent pour l'instant dans
+# DuckDB : ils sont écrits par le chemin d'envoi, qui migrera dans un second temps.
+#
+# L'identifiant public reste l'id court historique (« fd0dc221-b44 »), porté par
+# `legacy_id` : il est inscrit dans les identifiants de dispatch (`lcr-fd0dc221-b44-date`),
+# dans les URL de l'interface et dans `params.segment_id`. Le changer casserait tout.
+
+def _dsn() -> str:
+    for ligne in (BASE_DIR / ".env").read_text().splitlines():
+        if ligne.startswith("PG_DSN="):
+            return ligne.split("=", 1)[1].strip()
+    raise RuntimeError("PG_DSN absent de .env")
+
+
+_POOL_PG = None
+
+
 def _conn():
-    return duckdb.connect(str(GOD_DB))
+    """Connexion PostgreSQL (campagnes)."""
+    global _POOL_PG
+    import psycopg2.pool
+    if _POOL_PG is None:
+        _POOL_PG = psycopg2.pool.ThreadedConnectionPool(1, 6, _dsn())
+    return _POOL_PG.getconn()
+
+
+def _rendre(c):
+    if _POOL_PG is not None:
+        _POOL_PG.putconn(c)
+
+
+def _duck():
+    """Connexion DuckDB — uniquement pour les journaux d'envoi encore stockés là."""
+    import sys as _sys
+    _sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from duck_ouverture import ouvrir
+    return ouvrir(GOD_DB)
+
+
+def _ecrire(sql: str, params: list) -> None:
+    c = _conn()
+    try:
+        with c:
+            with c.cursor() as cur:
+                cur.execute(sql, params)
+    finally:
+        _rendre(c)
+
+
+def _lire(sql: str, params: list) -> list:
+    c = _conn()
+    try:
+        with c.cursor() as cur:
+            cur.execute(sql, params)
+            return cur.fetchall()
+    finally:
+        c.rollback()
+        _rendre(c)
 
 
 def _now() -> datetime:
@@ -48,33 +115,9 @@ def _now() -> datetime:
 
 
 def _ensure_table():
-    c = _conn()
-    try:
-        c.execute(
-            """CREATE TABLE IF NOT EXISTS campaigns_unified (
-                id              VARCHAR,
-                site_code       VARCHAR,
-                name            VARCHAR,
-                channel         VARCHAR,
-                message_id      VARCHAR,
-                subject         VARCHAR,
-                sectors         VARCHAR,        -- JSON array
-                target_size     INTEGER,
-                schedule_start  DATE,
-                cadence         VARCHAR,        -- JSON [{date, count}]
-                status          VARCHAR,        -- scheduled|running|paused|done|failed|cancelled
-                sent_count      INTEGER,
-                last_dispatch_at TIMESTAMP,
-                last_dispatch_day DATE,         -- idempotence : 1 dispatch/jour
-                last_error      VARCHAR,
-                created_by      VARCHAR,
-                created_at      TIMESTAMP,
-                params          VARCHAR,        -- JSON libre
-                PRIMARY KEY (id)
-            )"""
-        )
-    finally:
-        c.close()
+    """Ne crée plus rien : le schéma PostgreSQL est appliqué une fois par `pg_schema.sql`.
+    Conservée pour ne pas casser ses nombreux appelants."""
+    return None
 
 
 # ── CRUD ─────────────────────────────────────────────────────────────────────
@@ -163,41 +206,21 @@ def create_campaign(site: str, name: str, channel: str, message_id: str, subject
         # On mémorise l'UUID du segment, pas une copie de ses règles : si le segment est
         # mis à jour (et non verrouillé), les prochains lots suivent la nouvelle définition.
         params["segment_id"] = segment_id
-    _ensure_table()
-    c = _conn()
-    try:
-        c.execute(
-            "INSERT INTO campaigns_unified "
-            "(id, site_code, name, channel, message_id, subject, sectors, target_size, "
-            " schedule_start, cadence, status, sent_count, last_dispatch_at, last_dispatch_day, "
-            " last_error, created_by, created_at, params) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,?,?,?)",
-            [cid, site, name, channel, message_id, subject, json.dumps(sectors), int(target_size),
-             start, json.dumps(plan.get("schedule", [])), "scheduled", 0,
-             by, _now(), json.dumps(params)],
-        )
-    finally:
-        c.close()
-    _miroir_campagne(cid)
+    _ecrire(
+        "INSERT INTO campaigns "
+        "(id, legacy_id, site_code, name, channel, message_id, subject, sectors, target_size, "
+        " schedule_start, cadence, status, sent_count, created_by, created_at, params) "
+        "VALUES (gen_random_uuid(),%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s,%s,now(),%s::jsonb)",
+        [cid, site, name, channel, message_id, subject, list(sectors or []), int(target_size),
+         start, json.dumps(plan.get("schedule", [])), "scheduled", 0,
+         by, json.dumps(params)])
     return {"ok": True, "id": cid, "status": "scheduled", "utm_campaign": utm_campaign, "plan": plan}
 
 
 def _miroir_campagne(cid: str) -> None:
-    """Recopie la campagne dans PostgreSQL après toute écriture.
-
-    On relit la ligne plutôt que de recopier les arguments de l'appelant : c'est l'état
-    réellement enregistré qui doit être reflété, pas ce qu'on croyait écrire. Best-effort —
-    PostgreSQL n'est pas encore la source de vérité pour les campagnes — mais tout échec est
-    compté par `pg_sync.sync_health()` au lieu d'être avalé.
-    """
-    try:
-        import pg_sync
-        camp = get_campaign(cid)
-        if camp:
-            pg_sync.sync_campaign(camp)
-    except Exception as e:  # noqa: BLE001
-        print(f"[campaign_engine] miroir PostgreSQL indisponible : {type(e).__name__}: {e}",
-              flush=True)
+    """Ne fait plus rien : PostgreSQL est devenu la source de vérité des campagnes, il n'y
+    a plus de copie à tenir à jour. Conservée le temps que ses appelants disparaissent."""
+    return None
 
 
 def _row_to_dict(r) -> dict:
@@ -206,31 +229,52 @@ def _row_to_dict(r) -> dict:
             "last_dispatch_at", "last_dispatch_day", "last_error", "created_by",
             "created_at", "params"]
     d = dict(zip(cols, r))
+    # PostgreSQL rend `sectors` en liste (text[]) et `cadence`/`params` déjà décodés
+    # (jsonb). On accepte encore la forme texte, le temps que d'anciennes lignes
+    # disparaissent.
     for k in ("sectors", "cadence", "params"):
-        try:
-            d[k] = json.loads(d[k]) if d.get(k) else ([] if k != "params" else {})
-        except Exception:
-            d[k] = [] if k != "params" else {}
+        v = d.get(k)
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except Exception:
+                v = None
+        if v is None:
+            v = {} if k == "params" else []
+        d[k] = v
     for k in ("schedule_start", "last_dispatch_at", "last_dispatch_day", "created_at"):
         if d.get(k) is not None:
             d[k] = str(d[k])
     d["progress"] = round((d["sent_count"] or 0) / d["target_size"] * 100) if d.get("target_size") else 0
+    d["reste"] = max(0, (d.get("target_size") or 0) - (d.get("sent_count") or 0))
+    # Prochain lot prévu : la première étape de cadence qui n'est pas encore passée. Sans
+    # lui, une liste de campagnes ne répond pas à « qu'est-ce qui part demain ? » — la
+    # question qu'on se pose en regardant cette liste.
+    d["prochain"] = None
+    if d.get("status") in ("scheduled", "running"):
+        from zoneinfo import ZoneInfo
+        aujourdhui = datetime.now(ZoneInfo("Europe/Paris")).date().isoformat()
+        # Le lot du jour déjà parti ne se présente pas comme « à venir » : sinon la liste
+        # annonce 160 emails pour aujourd'hui alors qu'ils sont partis ce matin.
+        seuil = aujourdhui
+        dernier = str(d.get("last_dispatch_day") or "")[:10]
+        for etape in (d.get("cadence") or []):
+            jour = str(etape.get("date") or "")[:10]
+            if jour > dernier and jour >= seuil:
+                d["prochain"] = {"date": jour, "count": etape.get("count") or 0}
+                break
     return d
 
 
-_SELECT = ("SELECT id, site_code, name, channel, message_id, subject, sectors, target_size, "
-           "schedule_start, cadence, status, sent_count, last_dispatch_at, last_dispatch_day, "
-           "last_error, created_by, created_at, params FROM campaigns_unified")
+_SELECT = ("SELECT COALESCE(legacy_id, id::text), site_code, name, channel, message_id, "
+           "subject, sectors, target_size, schedule_start, cadence, status, sent_count, "
+           "last_dispatch_at, last_dispatch_day, last_error, created_by, created_at, params "
+           "FROM campaigns")
 
 
 def list_campaigns(site: str) -> list[dict]:
-    _ensure_table()
-    c = _conn()
-    try:
-        rows = c.execute(_SELECT + " WHERE site_code=? ORDER BY created_at DESC", [site]).fetchall()
-    finally:
-        c.close()
-    return [_row_to_dict(r) for r in rows]
+    return [_row_to_dict(r) for r in
+            _lire(_SELECT + " WHERE site_code=%s ORDER BY created_at DESC", [site])]
 
 
 def journal_envois(site: str, cid: str) -> list[dict]:
@@ -247,7 +291,7 @@ def journal_envois(site: str, cid: str) -> list[dict]:
     """
     prefixe = f"{site}-{cid}-%"
     lignes: dict[str, dict] = {}
-    c = _conn()
+    c = _duck()          # journaux d'envoi : encore dans DuckDB
     try:
         try:
             for jour, n in c.execute(
@@ -271,13 +315,8 @@ def journal_envois(site: str, cid: str) -> list[dict]:
 
 
 def get_campaign(cid: str) -> dict | None:
-    _ensure_table()
-    c = _conn()
-    try:
-        r = c.execute(_SELECT + " WHERE id=?", [cid]).fetchone()
-    finally:
-        c.close()
-    return _row_to_dict(r) if r else None
+    rows = _lire(_SELECT + " WHERE legacy_id=%s OR id::text=%s", [cid, cid])
+    return _row_to_dict(rows[0]) if rows else None
 
 
 def update_campaign(site: str, cid: str, patch: dict, by: str = "ui") -> dict:
@@ -390,24 +429,12 @@ def update_campaign(site: str, cid: str, patch: dict, by: str = "ui") -> dict:
     if not sets:
         return {"ok": True, "id": cid, "unchanged": True, "campaign": camp}
 
-    _ensure_table()
-    c = _conn()
-    try:
-        c.execute(f"UPDATE campaigns_unified SET {', '.join(sets)} WHERE id=?", vals + [cid])
-    finally:
-        c.close()
-    _miroir_campagne(cid)
+    _ecrire(f"UPDATE campaigns SET {', '.join(sets)} WHERE legacy_id=%s", vals + [cid])
     return {"ok": True, "id": cid, "campaign": get_campaign(cid)}
 
 def set_status(cid: str, status: str, error: str | None = None) -> bool:
-    _ensure_table()
-    c = _conn()
-    try:
-        c.execute("UPDATE campaigns_unified SET status=?, last_error=? WHERE id=?",
-                  [status, error, cid])
-    finally:
-        c.close()
-    _miroir_campagne(cid)
+    _ecrire("UPDATE campaigns SET status=%s, last_error=%s WHERE legacy_id=%s",
+            [status, error, cid])
     return True
 
 def _bump_sent(cid: str, n: int = 1) -> None:
@@ -419,12 +446,8 @@ def _bump_sent(cid: str, n: int = 1) -> None:
     partis. L'UPDATE final de `dispatch_campaign` pose une valeur absolue calculée
     depuis le `sent_count` lu avant le lot : il converge donc vers le même total,
     ces incréments ne le faussent pas."""
-    c = _conn()
-    try:
-        c.execute("UPDATE campaigns_unified SET sent_count = COALESCE(sent_count, 0) + ?, "
-                  "last_dispatch_at = ? WHERE id = ?", [n, _now(), cid])
-    finally:
-        c.close()
+    _ecrire("UPDATE campaigns SET sent_count = COALESCE(sent_count, 0) + %s, "
+            "last_dispatch_at = now() WHERE legacy_id = %s", [n, cid])
 
 
 # ── Dispatch (scheduler) ───────────────────────────────────────────────────────
@@ -474,7 +497,7 @@ def _drop_recently_emailed(contacts: list[dict],
         # Une base repoussoir injoignable ne doit pas faire passer l'envoi en force : on
         # le signale bruyamment, le journal maildoso ci-dessous reste en couverture.
         print(f"[campaign_engine] base repoussoir illisible : {e}")
-    c = _conn()
+    c = _duck()          # journal maildoso : encore dans DuckDB
     try:
         c.execute("CREATE TEMP TABLE IF NOT EXISTS _batch(email VARCHAR)")
         c.execute("DELETE FROM _batch")
@@ -578,12 +601,8 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
     # est propre au process. C'est ce marqueur qui rend le dispatch idempotent par jour.
     # Pour reprendre volontairement un lot interrompu le jour même : `reconcile` puis
     # remise à NULL de last_dispatch_day.
-    c = _conn()
-    try:
-        c.execute("UPDATE campaigns_unified SET last_dispatch_day=?, last_dispatch_at=?, "
-                  "status='running' WHERE id=?", [today, _now(), cid])
-    finally:
-        c.close()
+    _ecrire("UPDATE campaigns SET last_dispatch_day=%s, last_dispatch_at=now(), "
+            "status='running' WHERE legacy_id=%s", [today, cid])
 
     sent = _send_batch(camp, contacts, emails, today)
     if not sent.get("ok"):
@@ -593,25 +612,16 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
             # retire le marqueur posé plus haut, sinon la campagne passerait pour
             # dispatchée alors qu'elle n'a rien envoyé — et resterait bloquée jusqu'au
             # lendemain, y compris pour un envoi manuel.
-            c = _conn()
-            try:
-                c.execute("UPDATE campaigns_unified SET last_dispatch_day=? WHERE id=?",
-                          [camp.get("last_dispatch_day"), cid])
-            finally:
-                c.close()
+            _ecrire("UPDATE campaigns SET last_dispatch_day=%s WHERE legacy_id=%s",
+                    [camp.get("last_dispatch_day"), cid])
         return sent
 
     # MAJ compteurs + statut
     new_sent = (camp["sent_count"] or 0) + sent.get("sent", 0)
     done = new_sent >= camp["target_size"]
-    c = _conn()
-    try:
-        c.execute("UPDATE campaigns_unified SET sent_count=?, status=?, last_dispatch_at=?, "
-                  "last_dispatch_day=?, last_error=NULL WHERE id=?",
-                  [new_sent, "done" if done else "running", _now(), today, cid])
-    finally:
-        c.close()
-    _miroir_campagne(cid)
+    _ecrire("UPDATE campaigns SET sent_count=%s, status=%s, last_dispatch_at=now(), "
+            "last_dispatch_day=%s, last_error=NULL WHERE legacy_id=%s",
+            [new_sent, "done" if done else "running", today, cid])
     return {"ok": True, "sent": sent.get("sent", 0), "total_sent": new_sent, "done": done}
 
 
@@ -815,11 +825,8 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
 
 
 def _save_params(cid: str, params: dict) -> None:
-    c = _conn()
-    try:
-        c.execute("UPDATE campaigns_unified SET params=? WHERE id=?", [json.dumps(params), cid])
-    finally:
-        c.close()
+    _ecrire("UPDATE campaigns SET params=%s::jsonb WHERE legacy_id=%s",
+            [json.dumps(params), cid])
 
 
 def dispatch_due(today: _date | None = None) -> dict:
@@ -831,14 +838,9 @@ def dispatch_due(today: _date | None = None) -> dict:
         credit_alerts.check_and_alert()
     except Exception:  # noqa: BLE001
         pass
-    _ensure_table()
-    c = _conn()
-    try:
-        ids = [r[0] for r in c.execute(
-            "SELECT id FROM campaigns_unified WHERE status IN ('scheduled','running') "
-            "AND schedule_start <= ?", [today]).fetchall()]
-    finally:
-        c.close()
+    ids = [r[0] for r in _lire(
+        "SELECT COALESCE(legacy_id, id::text) FROM campaigns "
+        "WHERE status IN ('scheduled','running') AND schedule_start <= %s", [today])]
     results = []
     for cid in ids:
         try:
@@ -865,7 +867,7 @@ def reconcile_from_sent_log(cid: str, apply: bool = False) -> dict:
     if camp["channel"] != "maildoso":
         return {"ok": False, "error": f"canal {camp['channel']} : pas de log d'envoi par contact"}
     site = camp["site_code"]
-    c = _conn()
+    c = _duck()          # journal maildoso : encore dans DuckDB
     try:
         emails = [r[0] for r in c.execute(
             "SELECT DISTINCT to_email FROM maildoso_sent "
@@ -906,22 +908,15 @@ def reconcile_from_sent_log(cid: str, apply: bool = False) -> dict:
         except Exception as e:  # noqa: BLE001
             print(f"[reconcile] marquage {em} échoué : {e}")
 
-    c = _conn()
-    try:
-        # Le compteur devient le nombre d'envois réellement tracés, pas un cumul :
-        # rejouer la réconciliation deux fois doit donner le même résultat.
-        done = len(emails) >= (camp["target_size"] or 0)
-        # Le statut n'est touché que si la campagne est encore active : réconcilier une
-        # campagne mise en pause (ou annulée) ne doit pas la remettre en route.
-        if camp["status"] in ACTIVE_STATUSES:
-            status = "done" if done else "running"
-        else:
-            status = camp["status"]
-        c.execute("UPDATE campaigns_unified SET sent_count = ?, status = ?, "
-                  "last_dispatch_day = ?, last_dispatch_at = ? WHERE id = ?",
-                  [len(emails), status, day, _now(), cid])
-    finally:
-        c.close()
+    # Le compteur devient le nombre d'envois réellement tracés, pas un cumul :
+    # rejouer la réconciliation deux fois doit donner le même résultat.
+    done = len(emails) >= (camp["target_size"] or 0)
+    # Le statut n'est touché que si la campagne est encore active : réconcilier une
+    # campagne mise en pause (ou annulée) ne doit pas la remettre en route.
+    status = ("done" if done else "running") if camp["status"] in ACTIVE_STATUSES else camp["status"]
+    _ecrire("UPDATE campaigns SET sent_count = %s, status = %s, "
+            "last_dispatch_day = %s, last_dispatch_at = now() WHERE legacy_id = %s",
+            [len(emails), status, day, cid])
     out.update({"contacts_marked": marked, "emails_sans_contact": len(missing),
                 "sent_count_after": len(emails), "last_dispatch_day": day})
     return out

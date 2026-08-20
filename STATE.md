@@ -67,12 +67,92 @@ actif, maintenance levée. Pool DuckDB 7 916 contacts · PostgreSQL 6 194 contac
 ### RÈGLES À NE PAS RÉINTRODUIRE
 - **120 jours entre deux emails** à une même personne, tous sites et canaux. Deux barrières
   (cooldown du pool + `v_suppression` déduite du journal) plus un garde-fou à l'envoi.
-- **Porte d'entrée PostgreSQL, option C** : un contact n'entre que s'il est Mailnjoy `valid`,
-  vérifié < 180 j, non blacklisté ET enrichi data.gouv sans exclusion.
+- **Porte d'entrée PostgreSQL : ABANDONNÉE le 2026-08-20 (décision user).** PostgreSQL
+  accueille désormais TOUS les contacts (7 970), chacun portant `contacts.etat` :
+  `a_verifier` · `ok` · `ko` (verdict Mailnjoy) · `exclu` (data.gouv) · `spam` (désinscrit,
+  plainte, rebond). La porte est devenue un DRAPEAU, plus un filtre. Motif : l'entonnoir
+  laissait 1 776 contacts hors de PostgreSQL et interdisait au scraping d'y écrire — donc
+  de sortir de la fenêtre 22 h-8 h. `pg_gate.ETAT_SQL` porte la cascade, `pg_reconcile`
+  réaligne l'état de tout le monde à chaque passage, et **ne supprime plus que les contacts
+  DISPARUS du pool**. `pool_pg._ELIGIBLE` exige `etat = 'ok'` en plus des conditions brutes.
+  NE PAS réintroduire une suppression sur « devenu mauvais » : on perd la mémoire de l'avoir
+  écarté, et on le re-scrape trois semaines plus tard.
 - **Ne JAMAIS ouvrir une base DuckDB en lecture seule dans le process de l'API** — DuckDB met
   l'instance en cache et refuse ensuite toute connexion en écriture (« 0 campagne »).
+  **Appliqué le 2026-08-19** : toutes les ouvertures passent par `scripts/duck_ouverture.py`
+  (lecture-écriture, ré-essais, repli lecture seule en dernier recours). 12 ouvertures en
+  lecture seule subsistaient dans `api.py`, `god_mode_backend`, `god_mode_api`,
+  `autoscrape_backend` et `followup_backend` : c'est ce qui produisait « Liste des campagnes
+  indisponible — la base est occupée » plusieurs fois par heure, sans qu'aucun verrou ne soit
+  pris. `contacts_pool_backend._connect_with_retry` bascule en plus sur l'autre configuration
+  quand DuckDB signale un conflit — réessayer à l'identique n'aurait jamais abouti.
 - **Aucune couleur écrite en dur** dans l'UI : uniquement les rôles du thème. Et un aplat a
   besoin de DEUX rôles (couleur + `-foreground`), sinon on obtient du marron sur du marron.
+- **`datagouv_enrich` plantait tous les matins** sur une coordonnée `[NON-DIFFUSIBLE]`
+  (ValueError sur `float()`), et le cron enchaînant en `&&`, **`pg_reconcile` n'a jamais
+  tourné** — d'où les 1 776 contacts absents. Corrigé : `_flottant()` tolère les valeurs non
+  numériques, et le cron passe en `;`. Un échec d'enrichissement ne doit jamais bloquer la
+  réconciliation.
+- **Relevé technique quotidien** : `scripts/etat_technique.py --enregistrer`, cron 6 h 45,
+  table `etat_technique_journalier` (une ligne par jour), page `/admin/etat-technique`.
+  C'est lui qui a trouvé la panne ci-dessus en 30 secondes.
+- **Scraping ouvert 24 h/24 le 2026-08-20.** La fenêtre 22 h-8 h protégeait les compteurs
+  de l'interface du verrou DuckDB ; mesuré ce jour-là, sous écritures continues et même avec
+  un verrou tenu 3 s, **18 lectures d'interface sur 18 aboutissent** (1,4 s médian, 2,0 s au
+  pire). Ce n'est plus une indisponibilité, c'est un délai. Réglages dans `.env` :
+  `SCRAPE_WINDOW=24h` (mettre `22:00-08:00` pour revenir en arrière SANS toucher au code) et
+  `SCRAPE_MAX_JOUR=300`. Les butoirs de nuit (`SCRAPE_STOP`, `CLEANUP_STOP`) et le test
+  « trop tard pour une nouvelle cible » sont neutralisés en mode continu — sinon plus rien
+  ne démarrerait passé 7 h 20. Crons `autoscrape_daily` et `autoscrape_watchdog` ouverts à
+  toutes les heures.
+- **Ordre des sources INVERSÉ le 2026-08-20 : Basile d'abord, Serper en complément.**
+  Vérifié dans le code : Basile ne consomme AUCUN crédit Serper — sa recherche passe par sa
+  propre API, et son repli email lit directement la page contact du site
+  (`god_mode_agents.fetch_email_from_site`, un simple GET). L'arithmétique des forfaits :
+  Basile 250 000 exports/mois (8 333/jour) contre Serper 10 000 crédits/mois ÷ **7 crédits
+  par contact gardé** (mesuré sur août : 8 625 crédits pour 1 239 contacts) = ~1 430
+  contacts/mois, soit 5 % du volume visé. Serper ne peut donc être qu'un complément.
+  `SERPER_RESERVE=5000` dans `.env` : sous ce seuil, la collecte **continue sur Basile seul**
+  au lieu de s'arrêter. `SCRAPE_MAX_JOUR=1000`.
+- **La page Vision lit PostgreSQL depuis le 2026-08-20** (`pool_pg.vision_contacts` et
+  `pool_pg.enrichment_stats`), avec repli DuckDB si PostgreSQL est injoignable. Équivalence
+  vérifiée chiffre par chiffre avant bascule : étapes, enrichissement et secteurs
+  identiques ; l'engagement diffère à l'avantage de PostgreSQL (journal `email_events`
+  complet contre dernier signal seulement côté pool). Le miroir `contact_enrichment` a été
+  complété (colonnes siret / match_quality / motifs / signaux + `pg_sync_enrichment.py`).
+- **Bug corrigé : `pg_reconcile` écrivait `global_blacklisted = false` EN DUR.** Les 1 482
+  contacts blacklistés entraient dans PostgreSQL comme s'ils ne l'étaient pas. L'`etat`
+  ('spam') était juste, mais la colonne brute — celle que lit la clause d'éligibilité des
+  envois — mentait. Corrigé et réaligné à chaque passage de la réconciliation.
+- **Deux cascades d'état divergeaient** : `pg_gate.ETAT_SQL` exigeait l'enrichissement pour
+  dire « ok », pas `contacts_pool_backend._ETAPE_SQL`. 73 contacts s'affichaient « À
+  vérifier » d'un côté et « Vérifié » de l'autre. L'état décrit désormais l'ADRESSE seule ;
+  l'exigence d'enrichissement est explicite dans la pioche d'envoi (`pool_pg._ELIGIBLE`).
+- **Campagnes et segments : PostgreSQL est la SOURCE** (migré le 2026-08-19, étape 6 du
+  plan). `campaign_engine` et `segments_backend` lisent et écrivent la table `campaigns` /
+  `segments` de PostgreSQL ; l'id public reste l'id court porté par `legacy_id` (il est
+  inscrit dans les identifiants de dispatch `lcr-xxxx-date`, les URL et `params.segment_id`).
+  Les tables DuckDB `campaigns_unified` / `segments` restent en place, intactes, comme filet
+  de retour arrière. **`pg_migrate.py` refuse de tourner sans `--je-sais-ce-que-je-fais`** :
+  rejouer la copie DuckDB → PostgreSQL écraserait l'état courant. Les JOURNAUX d'envoi
+  (`maildoso_sent`, `mass_campaigns`, `sweego_events`) sont encore dans DuckDB — étape
+  suivante.
+- **Dédoublonnage du scraping contre le POOL** : `god_mode_backend.email_deja_en_base()`,
+  appelé avant Mailnjoy dans `god_mode_agents` et `basile_backend`. Les trois garde-fous
+  historiques n'interrogeaient que les tables du scraping : un contact importé par CSV,
+  Basile ou Tally était re-scrapé et re-vérifié à crédit perdu.
+- **Étapes de traitement d'un contact** (2026-08-19) : calculées par
+  `contacts_pool_backend._etape_contact`, en CASCADE — blacklisté > écarté (Mailnjoy
+  invalide/risqué, ou entreprise fermée/administration) > en repos (120 j) > à vérifier >
+  vérifié > prêt (SIRET data.gouv trouvé). C'est un axe DISTINCT du cycle commercial
+  (cold_email/lead/prm/client), qui reste la colonne « Cycle ». Ne pas fusionner les deux :
+  c'est la confusion qui rendait la colonne « État » illisible. Répartition LCR au
+  2026-08-19 : vérifié 2 798 · prêt 2 739 · blacklisté 1 482 · en repos 727 · écarté 151 ·
+  à vérifier 78.
+- **Épingle et retrait dans « À rappeler »** : `contact_followup.flash` (marque-page, remonte
+  en tête, pas journalisé) et `retire_at` (sort de `v_a_rappeler`, journalisé, réversible).
+  Ne JAMAIS remplacer le retrait par une suppression : `pg_reconcile` rétablirait le contact
+  au passage de 6 h 30 puisqu'il reste éligible.
 - **Attribution automatique des rappels** (décidée le 2026-08-19) : tout contact qui devient
   `lead` ou `prm` sur LCR part d'office chez **Romeo** — hook dans `pg_sync.sync_contact_site`,
   filet de rattrapage à la fin de `pg_reconcile`. Ne JAMAIS écraser une attribution existante :

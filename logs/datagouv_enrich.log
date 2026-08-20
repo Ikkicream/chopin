@@ -1,21 +1,34 @@
-2026-07-23 13:02:57,311 [INFO] 399 contact(s) à enrichir (rebuild=False, dry_run=False)
-2026-07-23 13:02:57,312 [INFO] Durée estimée minimale : ~100s (399 × 4 req/s)
-2026-07-23 13:03:24,192 [INFO]   ...50/399 (50 enrichis, 0 exclus, API=50 cache=0)
-2026-07-23 13:03:57,173 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 186680) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
-2026-07-23 13:03:59,674 [INFO]   ...100/399 (99 enrichis, 0 exclus, API=100 cache=0)
-2026-07-23 13:04:13,406 [INFO]   ...150/399 (149 enrichis, 0 exclus, API=150 cache=0)
-2026-07-23 13:05:02,072 [INFO]   ...200/399 (170 enrichis, 0 exclus, API=216 cache=0)
-2026-07-23 13:05:17,640 [INFO]   ...250/399 (189 enrichis, 1 exclus, API=273 cache=3)
-2026-07-23 13:05:32,586 [INFO]   ...300/399 (207 enrichis, 2 exclus, API=329 cache=3)
-2026-07-23 13:05:55,417 [INFO]   ...350/399 (225 enrichis, 5 exclus, API=390 cache=3)
-2026-07-23 13:06:09,992 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
-2026-07-23 13:06:10,989 [INFO] ============================================================
-2026-07-23 13:06:10,989 [INFO] Total: 399 | Enrichis: 245 | Non-vérifiés(contactables): 148 | Exclus durs: 5 | Transitoires(non écrits): 1 | API: 414 | Cache: 46 | 429: 0 | 193.7s
-2026-07-23 13:06:10,989 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 4, "administration_service_public": 1}
-2026-07-23 13:06:10,989 [INFO] Non-vérifiés par motif (restent contactables): {"match_ambigu": 22, "non_trouve": 126}
-2026-07-23 13:06:10,989 [INFO] Échantillon enrichis:
-2026-07-23 13:06:10,989 [INFO]   {"societe_scrape": "MON AGENT IMMO", "denomination": "MON AGENT IMMO", "siret": "48407609600029", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "SORGUES", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
-2026-07-23 13:06:10,989 [INFO]   {"societe_scrape": "LES 4 OLIVIERS", "denomination": "LES 4 OLIVIERS", "siret": "45256240800016", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "0 salarié", "commune": "PERTUIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
-2026-07-23 13:06:10,989 [INFO]   {"societe_scrape": "IDIMMO", "denomination": "IDIMMO", "siret": "80767321500057", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "ORANGE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
-2026-07-23 13:06:10,989 [INFO]   {"societe_scrape": "BATIM-GESTION IMMOBILIERE", "denomination": "BATIM-GESTION IMMOBILIERE", "siret": "53952901600039", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "AVIGNON", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
-2026-07-23 13:06:10,989 [INFO]   {"societe_scrape": "BOULOURIS IMMOBILIER", "denomination": "BOULOURIS IMMOBILIER", "siret": "42817835400018", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "10-19", "commune": "SAINT-RAPHAEL", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-19 21:53:36,732 [INFO] 106 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-19 21:53:36,732 [INFO] Durée estimée minimale : ~26s (106 × 4 req/s)
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 529, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 481, in main
+    row = enrich_contact(contact, client)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 304, in enrich_contact
+    payload = client.by_denomination(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 236, in by_denomination
+    return self.search(params)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 205, in search
+    self.rl.wait()
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 180, in wait
+    time.sleep(self.interval - elapsed)
+KeyboardInterrupt
+2026-08-20 06:30:02,074 [INFO] 96 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-20 06:30:02,075 [INFO] Durée estimée minimale : ~24s (96 × 4 req/s)
+2026-08-20 06:30:11,605 [INFO]   ...50/96 (30 enrichis, 1 exclus, API=33 cache=22)
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 550, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 481, in main
+    row = enrich_contact(contact, client)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 382, in enrich_contact
+    latitude=float(siege["latitude"]) if siege.get("latitude") else None,
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'

@@ -36,6 +36,18 @@ def _dsn() -> str:
 
 
 def reconcilier(dry_run: bool = False) -> dict:
+    """Met PostgreSQL en conformité avec le pool — TOUS les contacts, avec leur état.
+
+    **Changement du 2026-08-20.** Avant, cette fonction appliquait une porte : elle
+    insérait les contacts éligibles et SUPPRIMAIT ceux qui ne l'étaient plus. Résultat,
+    1 776 contacts sur 7 970 n'existaient pas dans PostgreSQL — invisibles à tout écran qui
+    le lit, et impossible d'y faire écrire le scraping.
+
+    Désormais : tout le monde entre, chacun avec son `etat` (`a_verifier`, `ok`, `ko`,
+    `exclu`, `spam`). Un contact n'est supprimé que s'il a DISPARU du pool — plus jamais
+    parce qu'il est devenu mauvais. Un mauvais contact reste, marqué, ce qui vaut infiniment
+    mieux : on se souvient de l'avoir écarté au lieu de le re-scraper trois semaines plus tard.
+    """
     import psycopg2
     import psycopg2.extras
     import pg_gate
@@ -43,8 +55,8 @@ def reconcilier(dry_run: bool = False) -> dict:
 
     duck = pg_gate._duck()
     try:
-        eligibles = {d["email"].strip().lower(): d
-                     for d in pg_gate.tous_eligibles(conn=duck) if d.get("email")}
+        contacts = {d["email"].strip().lower(): d
+                    for d in pg_gate.tous_contacts(conn=duck) if d.get("email")}
     finally:
         duck.close()
 
@@ -55,16 +67,16 @@ def reconcilier(dry_run: bool = False) -> dict:
         cur.execute("SELECT lower(email::text) FROM contacts")
         presents = {r[0] for r in cur.fetchall()}
 
-        a_retirer = sorted(presents - set(eligibles))
-        a_promouvoir = sorted(set(eligibles) - presents)
+        a_retirer = sorted(presents - set(contacts))     # disparus du pool, et eux seuls
+        a_creer = sorted(set(contacts) - presents)
 
-        bilan = {"eligibles": len(eligibles), "presents_avant": len(presents),
-                 "a_retirer": len(a_retirer), "a_promouvoir": len(a_promouvoir),
+        bilan = {"pool": len(contacts), "presents_avant": len(presents),
+                 "a_retirer": len(a_retirer), "a_creer": len(a_creer),
                  "dry_run": dry_run}
 
         if dry_run:
             bilan["exemples_retires"] = a_retirer[:5]
-            bilan["exemples_promus"] = a_promouvoir[:5]
+            bilan["exemples_crees"] = a_creer[:5]
             pg.rollback()
             return bilan
 
@@ -83,14 +95,26 @@ def reconcilier(dry_run: bool = False) -> dict:
                     f"Le retrait a détruit des événements ({avant} -> {apres}) — "
                     f"annulé. La fenêtre de 120 jours en dépend.")
 
-        for em in a_promouvoir:
-            d = eligibles[em]
-            _inserer(cur, d)
+        for em in a_creer:
+            _inserer(cur, contacts[em])
+
+        # L'état de TOUT LE MONDE est réaligné à chaque passage : c'est lui qui pilotera la
+        # pioche des campagnes, il ne doit jamais dater.
+        maj = [(d["etat"], d.get("etat_motif"), bool(d.get("global_blacklisted")),
+                d.get("blacklist_reason"), em) for em, d in contacts.items()]
+        psycopg2.extras.execute_batch(cur, """
+            UPDATE contacts SET etat = %s, etat_motif = %s, etat_at = now(),
+                                global_blacklisted = %s, blacklist_reason = %s
+            WHERE lower(email::text) = %s
+              AND (etat IS DISTINCT FROM %s OR global_blacklisted IS DISTINCT FROM %s)
+        """, [(e, m, bl, br, em, e, bl) for e, m, bl, br, em in maj], page_size=500)
 
         pg.commit()
 
         cur.execute("SELECT count(*) FROM contacts")
         bilan["presents_apres"] = int(cur.fetchone()[0])
+        cur.execute("SELECT etat, count(*) FROM contacts GROUP BY 1 ORDER BY 2 DESC")
+        bilan["par_etat"] = {r[0]: int(r[1]) for r in cur.fetchall()}
     except Exception:
         pg.rollback()
         raise
@@ -98,12 +122,12 @@ def reconcilier(dry_run: bool = False) -> dict:
         cur.close()
         pg.close()
 
-    # Les états par site des nouveaux promus, via le chemin normal.
-    if not dry_run and a_promouvoir:
+    # Les états par site des nouveaux entrants, via le chemin normal.
+    if not dry_run and a_creer:
         duck = pg_gate._duck()
         try:
-            for em in a_promouvoir:
-                cid = eligibles[em]["id"]
+            for em in a_creer:
+                cid = contacts[em]["id"]
                 for site in pg_gate.sites_du_contact(cid, conn=duck):
                     st = pg_gate.etat_site(cid, site, conn=duck)
                     if st:
@@ -150,14 +174,21 @@ def _inserer(cur, d: dict) -> None:
         INSERT INTO contacts (id, email, prenom, nom, societe, tel, website, city,
             dept_code, region_code, postal_code, sectors, primary_source, email_score,
             mailnjoy_decision, mailnjoy_checked_at, mailnjoy_check, global_blacklisted,
-            created_at, updated_at)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, false, now(), now())
+            blacklist_reason, created_at, updated_at, etat, etat_motif, etat_at)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, now(), now(),
+                %s,%s,now())
         ON CONFLICT (email) DO NOTHING
     """, (d.get("id"), d["email"].strip().lower(), d.get("prenom"), d.get("nom"),
           d.get("societe"), d.get("tel"), d.get("website"), d.get("city"),
           d.get("dept_code"), d.get("region_code"), d.get("postal_code"), secteurs,
           d.get("primary_source"), d.get("email_score"), mn.get("decision"),
-          mn.get("checked_at"), json.dumps(mn) if mn else None))
+          mn.get("checked_at"), json.dumps(mn) if mn else None,
+          # Écrit en dur à `false` jusqu'au 2026-08-20 : les 1 482 contacts blacklistés
+          # entraient dans PostgreSQL comme s'ils ne l'étaient pas. L'état (`spam`) était
+          # juste, mais la colonne brute mentait — et c'est elle que lit la clause
+          # d'éligibilité des envois.
+          bool(d.get("global_blacklisted")), d.get("blacklist_reason"),
+          d.get("etat") or "a_verifier", d.get("etat_motif")))
 
 
 if __name__ == "__main__":

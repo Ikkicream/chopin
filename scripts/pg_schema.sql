@@ -206,3 +206,33 @@ SELECT contact_id,
 FROM email_events
 WHERE contact_id IS NOT NULL
 GROUP BY contact_id;
+
+-- ── L'état d'un contact (décision user du 2026-08-20) ────────────────────────
+-- PostgreSQL accueille désormais TOUS les contacts, et non plus seulement ceux qui ont
+-- franchi la porte. La porte devient un DRAPEAU au lieu d'un filtre.
+--
+-- Pourquoi : le modèle en entonnoir laissait 1 776 contacts sur 7 970 hors de PostgreSQL,
+-- invisibles à tout écran qui le lit — et il interdisait au scraping d'écrire directement
+-- ici, donc de sortir de la fenêtre 22 h-8 h imposée par le verrou DuckDB.
+--
+-- Cinq valeurs, et cinq seulement. On stocke un VERDICT, jamais quelque chose de calculable :
+--   a_verifier : collecté, l'adresse n'est pas encore passée chez Mailnjoy
+--   ok         : adresse valide — contactable
+--   ko         : adresse invalide ou risquée (verdict Mailnjoy)
+--   exclu      : entreprise fermée ou administration (verdict data.gouv)
+--   spam       : désinscription, plainte ou rebond dur — ne sera jamais recontacté
+--
+-- Ce qui reste CALCULÉ, parce que ça dépend de la date et non d'une décision :
+--   « en repos » (moins de 120 jours depuis le dernier envoi) → email_suppression
+--   « prêt »    (ok + société retrouvée au SIRET)             → contact_enrichment
+--   la péremption d'un verdict Mailnjoy de plus de 180 jours  → etat_at
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS etat       text NOT NULL DEFAULT 'a_verifier';
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS etat_motif text;
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS etat_at    timestamptz;
+
+DO $$ BEGIN
+    ALTER TABLE contacts ADD CONSTRAINT contacts_etat_chk
+        CHECK (etat IN ('a_verifier', 'ok', 'ko', 'exclu', 'spam'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE INDEX IF NOT EXISTS idx_contacts_etat ON contacts (etat);

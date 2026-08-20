@@ -60,6 +60,27 @@ def load_env() -> dict:
     return env
 
 
+def _pool_conn():
+    """Connexion au pool `contacts.duckdb`, via son propre connecteur.
+
+    On conserve la préférence LECTURE SEULE ici — le pool pèse 1 Go et le scraping nocturne
+    a besoin du verrou d'écriture — mais on passe par `contacts_pool_backend`, qui sait
+    réessayer sur verrou ET basculer de configuration si une autre partie du process a déjà
+    ouvert la base autrement.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import contacts_pool_backend as _pool
+    return _pool._conn(read_only=True)
+
+
+def _duck(chemin):
+    """Ouvre une base DuckDB pour l'API. Voir `duck_ouverture` : dans ce process, tout le
+    monde ouvre avec la MÊME configuration, sinon DuckDB refuse la seconde connexion."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    from duck_ouverture import ouvrir
+    return ouvrir(chemin)
+
+
 app = FastAPI(title="Genesis Dashboard API", version="1.0")
 app.include_router(god_mode_router)
 
@@ -3953,7 +3974,7 @@ def get_serper_usage():
             # 1) Table god_mode_serper_calls
             try:
                 import duckdb
-                c = duckdb.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+                c = _duck(BASE_DIR / "data" / "god_mode.duckdb")
                 if since_iso:
                     snap_naive = since_iso[:19].replace("T", " ")
                     r = c.execute(
@@ -4167,45 +4188,19 @@ def get_marketing_overview(site: str):
     except Exception as e:
         out["emelia"] = {"configured": False, "error": str(e)}
 
-    # ── Sweego (masse) ──
+    # ── Maildoso et Sweego : nos propres journaux ──
+    # Ils partaient auparavant chacun de leur côté — `md.stats()` d'un côté, l'API Sweego de
+    # l'autre. L'API Sweego compte TOUT le compte (les deux marques, plus les boîtes de
+    # warmup) : elle ne pouvait pas s'aligner avec un tableau de bord par site. Les deux
+    # canaux viennent maintenant de la même fonction que le tableau journalier, donc des
+    # mêmes journaux — c'est la seule façon que deux écrans disent le même chiffre.
     try:
         sys.path.insert(0, str(BASE_DIR / "scripts"))
-        import sweego_backend as sw
-        if sw._env().get("SWEEGO_API_KEY"):
-            d = sw.engagement_stats()
-            g = d.get("global", {})
-            s = g.get("sent", 0)
-            out["sweego"] = {
-                "configured": True, "account_wide": True,
-                "sent": s,
-                "opens": g.get("nb_human_openers", 0), "clicks": g.get("nb_clickers", 0),
-                "bounces": g.get("bounced", 0), "replies": None,
-                "open_rate": g.get("open_rate", 0), "click_rate": g.get("click_rate", 0),
-                "reply_rate": None,
-                "bounce_rate": round(g.get("bounced", 0) / s * 100, 1) if s else 0,
-            }
-        else:
-            out["sweego"] = {"configured": False}
-    except Exception as e:
-        out["sweego"] = {"configured": False, "error": str(e)}
-
-    # ── Maildoso (cold email maison) ──
-    try:
-        sys.path.insert(0, str(BASE_DIR / "scripts"))
-        import maildoso_backend as md
-        boxes = [b for b in md.list_mailboxes(site) if b.get("status") == "active"]
-        st = md.stats(site)
-        s = st["sent"]; err = st["errors"]
-        # Pas de tracking ouverture/clic en SMTP → opens/clicks = None (affichés « — »).
-        out["maildoso"] = {
-            "configured": bool(boxes), "no_tracking": True,
-            "mailboxes": len(boxes),
-            "sent": s, "opens": None, "clicks": None, "replies": None, "bounces": err,
-            "open_rate": None, "click_rate": None, "reply_rate": None,
-            "bounce_rate": round(err / (s + err) * 100, 1) if (s + err) else 0,
-        }
+        import dashboard_stats_backend as _stats
+        out.update(_stats.performance_par_canal(site))
     except Exception as e:  # noqa: BLE001
-        out["maildoso"] = {"configured": False, "error": str(e)}
+        out.setdefault("maildoso", {"configured": False, "error": str(e)})
+        out.setdefault("sweego", {"configured": False, "error": str(e)})
 
     return out
 
@@ -4220,7 +4215,7 @@ def get_basile_usage():
         month = datetime.now(timezone.utc).strftime("%Y-%m")
         used = 0
         try:
-            c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"), read_only=True)
+            c = _pool_conn()
             r = c.execute(
                 "SELECT COUNT(*) FROM contacts WHERE primary_source = 'basile' "
                 "AND strftime(created_at, '%Y-%m') = ?", [month]).fetchone()
@@ -4794,7 +4789,7 @@ def api_mailnjoy_status():
     if out["configured"]:
         out["credit"] = get_credit()
     try:
-        c = duckdb.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+        c = _duck(BASE_DIR / "data" / "god_mode.duckdb")
         out["pending_count"] = c.execute("SELECT COUNT(*) FROM scrappe_pending").fetchone()[0]
         c.close()
     except Exception:
@@ -4841,7 +4836,7 @@ def api_workflow_counters(site: str):
     if site not in ("lcr", "mkd"):
         return {"error": "invalid site"}
     import duckdb
-    c = duckdb.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    c = _duck(BASE_DIR / "data" / "god_mode.duckdb")
     try:
         # Scrapés = tout ce qui est passé par le scraper (en pending OU en scrappe)
         scraped_pending = c.execute("SELECT COUNT(*) FROM scrappe_pending WHERE site_code = ?", [site]).fetchone()[0]
@@ -4914,21 +4909,63 @@ async def api_mailnjoy_save_credentials(request: Request):
 
 # ── Pool mutualisé contacts (2026-05-22) ──────────────────────────────────────
 
+@app.get("/api/sites/{site}/vision")
+def api_vision(site: str):
+    """La base de contacts d'un site, vue de haut : étapes, enrichissement, engagement,
+    secteurs. Un seul appel — la page Vision en faisait cinq et n'en tirait rien de lisible.
+
+    L'enrichissement data.gouv y est intégré : il décrivait la même base depuis un encart
+    de la page Acquisition, où il n'avait rien à faire.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import pool_pg
+    import contacts_pool_backend as pool
+    # Lu dans PostgreSQL depuis le 2026-08-20 : la page décrivait la base en interrogeant
+    # le pool DuckDB, c'est-à-dire le fichier que le scraping verrouille. Équivalence des
+    # deux sources vérifiée chiffre par chiffre avant la bascule — seul l'engagement
+    # diffère, et à l'avantage de PostgreSQL : il compte le journal d'événements complet
+    # là où le pool ne retient que le dernier signal par contact.
+    # Repli sur DuckDB si PostgreSQL est injoignable : une page qui affiche est préférable
+    # à une page qui explique pourquoi elle n'affiche pas.
+    try:
+        out = pool_pg.vision_contacts(site)
+    except Exception:
+        try:
+            out = pool.vision_contacts(site)
+            out["source"] = "duckdb (repli)"
+        except Exception as e:  # noqa: BLE001
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=503, content={"error": f"base indisponible: {e}"[:200]})
+    try:
+        out["datagouv"] = pool_pg.enrichment_stats()
+    except Exception:
+        try:
+            out["datagouv"] = pool.enrichment_stats()
+        except Exception:
+            out["datagouv"] = None
+    try:
+        out["enrichissement_suivi"] = _enrichissement_suivi()
+    except Exception:
+        out["enrichissement_suivi"] = None
+    return out
+
+
 @app.get("/api/sites/{site}/pool/contacts")
 def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
                       source: str = "", search: str = "", engagement: str = "",
-                      limit: int = 500, offset: int = 0):
+                      etape: str = "", limit: int = 500, offset: int = 0):
     """Liste les contacts du pool utilisés par ce site (avec filtres + recherche).
     `engagement` : openers | clickers (filtre comportemental)."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from contacts_pool_backend import (list_contacts_for_site, count_contacts_for_site,
-                                       ETAPES)
+                                       compter_par_etape, ETAPES)
     filtres = dict(
         state=state.split(",") if state else None,
         sectors_in=sectors_in.split(",") if sectors_in else None,
         source=source.split(",") if source else None,
         search_email=search or None,
         engagement=engagement or None,
+        etape=etape.split(",") if etape else None,
     )
     # `total` est le nombre de contacts correspondant aux filtres, pas le nombre de lignes
     # rendues : sans lui l'interface ne peut pas paginer, et affichait « 25 contacts »
@@ -4940,6 +4977,10 @@ def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
         "limit": limit, "offset": offset,
         # Le vocabulaire des étapes vient du serveur : c'est lui qui les calcule.
         "etapes": ETAPES,
+        # Compteurs par étape POUR LES AUTRES FILTRES en cours (l'étape elle-même est
+        # exclue) : un onglet doit annoncer ce qu'il contient si on clique dessus.
+        "etapes_counts": compter_par_etape(
+            site_code=site, **{k: v for k, v in filtres.items() if k != "etape"}),
     }
 
 
@@ -4957,7 +4998,7 @@ def api_pool_contact_detail(site: str, contact_id: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from contacts_pool_backend import find_by_email_global, get_history_for_site, _conn
     import duckdb as _dd
-    c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"), read_only=True)
+    c = _pool_conn()
     try:
         cols = [r[1] for r in c.execute("PRAGMA table_info(contacts)").fetchall()]
         row = c.execute("SELECT * FROM contacts WHERE id = ?", [contact_id]).fetchone()
@@ -5015,13 +5056,126 @@ def _datagouv_running() -> bool:
         return False
 
 
+_ENRICH_LANCE_A = {"at": 0.0}
+
+
+def _enrichissement_suivi(nb_runs: int = 20) -> dict:
+    """État réel de l'enrichissement data.gouv : dernières EXÉCUTIONS et retard éventuel.
+
+    L'écran affichait « pas tourné depuis plus de 24 h » en se fondant sur la date du
+    dernier contact enrichi. Or le cron de 6 h 30 tourne tous les jours : quand il ne reste
+    rien à enrichir, il ne écrit aucune ligne et cette date se fige. On lisait donc un
+    retard là où le travail était simplement à jour.
+
+    Le retard se mesure maintenant sur les EXÉCUTIONS, et il n'y a de retard que s'il reste
+    effectivement des contacts à traiter.
+    """
+    import time as _t
+    journal = BASE_DIR / "logs" / "datagouv_runs.jsonl"
+    runs = []
+    if journal.exists():
+        for ligne in journal.read_text().splitlines()[-nb_runs:]:
+            try:
+                runs.append(json.loads(ligne))
+            except Exception:
+                pass
+    runs.reverse()
+    dernier = runs[0] if runs else None
+
+    reste = 0
+    try:
+        sys.path.insert(0, str(BASE_DIR / "scripts"))
+        from contacts_pool_backend import enrichment_stats
+        reste = int(enrichment_stats().get("remaining") or 0)
+    except Exception:
+        pass
+
+    heures = None
+    if dernier and dernier.get("fin"):
+        try:
+            fin = datetime.fromisoformat(dernier["fin"])
+            if fin.tzinfo is None:
+                fin = fin.replace(tzinfo=timezone.utc)
+            heures = round((datetime.now(timezone.utc) - fin).total_seconds() / 3600, 1)
+        except Exception:
+            heures = None
+
+    # 30 h : le cron passe toutes les 24 h, on laisse une marge avant de crier au loup.
+    en_retard = reste > 0 and (heures is None or heures > 30)
+    return {"runs": runs, "dernier": dernier, "heures_depuis": heures,
+            "reste_a_traiter": reste, "en_retard": en_retard,
+            "en_cours": _datagouv_running(),
+            "log_path": "logs/datagouv_enrich.log"}
+
+
+def _lancer_enrichissement(limite: int | None = None) -> dict:
+    """Lance l'enrichissement en tâche de fond. Utilisé par la route ET par le rattrapage
+    automatique : un seul endroit qui sait construire la commande."""
+    import time as _t
+    if _datagouv_running():
+        return {"ok": False, "message": "Un enrichissement est déjà en cours."}
+    cmd = ["python3", "scripts/datagouv_enrich.py"]
+    if limite:
+        cmd += ["--limit", str(int(limite))]
+    log_f = open(str(BASE_DIR / "logs/datagouv_enrich.log"), "w")
+    try:
+        subprocess.Popen(cmd, cwd=str(BASE_DIR), stdout=log_f, stderr=subprocess.STDOUT)
+    finally:
+        log_f.close()
+    _ENRICH_LANCE_A["at"] = _t.time()
+    return {"ok": True, "message": "Enrichissement lancé en tâche de fond."}
+
+
+@app.get("/api/admin/etat-technique")
+def api_etat_technique(historique: int = 0):
+    """Relevé technique de la plateforme — le contrôle du matin.
+
+    `historique=N` renvoie en plus les N derniers relevés quotidiens, pour voir si un
+    compteur stagne. Lecture seule sur les bases métier.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import etat_technique as et
+    try:
+        out = et.releve()
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": f"relevé impossible: {e}"[:200]})
+    if historique:
+        try:
+            out["historique"] = et.historique(min(60, max(1, historique)))
+        except Exception:
+            out["historique"] = []
+    return out
+
+
+@app.get("/api/enrichment/runs")
+def api_enrichment_runs():
+    """Historique des exécutions d'enrichissement + fin du log, pour la page dédiée."""
+    suivi = _enrichissement_suivi(nb_runs=50)
+    try:
+        texte = (BASE_DIR / "logs" / "datagouv_enrich.log").read_text()
+        suivi["log_tail"] = texte[-8000:]
+    except Exception:
+        suivi["log_tail"] = ""
+    return suivi
+
+
 @app.get("/api/enrichment/stats")
 def api_enrichment_stats():
     """Stats globales d'enrichissement data.gouv (pool mutualisé, non par site)."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from contacts_pool_backend import enrichment_stats
+    import time as _t
     out = enrichment_stats()
     out["running"] = _datagouv_running()
+    suivi = _enrichissement_suivi()
+    out["suivi"] = suivi
+    # « Arrête de me le demander, fais-le » : si l'enrichissement est réellement en retard
+    # ET qu'il reste du travail, on le lance. Le garde-fou d'une heure évite qu'un écran
+    # ouvert en boucle ne relance un job déjà parti.
+    if (suivi["en_retard"] and not suivi["en_cours"]
+            and (_t.time() - _ENRICH_LANCE_A["at"]) > 3600):
+        out["relance_auto"] = _lancer_enrichissement()
     return out
 
 
@@ -5036,25 +5190,13 @@ async def api_enrichment_run(request: Request):
             data = await request.json()
         except Exception:
             data = {}
-    if _datagouv_running():
-        return {"ok": False, "message": "Un enrichissement est déjà en cours."}
-    cmd = ["python3", "scripts/datagouv_enrich.py"]
-    # Reco #2 : cast défensif — un `limit` non numérique est ignoré (pas de 500).
-    raw_limit = data.get("limit")
-    if raw_limit:
-        try:
-            cmd += ["--limit", str(int(raw_limit))]
-        except (TypeError, ValueError):
-            pass
-    if data.get("rebuild"):
-        cmd.append("--rebuild")
-    # Reco #3 : on ferme notre copie du fd après le Popen (l'enfant a hérité du sien).
-    log_f = open(str(BASE_DIR / "logs/datagouv_enrich.log"), "w")
+    # Cast défensif : un `limit` non numérique est ignoré (pas de 500).
+    limite = None
     try:
-        subprocess.Popen(cmd, cwd=str(BASE_DIR), stdout=log_f, stderr=subprocess.STDOUT)
-    finally:
-        log_f.close()
-    return {"ok": True, "message": "Enrichissement lancé en tâche de fond."}
+        limite = int(data["limit"]) if data.get("limit") else None
+    except (TypeError, ValueError, KeyError):
+        limite = None
+    return _lancer_enrichissement(limite)
 
 
 @app.get("/api/sites/{site}/pool/depletion-alert")
@@ -5368,7 +5510,7 @@ async def api_pool_contact_fetch_logo(site: str, contact_id: str, request: Reque
     website = (body.get("website") or "").strip()
     import duckdb as _dd
     if not website:
-        c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"), read_only=True)
+        c = _pool_conn()
         try:
             row = c.execute("SELECT website FROM contacts WHERE id = ?", [contact_id]).fetchone()
         finally:
@@ -5419,7 +5561,7 @@ async def api_pool_blacklist(site: str, contact_id: str, request: Request):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from contacts_pool_backend import set_global_blacklist, find_by_email_global
     import duckdb as _dd
-    c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"), read_only=True)
+    c = _pool_conn()
     try:
         row = c.execute("SELECT email FROM contacts WHERE id = ?", [contact_id]).fetchone()
     finally:
@@ -5918,10 +6060,19 @@ async def api_campaign_create(site: str, request: Request):
 
 @app.get("/api/sites/{site}/campaigns")
 def api_campaigns_list(site: str):
-    """Liste les campagnes unifiées du site."""
+    """Liste les campagnes unifiées du site.
+
+    L'échec est RENDU, pas levé : une exception donnait un 500 dont l'interface ne savait
+    rien tirer, et le tableau affichait « la base est occupée » sans que ce soit vrai.
+    """
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import campaign_engine as ce
-    return {"campaigns": ce.list_campaigns(site)}
+    try:
+        return {"campaigns": ce.list_campaigns(site)}
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503,
+                            content={"error": f"campagnes illisibles : {e}"[:250]})
 
 
 # ── Segments de ciblage réutilisables ─────────────────────────────────────────
@@ -6626,6 +6777,18 @@ def api_autoscrape_status(site: str):
         st = dict(st)
         st["status"] = "interrupted"
         st["message"] = "Process interrompu (plus de heartbeat depuis > 5 min)."
+    # La fenêtre et le plafond viennent du SERVEUR : l'interface les écrivait en dur
+    # (« 22h à 8h »), et continuait donc de les annoncer après leur levée.
+    st = dict(st)
+    fen = asb._fenetre()
+    autorise, motif = asb.within_scrape_window()
+    plafond_atteint, phrase = asb.quota_atteint(site)
+    st["fenetre"] = {"continu": fen is None,
+                     "debut": fen[0] if fen else None,
+                     "fin": fen[1] if fen else None,
+                     "autorise_maintenant": autorise,
+                     "motif": motif}
+    st["quota"] = {"plafond": asb.quota_jour(), "atteint": plafond_atteint, "phrase": phrase}
     return st
 
 
@@ -6856,7 +7019,7 @@ def api_auto_campaign_run_now(site: str, camp_id: str, request: Request):
 def api_campaign_stats_by_day(campaign_id: str):
     """Stats par jour d'une campagne (agrège emelia_events) + totaux globaux."""
     import duckdb as _dd
-    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    c = _duck(BASE_DIR / "data" / "god_mode.duckdb")
     try:
         rows = c.execute("""
             SELECT CAST(COALESCE(emelia_date, received_at) AS DATE) AS day, event_type, COUNT(*) AS n
@@ -7421,7 +7584,7 @@ def api_geo_cities(site: str, dept: str = "", region: str = "", min_pop: int = 1
 @app.get("/api/sites/{site}/scrape/cron-config")
 def api_scrape_cron_get(site: str):
     import duckdb as _dd, json as _json
-    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    c = _duck(BASE_DIR / "data" / "god_mode.duckdb")
     try:
         row = c.execute("""
             SELECT scrape_cron_days, scrape_cron_hour, scrape_cron_minute, scrape_cron_enabled
@@ -7492,7 +7655,7 @@ SCRAPE_STALE_TIMEOUT_MIN = 120
 def api_scrape_live_activity(site: str, limit: int = 20):
     """Live-activity feed des scrapes : matche start_scrape + scrape + crédits Serper consommés."""
     import duckdb as _dd, json as _json
-    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    c = _duck(BASE_DIR / "data" / "god_mode.duckdb")
     try:
         starts = c.execute("""
             SELECT id, created_at, resource_id, username, payload
@@ -7652,7 +7815,7 @@ def api_warmup_status(site: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from workflow_emelia_push import daily_warmup_quota, emelia_sent_today_by_sender
     import duckdb as _dd
-    c = _dd.connect(str(BASE_DIR / "data" / "god_mode.duckdb"), read_only=True)
+    c = _duck(BASE_DIR / "data" / "god_mode.duckdb")
     try:
         rows = c.execute("SELECT sender_email, sender_name, warmup_start_date, status, daily_max_override FROM email_senders WHERE site_code = ?", [site]).fetchall()
     finally:

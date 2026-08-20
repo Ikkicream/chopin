@@ -87,16 +87,46 @@ def read_status(site: str) -> dict:
 STALE_AFTER_SECONDS = 15 * 60
 LIVE_STATUSES = ("running", "starting", "stopping", "cleaning")
 
-# ── Fenêtre de scraping (demande user 2026-07-30) ─────────────────────────────
-# Le scraping n'a lieu QUE la nuit, de 22h00 à 08h00 heure de Paris. Raison concrète :
-# DuckDB n'admet qu'un écrivain OU des lecteurs. Un scrape en journée verrouille
-# contacts.duckdb et rend les compteurs de l'interface (segments, cible de campagne,
-# acquisition) indisponibles. En le confinant la nuit, on travaille au calme le jour.
-# Le serveur tourne en UTC : la comparaison se fait explicitement en Europe/Paris.
-SCRAPE_START = "22:00"
-SCRAPE_END = "08:00"
+# ── Fenêtre de scraping ───────────────────────────────────────────────────────
+# Historique : le scraping était confiné de 22 h à 8 h (demande du 2026-07-30). Le motif
+# était technique et non métier — DuckDB n'admet qu'un écrivain OU des lecteurs, et un
+# scrape en journée rendait les compteurs de l'interface indisponibles.
+#
+# **Ouvert 24 h/24 le 2026-08-20**, après mesure. Trois choses ont changé :
+#   1. les campagnes et les segments sont dans PostgreSQL — le scrape ne les touche plus ;
+#   2. le conflit de configuration DuckDB, qui faisait échouer des lectures sans qu'aucun
+#      verrou ne soit pris, est corrigé (`duck_ouverture`) ;
+#   3. mesuré le 2026-08-20 : sous écritures continues, et même avec un verrou tenu 3 s
+#      d'affilée, 18 lectures d'interface sur 18 ont abouti — 1,4 s de latence médiane,
+#      2,0 s au pire. Ce n'est plus une indisponibilité, c'est un délai.
+#
+# La fenêtre reste PARAMÉTRABLE : `SCRAPE_WINDOW=22:00-08:00` dans .env rétablit l'ancien
+# comportement sans toucher au code. `24h` (défaut) = continu.
 SCRAPE_TZ = "Europe/Paris"
-PENDING_NOTE = f"Programmé — démarrage automatique à {SCRAPE_START}"
+
+
+def _fenetre() -> tuple[str, str] | None:
+    """(début, fin) de la fenêtre autorisée, ou None si le scraping est continu."""
+    val = "24h"
+    try:
+        for ligne in (BASE_DIR / ".env").read_text().splitlines():
+            if ligne.startswith("SCRAPE_WINDOW="):
+                val = ligne.split("=", 1)[1].strip() or "24h"
+    except Exception:
+        pass
+    if val.lower() in ("24h", "24/24", "continu", ""):
+        return None
+    try:
+        debut, fin = val.split("-", 1)
+        return debut.strip(), fin.strip()
+    except ValueError:
+        return None
+
+
+# Conservés pour les appelants qui les affichent ; ils décrivent la fenêtre configurée.
+SCRAPE_START = (_fenetre() or ("00:00", "23:59"))[0]
+SCRAPE_END = (_fenetre() or ("00:00", "23:59"))[1]
+PENDING_NOTE = "Programmé — démarrage automatique dès qu'une place se libère"
 
 
 def _paris_now():
@@ -111,13 +141,18 @@ def _paris_now():
 def within_scrape_window(now=None) -> tuple[bool, str]:
     """Peut-on scraper maintenant ? → (autorisé, motif du refus).
 
-    Fenêtre à cheval sur minuit : autorisée si l'heure est >= 22:00 OU < 08:00.
+    Sans fenêtre configurée : toujours oui. Avec une fenêtre à cheval sur minuit
+    (22:00-08:00) : autorisée si l'heure est >= début OU < fin.
     """
+    fen = _fenetre()
+    if fen is None:
+        return True, ""
+    debut, fin = fen
     now = now or _paris_now()
     hhmm = now.strftime("%H:%M")
-    if hhmm >= SCRAPE_START or hhmm < SCRAPE_END:
+    if hhmm >= debut or hhmm < fin:
         return True, ""
-    return False, (f"scraping réservé à la plage {SCRAPE_START}–{SCRAPE_END} "
+    return False, (f"scraping réservé à la plage {debut}–{fin} "
                    f"(il est {hhmm} à Paris)")
 
 
@@ -156,10 +191,84 @@ def night_deadlines(now=None) -> tuple[float | None, float | None]:
     (None, None) hors fenêtre nocturne : un run lancé délibérément de jour (CLI, debug)
     garde l'ancien comportement — c'est la fenêtre qui l'interdit, pas le butoir.
     """
+    # En mode continu, ces butoirs n'ont plus d'objet : ils existaient pour arrêter un run
+    # nocturne AVANT la journée de travail. Les laisser actifs tuerait tous les runs à
+    # 7 h 20, ce qui est exactement l'inverse du 24 h/24.
+    if _fenetre() is None:
+        return None, None
     now = now or _paris_now()
     if not within_scrape_window(now)[0]:
         return None, None
     return seconds_until_paris(SCRAPE_STOP, now), time.time() + seconds_until_paris(CLEANUP_STOP, now)
+
+
+# ── Quota journalier (demande user 2026-08-20) ────────────────────────────────
+# Le scraping continu sans plafond, c'est une facture Serper et un stock de contacts qu'on
+# ne saura pas contacter : la capacité d'envoi est de 160 emails/jour (4 boîtes × 40), soit
+# ~4 800/mois. Collecter dix fois plus produit de la donnée qui vieillit avant d'être
+# utilisée — et un contact « consommé » est gelé 120 jours.
+DEFAUT_MAX_JOUR = 1000
+
+
+DEFAUT_SERPER_RESERVE = 5000
+
+
+def _serper_reserve() -> int:
+    """Crédits Serper qu'on refuse de dépenser en scraping de masse. 0 = pas de réserve."""
+    try:
+        for ligne in (BASE_DIR / ".env").read_text().splitlines():
+            if ligne.startswith("SERPER_RESERVE="):
+                return max(0, int(ligne.split("=", 1)[1].strip() or DEFAUT_SERPER_RESERVE))
+    except Exception:
+        pass
+    return DEFAUT_SERPER_RESERVE
+
+
+def quota_jour() -> int:
+    """Plafond de contacts collectés par jour. `SCRAPE_MAX_JOUR=0` = pas de plafond."""
+    try:
+        for ligne in (BASE_DIR / ".env").read_text().splitlines():
+            if ligne.startswith("SCRAPE_MAX_JOUR="):
+                return max(0, int(ligne.split("=", 1)[1].strip() or DEFAUT_MAX_JOUR))
+    except Exception:
+        pass
+    return DEFAUT_MAX_JOUR
+
+
+def collectes_aujourdhui(site: str | None = None) -> int:
+    """Contacts entrés dans le pool depuis minuit (heure de Paris)."""
+    from datetime import timedelta
+    minuit = _paris_now().replace(hour=0, minute=0, second=0, microsecond=0)
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(BASE_DIR / "scripts"))
+        import contacts_pool_backend as _pool
+        c = _pool._conn(read_only=True)
+        try:
+            if site:
+                r = c.execute(
+                    "SELECT count(*) FROM contacts ct JOIN contact_site_history h "
+                    "ON h.contact_id = ct.id WHERE h.site_code = ? AND ct.created_at >= ?",
+                    [site, minuit.astimezone().replace(tzinfo=None)]).fetchone()
+            else:
+                r = c.execute("SELECT count(*) FROM contacts WHERE created_at >= ?",
+                              [minuit.astimezone().replace(tzinfo=None)]).fetchone()
+            return int(r[0] or 0)
+        finally:
+            c.close()
+    except Exception:
+        return 0
+
+
+def quota_atteint(site: str | None = None) -> tuple[bool, str]:
+    """Le plafond du jour est-il atteint ? → (oui/non, phrase explicative)."""
+    plafond = quota_jour()
+    if not plafond:
+        return False, ""
+    fait = collectes_aujourdhui(site)
+    if fait >= plafond:
+        return True, f"plafond journalier atteint ({fait}/{plafond} contacts collectés)"
+    return False, f"{fait}/{plafond} contacts collectés aujourd'hui"
 
 
 def pending_path(site: str) -> Path:
@@ -223,7 +332,11 @@ def log_run_end(site: str, status: str, message: str = "") -> dict:
 
     import duckdb as _dd
     import god_mode_backend as gm
-    c = _dd.connect(str(GOD_DB), read_only=True)
+    # Ouverture commune : une connexion en lecture seule dans le process de l'API
+    # empêche ensuite toute connexion en écriture sur la même base (cache d'instance
+    # DuckDB). Voir `duck_ouverture`.
+    from duck_ouverture import ouvrir as _ouvrir
+    c = _ouvrir(GOD_DB)
     try:
         start_at = c.execute(
             "SELECT max(created_at) FROM god_mode_logs WHERE site_code = ? "
@@ -336,7 +449,8 @@ def serper_available() -> int | None:
         if balance is None or not snap:
             return None
         import duckdb
-        c = duckdb.connect(str(GOD_DB), read_only=True)
+        from duck_ouverture import ouvrir as _ouvrir
+        c = _ouvrir(GOD_DB)
         used = c.execute(
             "SELECT COALESCE(SUM(credits), 0) FROM god_mode_serper_calls WHERE created_at >= ?::TIMESTAMP",
             [snap[:19].replace("T", " ")]).fetchone()[0]
@@ -497,6 +611,23 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
     def serper_blocked() -> int | None:
         return getattr(agents, "SERPER_BLOCKED_STATUS", None)
 
+    def serper_utilisable() -> bool:
+        """Serper est-il utilisable — et est-ce raisonnable d'y toucher ?
+
+        Deux motifs de s'abstenir : l'API le refuse (quota épuisé, 403), ou il reste moins
+        que la réserve configurée. La réserve existe pour qu'un scrape de masse ne vide pas
+        le forfait du mois : en dessous, on continue sur Basile seul plutôt que de s'arrêter.
+        """
+        if serper_blocked():
+            return False
+        reserve = _serper_reserve()
+        if not reserve:
+            return True
+        dispo = serper_available()
+        if dispo is None:
+            return True          # solde inconnu : on ne bloque pas sur une ignorance
+        return dispo > reserve
+
     def target_reached() -> bool:
         return target_contacts > 0 and cum["valid"] >= target_contacts
 
@@ -531,6 +662,14 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
                 break
             if target_reached():
                 break
+            # Plafond du jour : testé à chaque ville, pas seulement au lancement. En mode
+            # continu, un run peut durer des heures — le plafond doit pouvoir l'arrêter en
+            # cours de route, sinon il ne sert à rien.
+            _plafond, _motif = quota_atteint(site)
+            if _plafond:
+                cum["status"] = "quota"
+                cum["message"] = f"{_motif} — arrêt jusqu'à demain."
+                break
             if time.time() - cum["started_at"] >= max_seconds:
                 cum["status"] = "timeout"
                 cum["message"] = f"Garde-temps {int(max_seconds/3600)} h atteint — arrêt ({cum['valid']} gardés)."
@@ -544,36 +683,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
                 if serper_blocked() and not basile_available:
                     break
 
-                # ── Source 1 : Serper ─────────────────────────────────────────
-                if not serper_blocked():
-                    _base_ex, _base_va = cum["examined"], cum["valid_serper"]
-                    def _hb(c, sec, ex, va):
-                        cum["current_city"] = c
-                        cum["current_detail"] = f"{sec} · Serper {ex} examinés"
-                        cum["examined"] = _base_ex + ex
-                        cum["valid_serper"] = _base_va + va
-                        cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
-                        cum["kept_total"] = cum["valid"]
-                        emit()
-                    try:
-                        r = agents.scrape_sector(site, sector, cities=[city],
-                                                 max_per_city=per_city, global_cap=per_city,
-                                                 max_pages=max_pages, username="autoscrape",
-                                                 heartbeat_cb=_hb)
-                    except Exception:
-                        cum["errors"] += 1
-                        r = {"scraped": 0, "valid": 0, "rejected": 0, "errors": 1}
-                    cum["examined"] = _base_ex + r.get("scraped", 0)
-                    cum["valid_serper"] = _base_va + r.get("valid", 0)
-                    cum["rejected"] += r.get("rejected", 0)
-                    cum["duplicates"] += r.get("duplicates", 0)
-                    cum["skipped_seen"] += r.get("skipped_seen", 0)
-                    cum["errors"] += r.get("errors", 0)
-                    cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
-                    cum["kept_total"] = cum["valid"]
-                    emit()
-
-                # ── Source 2 : Basile (illimité — continue si Serper bloqué) ─
+                # ── Source 1 : Basile d'abord (forfait large, zéro crédit Serper) ─
                 if basile_available and not target_reached():
                     # Basile normalise Paris 1er/2e/... → PARIS, idem Lyon/Marseille.
                     # On n'appelle Basile qu'UNE FOIS par ville Basile réelle par dept.
@@ -603,6 +713,43 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
                         except Exception:
                             cum["errors"] += 1
                         emit()
+
+                # ── Source 2 : Serper, en complément ─────────────────────────
+                # Serper passe APRÈS Basile depuis le 2026-08-20. Mesuré sur août :
+                # 7 crédits Serper par contact gardé, pour un forfait de 10 000/mois —
+                # soit 1 400 contacts par mois au maximum. Basile, lui, ne consomme
+                # AUCUN crédit Serper (vérifié : sa recherche passe par sa propre API,
+                # et son repli email lit directement la page contact du site) et son
+                # forfait est de 250 000 exports par mois. Faire passer Serper en
+                # premier, c'était dépenser la ressource rare avant la ressource
+                # abondante.
+                if serper_utilisable() and not target_reached():
+                    _base_ex, _base_va = cum["examined"], cum["valid_serper"]
+                    def _hb(c, sec, ex, va):
+                        cum["current_city"] = c
+                        cum["current_detail"] = f"{sec} · Serper {ex} examinés"
+                        cum["examined"] = _base_ex + ex
+                        cum["valid_serper"] = _base_va + va
+                        cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
+                        cum["kept_total"] = cum["valid"]
+                        emit()
+                    try:
+                        r = agents.scrape_sector(site, sector, cities=[city],
+                                                 max_per_city=per_city, global_cap=per_city,
+                                                 max_pages=max_pages, username="autoscrape",
+                                                 heartbeat_cb=_hb)
+                    except Exception:
+                        cum["errors"] += 1
+                        r = {"scraped": 0, "valid": 0, "rejected": 0, "errors": 1}
+                    cum["examined"] = _base_ex + r.get("scraped", 0)
+                    cum["valid_serper"] = _base_va + r.get("valid", 0)
+                    cum["rejected"] += r.get("rejected", 0)
+                    cum["duplicates"] += r.get("duplicates", 0)
+                    cum["skipped_seen"] += r.get("skipped_seen", 0)
+                    cum["errors"] += r.get("errors", 0)
+                    cum["valid"] = cum["valid_serper"] + cum["valid_basile"]
+                    cum["kept_total"] = cum["valid"]
+                    emit()
 
             if not (serper_blocked() and not basile_available) and not (should_stop and should_stop()) and not target_reached():
                 cum["cities_done"] += 1

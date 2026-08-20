@@ -53,7 +53,8 @@ def _conn(retries: int = 8, delay: float = 0.4):
 
 
 def _auth():
-    return duckdb.connect(str(AUTH_DB), read_only=True)
+    from duck_ouverture import ouvrir
+    return ouvrir(AUTH_DB)
 
 
 # ── Secteurs (source de vérité dynamique, plafond 30) ──────────────────────────
@@ -483,8 +484,15 @@ def retire_chronic_pending(site_code: str = None, age_days: int = CHRONIC_AGE_DA
 
 
 def _conn_ro():
-    """Connexion lecture seule — ne prend pas le write-lock DuckDB."""
-    return duckdb.connect(str(GOD_DB), read_only=True)
+    """Connexion de LECTURE — mais ouverte comme les autres.
+
+    Elle était en `read_only=True`, ce qui semblait prudent : ça ne prend pas le verrou
+    d'écriture. En réalité, dans le process de l'API, ça met l'instance en cache avec une
+    configuration que les écrivains ne peuvent plus rejoindre — la page Campagnes tombait
+    avec « la base est occupée » alors que rien ne la verrouillait. Voir `duck_ouverture`.
+    """
+    from duck_ouverture import ouvrir
+    return ouvrir(GOD_DB)
 
 
 def email_recently_validated(email: str, days: int = 30) -> bool:
@@ -505,6 +513,35 @@ def email_recently_validated(email: str, days: int = 30) -> bool:
     finally:
         c.close()
     return row is not None
+
+
+def email_deja_en_base(email: str) -> bool:
+    """L'adresse est-elle DÉJÀ dans le pool de contacts ?
+
+    Les trois garde-fous historiques (`email_recently_validated`, `email_in_pending`,
+    `email_rejected`) interrogent les tables du scraping. Ils ne voient donc pas les
+    contacts arrivés autrement : import CSV, Basile, formulaire Tally. Ceux-là étaient
+    re-scrapés, re-vérifiés chez Mailnjoy — à un crédit l'unité — et réinsérés.
+
+    Le pool est la base de référence : c'est lui qu'il faut interroger pour savoir si on
+    connaît déjà quelqu'un. Best-effort : si le pool est momentanément occupé, on laisse
+    passer (les autres garde-fous restent en couverture) plutôt que de bloquer un scrape.
+    """
+    em = (email or "").strip().lower()
+    if not em:
+        return False
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(BASE_DIR / "scripts"))
+        import contacts_pool_backend as _pool
+        c = _pool._conn(read_only=True)
+        try:
+            return c.execute("SELECT 1 FROM contacts WHERE lower(email) = ? LIMIT 1",
+                             [em]).fetchone() is not None
+        finally:
+            c.close()
+    except Exception:
+        return False
 
 
 def email_in_pending(email: str) -> bool:

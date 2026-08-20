@@ -164,6 +164,32 @@ def _campagne_du_dispatch(dispatch_id: str | None) -> str | None:
 
 # ── Tableau 1 : ce qui sort ───────────────────────────────────────────────────
 
+def _campagnes_du_site(site: str) -> dict:
+    """Nom et canal de chaque campagne, depuis PostgreSQL. Clé : l'identifiant court, celui
+    qu'on retrouve dans les identifiants de dispatch des journaux d'envoi."""
+    import psycopg2
+    dsn = ""
+    for ligne in (BASE_DIR / ".env").read_text().splitlines():
+        if ligne.startswith("PG_DSN="):
+            dsn = ligne.split("=", 1)[1].strip()
+            break
+    if not dsn:
+        return {}
+    try:
+        c = psycopg2.connect(dsn)
+    except Exception:
+        return {}
+    try:
+        with c.cursor() as cur:
+            cur.execute("SELECT COALESCE(legacy_id, id::text), name, channel "
+                        "FROM campaigns WHERE site_code = %s", [site])
+            return {r[0]: {"nom": r[1], "canal": r[2]} for r in cur.fetchall()}
+    except Exception:
+        return {}
+    finally:
+        c.close()
+
+
 def daily_email_stats(site: str, days: int = 7) -> dict:
     """Emails envoyés par JOUR, et ce qu'ils ont produit.
 
@@ -210,12 +236,12 @@ def daily_email_stats(site: str, days: int = 7) -> dict:
             "WHERE site_code = ? AND created_at >= ?", [site, depuis]).fetchall()
         _bucket([(t, n) for t, n, _ in masse], idx, "envoyes", jours, amount_idx=1)
 
-        # Le nom et le canal de chaque campagne : `campaigns_unified` fait foi. Deviner le
+        # Le nom et le canal de chaque campagne : la table `campaigns` fait foi. Deviner le
         # canal d'après la table d'origine marcherait aujourd'hui et se tromperait au
         # premier canal ajouté.
-        campagnes = {r[0]: {"nom": r[1], "canal": r[2]} for r in c.execute(
-            "SELECT id, name, channel FROM campaigns_unified WHERE site_code = ?",
-            [site]).fetchall()}
+        # Elle vit dans PostgreSQL depuis le 2026-08-19 : on la lit là-bas, pendant que les
+        # journaux d'envoi (au-dessus) sont encore dans DuckDB.
+        campagnes = _campagnes_du_site(site)
 
         # Échecs : on ne retient que les rebonds d'adresses RÉELLEMENT prospectées. Sans ce
         # filtre, les boîtes de test et de warmup gonflent la colonne.
@@ -339,6 +365,119 @@ def daily_email_stats(site: str, days: int = 7) -> dict:
                  "Le volume Emelia est un minorant : Emelia n'expose pas de journal d'envoi "
                  "par jour, il est reconstitué depuis le dernier envoi connu de chaque contact."),
     }
+
+
+# ── Performance cumulée par canal ─────────────────────────────────────────────
+
+def performance_par_canal(site: str) -> dict:
+    """Envois, ouvertures et clics depuis le début, par routeur, POUR CE SITE.
+
+    Trois écrans donnaient trois chiffres différents pour la même question. La cause :
+    chacun interrogeait une source différente.
+
+    - **Maildoso** : `maildoso_sent` (journal d'envoi) pour les envois, et le pool pour
+      l'engagement. On lisait « pas de tracking en SMTP » : c'est faux, le pixel
+      `/api/track/open` et la redirection de clic écrivent bien, avec le canal. 348 ouvreurs
+      et 58 cliqueurs n'étaient comptés nulle part.
+    - **Sweego** : `mass_campaigns` pour les envois — et non l'API Sweego, dont les
+      compteurs portent sur TOUT le compte, les deux marques et les boîtes de warmup
+      mélangées. L'engagement vient de `sweego_events`, **restreint aux adresses réellement
+      prospectées par ce site** : sans ce filtre, on comptait 578 ouvreurs pour 200 envois,
+      le trafic de warmup et les proxys antispam gonflant le chiffre.
+
+    Ouvertures et clics comptent des PERSONNES distinctes, pas des événements : c'est la
+    seule chose que nos sources savent dire avec certitude aujourd'hui.
+    """
+    out: dict[str, dict] = {}
+
+    c = _god()
+    try:
+        envoyes_md, erreurs_md = c.execute(
+            "SELECT count(*) FILTER (WHERE status = 'sent'), "
+            "       count(*) FILTER (WHERE status = 'error') "
+            "FROM maildoso_sent WHERE site_code = ?", [site]).fetchone()
+        envoyes_sw, depuis_sw = c.execute(
+            "SELECT COALESCE(sum(recipients_count), 0), min(created_at) "
+            "FROM mass_campaigns WHERE site_code = ?", [site]).fetchone()
+        evenements = c.execute(
+            "SELECT event_type, lower(email), received_at FROM sweego_events "
+            "WHERE site_code = ? AND event_type IN "
+            "      ('email_opened', 'email_clicked', 'hard_bounce', 'complaint')",
+            [site]).fetchall()
+    finally:
+        c.close()
+
+    prospects: set = set()
+    engagement: dict = {}
+    try:
+        pool = _connect(POOL_DB)
+        try:
+            prospects = {r[0] for r in pool.execute(
+                "SELECT lower(c.email) FROM contacts c "
+                "JOIN contact_site_history h ON h.contact_id = c.id "
+                "WHERE h.site_code = ? AND c.email IS NOT NULL", [site]).fetchall()}
+            for canal, n in pool.execute(
+                    "SELECT COALESCE(last_open_channel, 'inconnu'), count(*) "
+                    "FROM contact_site_history WHERE site_code = ? AND last_opened_at IS NOT NULL "
+                    "GROUP BY 1", [site]).fetchall():
+                engagement.setdefault(canal, {})["opens"] = int(n)
+            for canal, n in pool.execute(
+                    "SELECT COALESCE(last_click_channel, 'inconnu'), count(*) "
+                    "FROM contact_site_history WHERE site_code = ? AND last_clicked_at IS NOT NULL "
+                    "GROUP BY 1", [site]).fetchall():
+                engagement.setdefault(canal, {})["clicks"] = int(n)
+        finally:
+            pool.close()
+    except Exception:
+        pass       # pool verrouillé : on rend les envois plutôt qu'une erreur
+
+    # Les événements Sweego remontent plus loin que notre journal d'envoi : le compte a
+    # servi avant que la plateforme n'enregistre les campagnes de masse. Rapporter 1 480
+    # rebonds à 200 envois donnerait un taux de 740 %. On borne donc les événements à la
+    # période que le journal couvre, et on expose à part ce qui la précède — plutôt que de
+    # le cacher ou de le mélanger.
+    distincts: dict[str, set] = {}
+    anterieurs: dict[str, set] = {}
+    for type_, email, recu in evenements:
+        if prospects and email not in prospects:
+            continue
+        avant = bool(depuis_sw and recu and recu < depuis_sw)
+        (anterieurs if avant else distincts).setdefault(type_, set()).add(email)
+
+    def _taux(n, total):
+        return round(n / total * 100, 1) if (total and n is not None) else None
+
+    md_opens = engagement.get("maildoso", {}).get("opens", 0)
+    md_clicks = engagement.get("maildoso", {}).get("clicks", 0)
+    out["maildoso"] = {
+        "configured": True, "unique_only": True,
+        "source": "journal d'envoi + pixel d'ouverture",
+        "sent": int(envoyes_md or 0), "opens": md_opens, "clicks": md_clicks,
+        "bounces": int(erreurs_md or 0), "replies": None,
+        "open_rate": _taux(md_opens, envoyes_md), "click_rate": _taux(md_clicks, envoyes_md),
+        "reply_rate": None,
+        "bounce_rate": _taux(erreurs_md, (envoyes_md or 0) + (erreurs_md or 0)),
+    }
+
+    sw_opens = len(distincts.get("email_opened", ()))
+    sw_clicks = len(distincts.get("email_clicked", ()))
+    sw_bounces = len(distincts.get("hard_bounce", ())) + len(distincts.get("complaint", ()))
+    out["sweego"] = {
+        "configured": True, "unique_only": True,
+        "source": "campagnes de masse + événements Sweego (prospects du site)",
+        "sent": int(envoyes_sw or 0), "opens": sw_opens, "clicks": sw_clicks,
+        "bounces": sw_bounces, "replies": None,
+        "open_rate": _taux(sw_opens, envoyes_sw), "click_rate": _taux(sw_clicks, envoyes_sw),
+        "reply_rate": None, "bounce_rate": _taux(sw_bounces, envoyes_sw),
+        "depuis": str(depuis_sw)[:10] if depuis_sw else None,
+        "anterieurs": {
+            "opens": len(anterieurs.get("email_opened", ())),
+            "clicks": len(anterieurs.get("email_clicked", ())),
+            "bounces": (len(anterieurs.get("hard_bounce", ()))
+                        + len(anterieurs.get("complaint", ()))),
+        },
+    }
+    return out
 
 
 # ── Tableau 2 : ce qui entre ──────────────────────────────────────────────────

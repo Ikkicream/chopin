@@ -342,6 +342,17 @@ def migrer() -> dict:
 
 
 if __name__ == "__main__":
+    # ⚠ DEPUIS LE 2026-08-19, CE SCRIPT NE DOIT PLUS ÊTRE REJOUÉ TEL QUEL.
+    # PostgreSQL est devenu la SOURCE des campagnes et des segments : `campaign_engine` et
+    # `segments_backend` y écrivent directement. Rejouer la copie depuis DuckDB écraserait
+    # l'état courant avec un instantané figé — une campagne en cours repartirait à son
+    # ancien compteur d'envois. Le reste du script (contacts, états, mailboxes) reste
+    # valable ; c'est le drapeau qui protège l'ensemble.
+    if "--je-sais-ce-que-je-fais" not in sys.argv:
+        print("Refusé : campagnes et segments vivent maintenant dans PostgreSQL.\n"
+              "Rejouer cette reprise écraserait l'état courant.\n"
+              "Relancer avec --je-sais-ce-que-je-fais si c'est vraiment voulu.")
+        raise SystemExit(2)
     print("Reprise DuckDB -> PostgreSQL\n")
     b = migrer()
     for k, v in b.items():

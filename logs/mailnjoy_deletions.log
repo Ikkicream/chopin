@@ -22248,3 +22248,42 @@
 {"ts": "2026-08-19T20:50:29.235512+00:00", "email": "cabinetdrago@wanadoo.fr", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
 {"ts": "2026-08-19T20:51:29.291426+00:00", "email": "info@joomshaper.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
 {"ts": "2026-08-19T20:51:37.342427+00:00", "email": "copro@bellman.immo", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-19T21:07:58.540768+00:00", "email": "mainstream@3cent60.net", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-19T21:08:05.663168+00:00", "email": "contact@immobleupromotion.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-19T21:09:24.970268+00:00", "email": "accueil@lamission-immo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-19T21:09:48.421224+00:00", "email": "b.deliquaire@cabinetdeliquaire.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-19T21:10:04.251578+00:00", "email": "info@acapsyndic.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-19T21:13:36.014974+00:00", "email": "info@exeo.net", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-19T21:13:43.353403+00:00", "email": "label%22%3a%22thema%22%2c%22mailto%22%3a%7b%22about%22%3a%22info@ayvens.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-19T21:14:58.757939+00:00", "email": "commercial@groupesclavo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-19T21:17:35.414120+00:00", "email": "hello@studio-soixante.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-20T03:02:03.370597+00:00", "email": "lourdes@arthurimmo.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-08-20T08:46:03.769556+00:00", "email": "varilhes@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T08:46:23.299404+00:00", "email": "contact@immopauvert.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:19:12.343524+00:00", "email": "contact@cabinetdieu.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:20:15.302914+00:00", "email": "contact@vealis.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:21:40.612159+00:00", "email": "contact@revolat.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:25:09.742281+00:00", "email": "delphine@bdx-immo.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-20T09:30:58.774140+00:00", "email": "bryan@lafeuilleimmo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:32:00.776487+00:00", "email": "contact@desq.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:35:17.280140+00:00", "email": "contact@imogen.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:35:40.914778+00:00", "email": "contact@pre-etat-date-facile.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:36:04.865762+00:00", "email": "abitel@abitel.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:36:31.190168+00:00", "email": "bonjour@idealhomeproject.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:37:09.017422+00:00", "email": "eduardo.desul@expfrance.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:40:45.462772+00:00", "email": "y.pouget@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:41:01.163751+00:00", "email": "contact@maisonboreale.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:41:16.080862+00:00", "email": "contact@bassinimmobilier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:41:33.918545+00:00", "email": "pinasse.immobilier@orange.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-20T09:45:05.177885+00:00", "email": "contact@ecumecime.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:45:09.672127+00:00", "email": "contact@agencedesbains.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:46:02.228019+00:00", "email": "audrey.guilloteaux@iadfrance.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:46:50.859957+00:00", "email": "immobilier@elisavie.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:47:26.357807+00:00", "email": "sernault@axo.immo", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:48:05.824186+00:00", "email": "victor@bordeluche.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:56:15.331099+00:00", "email": "info@de-brugse-databank.be", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:56:32.195852+00:00", "email": "info@wulfenmeester.be", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-20T09:56:46.287137+00:00", "email": "info@omhil-immo.be", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:57:55.135789+00:00", "email": "contact@business.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-20T09:59:13.731012+00:00", "email": "libourne@guyhoquet.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-20T09:59:19.866307+00:00", "email": "m.hamdia@coteparticuliers.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}

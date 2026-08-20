@@ -377,9 +377,17 @@ def decide(site: str = SITE) -> dict:
 
     # Butoir dur : passé CLEANUP_STOP on ne relance plus rien, même une reprise. Ce qui
     # tourne déjà s'arrête tout seul (butoirs internes à `run_autoscrape`).
-    if asb.seconds_until_paris(asb.CLEANUP_STOP) <= 0:
+    # Sans objet en mode continu : ce butoir servait à rendre DuckDB à la journée de
+    # travail. Le laisser actif interdirait tout lancement passé 7 h 50, c'est-à-dire
+    # pendant les seize heures qu'on vient d'ouvrir.
+    if asb._fenetre() is not None and asb.seconds_until_paris(asb.CLEANUP_STOP) <= 0:
         return {"action": "skip", "why": f"butoir de nuit atteint ({asb.CLEANUP_STOP} "
                                          "Paris) — DuckDB rendu au routage des emails"}
+
+    # Plafond du jour : le garde-fou qui remplace la fenêtre nocturne.
+    plafond, motif = asb.quota_atteint(site)
+    if plafond:
+        return {"action": "skip", "why": motif}
 
     if cur:
         ours = _progress_is_ours(prog, cur)
@@ -410,7 +418,10 @@ def decide(site: str = SITE) -> dict:
 
     # Démarrer une cible 20 min avant le butoir ne sert à rien : on brûle un créneau de
     # la nuit pour trois villes. Sous ce seuil, la nuit est finie.
-    left = asb.seconds_until_paris(asb.SCRAPE_STOP) / 60
+    # En mode continu il n'y a plus de butoir, donc plus de créneau à brûler : on saute
+    # ce test, sinon aucune cible ne démarrerait jamais en journée.
+    left = (float("inf") if asb._fenetre() is None
+            else asb.seconds_until_paris(asb.SCRAPE_STOP) / 60)
     if left < MIN_MINUTES_TO_START:
         return {"action": "skip", "why": f"trop tard pour une nouvelle cible "
                                          f"({int(left)} min avant {asb.SCRAPE_STOP} Paris)"}

@@ -477,7 +477,8 @@ def performance(
         s_params.append(date_to + " 23:59:59")
     s_wsql = " AND ".join(s_where)
 
-    c = _duckdb.connect(str(_GOD_DB), read_only=True)
+    from duck_ouverture import ouvrir as _ouvrir
+    c = _ouvrir(_GOD_DB)
     try:
         scrape_by_sector = {
             row[0]: {"scraped": row[1], "qualified": row[2]}
@@ -561,7 +562,8 @@ def performance(
 
         # Join cross-DB simplifié : on récupère les emails sent par ville depuis scrappe (qui a city),
         # puis on hydrate via acquisition_contacts par email pour les statuts.
-        scs = _duckdb.connect(str(_GOD_DB), read_only=True)
+        from duck_ouverture import ouvrir as _ouvrir
+        scs = _ouvrir(_GOD_DB)
         try:
             rows = scs.execute(f"""
                 SELECT city, dept_code, email FROM scrappe

@@ -57,8 +57,39 @@ ENGAGEMENT_LABELS = {
 }
 
 
+# ── Stockage : PostgreSQL ─────────────────────────────────────────────────────
+# Migré depuis DuckDB le 2026-08-19. Motif : `god_mode.duckdb` n'admet qu'un écrivain, et
+# les segments sont lus à chaque ouverture de la page Campagnes comme de l'éditeur de
+# campagne. Tant qu'ils vivaient dans ce fichier, un scrape ou un nettoyage rendait ces
+# écrans indisponibles — sans compter les conflits de configuration dans le process de
+# l'API. La table DuckDB reste en place, intacte, comme filet de retour arrière.
+#
+# L'identifiant public reste l'UUID historique, porté par `legacy_id` : les campagnes le
+# stockent dans `params.segment_id`, les URL de l'interface le portent. La clé technique
+# PostgreSQL (`id`) ne sort jamais du module.
+
+def _dsn() -> str:
+    for ligne in (BASE_DIR / ".env").read_text().splitlines():
+        if ligne.startswith("PG_DSN="):
+            return ligne.split("=", 1)[1].strip()
+    raise RuntimeError("PG_DSN absent de .env")
+
+
+_POOL_PG = None
+
+
 def _conn():
-    return duckdb.connect(str(GOD_DB))
+    """Connexion PostgreSQL, prise dans un pool (les segments sont lus très souvent)."""
+    global _POOL_PG
+    import psycopg2.pool
+    if _POOL_PG is None:
+        _POOL_PG = psycopg2.pool.ThreadedConnectionPool(1, 6, _dsn())
+    return _POOL_PG.getconn()
+
+
+def _rendre(c):
+    if _POOL_PG is not None:
+        _POOL_PG.putconn(c)
 
 
 def _now() -> datetime:
@@ -66,31 +97,9 @@ def _now() -> datetime:
 
 
 def _ensure_table() -> None:
-    c = _conn()
-    try:
-        c.execute(
-            """CREATE TABLE IF NOT EXISTS segments (
-                id          VARCHAR,      -- UUID v4 unique et stable
-                site_code   VARCHAR,
-                name        VARCHAR,
-                description VARCHAR,
-                rules       VARCHAR,      -- JSON du modèle décrit en tête de fichier
-                locked      BOOLEAN,      -- verrouillé = non modifiable, non supprimable
-                created_by  VARCHAR,
-                created_at  TIMESTAMP,
-                updated_at  TIMESTAMP,
-                PRIMARY KEY (id)
-            )"""
-        )
-        # Dernier comptage connu : le pool est verrouillé dès qu'un scrape ou le nettoyage
-        # horaire écrit (DuckDB = 1 écrivain OU des lecteurs, jamais les deux). Plutôt que
-        # d'afficher un tiret, on ressert la dernière valeur en la datant.
-        cols = {r[1] for r in c.execute("PRAGMA table_info(segments)").fetchall()}
-        for col, typ in (("last_count", "INTEGER"), ("last_count_at", "TIMESTAMP")):
-            if col not in cols:
-                c.execute(f"ALTER TABLE segments ADD COLUMN {col} {typ}")
-    finally:
-        c.close()
+    """Ne crée plus rien : le schéma PostgreSQL est appliqué une fois par `pg_schema.sql`.
+    La fonction reste pour ne pas casser ses appelants."""
+    return None
 
 
 def save_count(sid: str, count: int) -> None:
@@ -98,10 +107,12 @@ def save_count(sid: str, count: int) -> None:
     try:
         c = _conn()
         try:
-            c.execute("UPDATE segments SET last_count=?, last_count_at=? WHERE id=?",
-                      [int(count), _now(), sid])
+            with c:
+                with c.cursor() as cur:
+                    cur.execute("UPDATE segments SET last_count=%s, last_count_at=now() "
+                                "WHERE legacy_id=%s", [int(count), sid])
         finally:
-            c.close()
+            _rendre(c)
     except Exception:
         pass  # le cache d'affichage n'est jamais bloquant
 
@@ -174,16 +185,23 @@ def describe_rules(rules: dict) -> str:
     return txt
 
 
-# ── CRUD ─────────────────────────────────────────────────────────────────────
-_COLS = ["id", "site_code", "name", "description", "rules", "locked",
+# ── CRUD (PostgreSQL) ────────────────────────────────────────────────────────
+# `legacy_id` porte l'UUID public — celui que les campagnes enregistrent et que l'URL de
+# l'interface affiche. La clé technique de PostgreSQL ne sort jamais d'ici.
+_COLS = ["legacy_id", "site_code", "name", "description", "rules", "locked",
          "created_by", "created_at", "updated_at", "last_count", "last_count_at"]
 _SELECT = f"SELECT {', '.join(_COLS)} FROM segments"
+_NOMS = ["id", "site_code", "name", "description", "rules", "locked",
+         "created_by", "created_at", "updated_at", "last_count", "last_count_at"]
 
 
 def _row(r) -> dict:
-    d = dict(zip(_COLS, r))
+    d = dict(zip(_NOMS, r))
+    # `rules` est du jsonb : psycopg2 le rend déjà décodé. On accepte les deux formes,
+    # le temps que d'anciennes lignes en texte disparaissent.
+    brut = d.get("rules")
     try:
-        d["rules"] = normalize_rules(json.loads(d["rules"]) if d.get("rules") else None)
+        d["rules"] = normalize_rules(json.loads(brut) if isinstance(brut, str) else brut)
     except Exception:
         d["rules"] = empty_rules()
     d["locked"] = bool(d.get("locked"))
@@ -195,14 +213,20 @@ def _row(r) -> dict:
     return d
 
 
-def list_segments(site: str) -> list[dict]:
-    _ensure_table()
+def _lire(sql: str, params: list) -> list:
     c = _conn()
     try:
-        rows = c.execute(_SELECT + " WHERE site_code=? ORDER BY created_at DESC", [site]).fetchall()
-        usages = _usages(c)
+        with c.cursor() as cur:
+            cur.execute(sql, params)
+            return cur.fetchall()
     finally:
-        c.close()
+        c.rollback()
+        _rendre(c)
+
+
+def list_segments(site: str) -> list[dict]:
+    rows = _lire(_SELECT + " WHERE site_code=%s ORDER BY created_at DESC", [site])
+    usages = _usages()
     out = []
     for r in rows:
         d = _row(r)
@@ -212,13 +236,8 @@ def list_segments(site: str) -> list[dict]:
 
 
 def get_segment(sid: str) -> dict | None:
-    _ensure_table()
-    c = _conn()
-    try:
-        r = c.execute(_SELECT + " WHERE id=?", [sid]).fetchone()
-    finally:
-        c.close()
-    return _row(r) if r else None
+    rows = _lire(_SELECT + " WHERE legacy_id=%s", [sid])
+    return _row(rows[0]) if rows else None
 
 
 def create_segment(site: str, name: str, rules: dict, description: str = "",
@@ -231,16 +250,18 @@ def create_segment(site: str, name: str, rules: dict, description: str = "",
         return {"ok": False, "error": err}
     # UUID v4 complet : identifiant unique et stable, jamais réutilisé même après suppression.
     sid = str(_uuid.uuid4())
-    _ensure_table()
     c = _conn()
     try:
-        c.execute("INSERT INTO segments (id, site_code, name, description, rules, locked, "
-                  "created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
-                  [sid, site, name, (description or "").strip(),
-                   json.dumps(normalize_rules(rules), ensure_ascii=False),
-                   False, by, _now(), _now()])
+        with c:
+            with c.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO segments (id, legacy_id, site_code, name, description, "
+                    "rules, locked, created_by, created_at, updated_at) "
+                    "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s::jsonb, false, %s, now(), now())",
+                    [sid, site, name, (description or "").strip(),
+                     json.dumps(normalize_rules(rules), ensure_ascii=False), by])
     finally:
-        c.close()
+        _rendre(c)
     return {"ok": True, "id": sid, "segment": get_segment(sid)}
 
 
@@ -258,25 +279,29 @@ def update_segment(sid: str, site: str, patch: dict, by: str = "ui") -> dict:
         nm = (patch.get("name") or "").strip()
         if not nm:
             return {"ok": False, "error": "nom requis"}
-        sets.append("name=?"); vals.append(nm)
+        sets.append("name=%s"); vals.append(nm)
     if "description" in patch:
-        sets.append("description=?"); vals.append((patch.get("description") or "").strip())
+        sets.append("description=%s"); vals.append((patch.get("description") or "").strip())
     if "rules" in patch:
         ok, err = validate_rules(patch["rules"])
         if not ok:
             return {"ok": False, "error": err}
-        sets.append("rules=?"); vals.append(json.dumps(normalize_rules(patch["rules"]), ensure_ascii=False))
+        sets.append("rules=%s::jsonb")
+        vals.append(json.dumps(normalize_rules(patch["rules"]), ensure_ascii=False))
     if "locked" in patch:
-        sets.append("locked=?"); vals.append(bool(patch["locked"]))
+        sets.append("locked=%s"); vals.append(bool(patch["locked"]))
     if not sets:
         return {"ok": False, "error": "aucun champ à modifier"}
-    sets.append("updated_at=?"); vals.append(_now())
+    sets.append("updated_at=now()")
 
     c = _conn()
     try:
-        c.execute(f"UPDATE segments SET {', '.join(sets)} WHERE id=?", vals + [sid])
+        with c:
+            with c.cursor() as cur:
+                cur.execute(f"UPDATE segments SET {', '.join(sets)} WHERE legacy_id=%s",
+                            vals + [sid])
     finally:
-        c.close()
+        _rendre(c)
     return {"ok": True, "segment": get_segment(sid)}
 
 
@@ -299,19 +324,14 @@ def reference(sid: str) -> str:
     return "SEG-" + (sid or "").replace("-", "")[:6].upper()
 
 
-def _usages(c, sids: list[str] | None = None) -> dict[str, list[dict]]:
-    """Campagnes pointant sur chaque segment, en une requête.
-
-    `campaigns_unified` peut ne pas exister (base neuve) : dans ce cas personne n'utilise
-    de segment, et l'absence de table n'est pas une erreur.
-    """
+def _usages(sids: list[str] | None = None) -> dict[str, list[dict]]:
+    """Campagnes pointant sur chaque segment, en une requête."""
     try:
-        rows = c.execute("""
-            SELECT json_extract_string(params, '$.segment_id') AS sid,
-                   id, name, status
-            FROM campaigns_unified
-            WHERE json_extract_string(params, '$.segment_id') IS NOT NULL
-        """).fetchall()
+        rows = _lire("""
+            SELECT params->>'segment_id' AS sid, COALESCE(legacy_id, id::text), name, status
+            FROM campaigns
+            WHERE params->>'segment_id' IS NOT NULL
+        """, [])
     except Exception:
         return {}
     out: dict[str, list[dict]] = {}
@@ -324,12 +344,7 @@ def _usages(c, sids: list[str] | None = None) -> dict[str, list[dict]]:
 
 def usage(sid: str) -> list[dict]:
     """Les campagnes qui s'appuient sur ce segment (vide si aucune)."""
-    _ensure_table()
-    c = _conn()
-    try:
-        return _usages(c, [sid]).get(sid, [])
-    finally:
-        c.close()
+    return _usages([sid]).get(sid, [])
 
 
 def duplicate_segment(sid: str, site: str, by: str = "ui") -> dict:
@@ -369,9 +384,11 @@ def delete_segment(sid: str, site: str) -> dict:
                 "used_by": utilise}
     c = _conn()
     try:
-        c.execute("DELETE FROM segments WHERE id=?", [sid])
+        with c:
+            with c.cursor() as cur:
+                cur.execute("DELETE FROM segments WHERE legacy_id=%s", [sid])
     finally:
-        c.close()
+        _rendre(c)
     return {"ok": True, "id": sid}
 
 

@@ -273,9 +273,14 @@ def journal(site: str, email: str, limite: int = 50) -> list[dict]:
 
 def commerciaux() -> list[dict]:
     """Comptes pouvant recevoir une attribution. Lu depuis auth.duckdb, la source des rôles."""
-    import duckdb
+    import sys
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
     try:
-        a = duckdb.connect(str(BASE_DIR / "data" / "auth.duckdb"), read_only=True)
+        # Ouverture commune : en lecture seule, DuckDB met l'instance en cache avec une
+        # configuration que l'authentification — qui ÉCRIT dans cette base — ne peut plus
+        # rejoindre. Voir `duck_ouverture`.
+        from duck_ouverture import ouvrir as _ouvrir
+        a = _ouvrir(BASE_DIR / "data" / "auth.duckdb")
     except Exception:
         return []
     try:

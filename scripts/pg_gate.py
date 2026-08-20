@@ -1,9 +1,22 @@
 #!/usr/bin/env python3
 """pg_gate.py — La porte d'entrée de PostgreSQL.
 
-Modèle en ENTONNOIR (décision user du 2026-08-19) : DuckDB fait le sale boulot — scraping,
-nettoyage, vérification Mailnjoy, enrichissement — et un contact n'entre dans PostgreSQL
-QUE lorsqu'il est bon. PostgreSQL ne doit contenir que du contactable.
+**Le modèle a changé le 2026-08-20 (décision user).** PostgreSQL accueille désormais TOUS
+les contacts, chacun portant son ÉTAT (`a_verifier`, `ok`, `ko`, `exclu`, `spam`). La porte
+n'est plus un filtre à l'entrée mais un drapeau : on n'écarte plus personne de la base, on
+sait seulement à qui on a le droit d'écrire.
+
+Deux raisons : l'entonnoir laissait 1 776 contacts sur 7 970 hors de PostgreSQL, invisibles
+à tout écran qui le lit ; et il interdisait au scraping d'écrire directement dans
+PostgreSQL, donc de sortir de la fenêtre 22 h-8 h imposée par le verrou DuckDB.
+
+`ELIGIBILITE_SQL` reste la définition du CONTACTABLE — c'est elle qui décide de l'état
+`ok` et qui filtrera la pioche des campagnes. Ce qui change, c'est ce qu'on en fait :
+un drapeau, pas une porte.
+
+Modèle historique (conservé pour mémoire) — ENTONNOIR : DuckDB fait le sale boulot —
+scraping, nettoyage, vérification Mailnjoy, enrichissement — et un contact n'entrait dans
+PostgreSQL QUE lorsqu'il était bon.
 
 **Critère retenu — option C, la plus stricte.** Un contact franchit la porte si :
   1. Mailnjoy a rendu `valid` ;
@@ -43,6 +56,44 @@ ELIGIBILITE_SQL = f"""
     AND COALESCE(e.excluded, FALSE) = FALSE
 """
 
+# L'ÉTAT d'un contact, en cascade : la première condition bloquante l'emporte. Écrit ici,
+# à côté du critère d'éligibilité, pour que les deux ne puissent pas diverger — `ok` est
+# exactement « ce qui satisfait ELIGIBILITE_SQL ».
+#
+# On ne stocke que des VERDICTS. « En repos » (120 jours) et « prêt » (SIRET trouvé) restent
+# calculés à la lecture : ils dépendent de la date, pas d'une décision.
+ETAT_SQL = f"""
+    CASE
+        WHEN COALESCE(ct.global_blacklisted, FALSE) THEN 'spam'
+        WHEN json_extract_string(ct.mailnjoy_check, '$.decision') IS NOT NULL
+         AND json_extract_string(ct.mailnjoy_check, '$.decision') <> 'valid' THEN 'ko'
+        WHEN COALESCE(e.excluded, FALSE) THEN 'exclu'
+        WHEN json_extract_string(ct.mailnjoy_check, '$.decision') IS NULL THEN 'a_verifier'
+        WHEN json_extract_string(ct.mailnjoy_check, '$.checked_at') <
+             (CURRENT_TIMESTAMP - INTERVAL '{CLEANED_WITHIN_DAYS}' DAY)::VARCHAR THEN 'a_verifier'
+        ELSE 'ok'
+    END
+"""
+# Note : l'ÉTAT décrit l'ADRESSE, pas l'éligibilité complète à un envoi. Il exigeait
+# auparavant que l'enrichissement data.gouv ait eu lieu (`e.contact_id IS NOT NULL`) —
+# héritage de la porte d'entrée « option C ». Conséquence : 73 contacts validés par
+# Mailnjoy mais pas encore enrichis s'affichaient « À vérifier » dans PostgreSQL et
+# « Vérifié » dans le pool, deux écrans se contredisant sur les mêmes personnes.
+# L'exigence d'enrichissement appartient à la PIOCHE D'ENVOI (`ELIGIBILITE_SQL` ici,
+# `_ELIGIBLE` dans pool_pg), pas au verdict sur l'adresse. Elle y est restée intacte.
+
+# Le motif, pour qu'un « ko » soit explicable sans rouvrir la base.
+MOTIF_SQL = """
+    CASE
+        WHEN COALESCE(ct.global_blacklisted, FALSE) THEN COALESCE(ct.blacklist_reason, 'blacklisté')
+        WHEN json_extract_string(ct.mailnjoy_check, '$.decision') IS NOT NULL
+         AND json_extract_string(ct.mailnjoy_check, '$.decision') <> 'valid'
+            THEN 'mailnjoy: ' || json_extract_string(ct.mailnjoy_check, '$.decision')
+        WHEN COALESCE(e.excluded, FALSE) THEN COALESCE(e.exclusion_reason, 'exclu data.gouv')
+        ELSE NULL
+    END
+"""
+
 _FROM = """
     FROM contacts ct
     LEFT JOIN contact_enrichment e ON e.contact_id = ct.id
@@ -60,13 +111,14 @@ def _duck():
 def _colonnes() -> str:
     return """ct.id, ct.email, ct.prenom, ct.nom, ct.societe, ct.tel, ct.website, ct.city,
               ct.dept_code, ct.region_code, ct.postal_code, ct.sectors, ct.primary_source,
-              ct.email_score, ct.mailnjoy_check, ct.global_blacklisted"""
+              ct.email_score, ct.mailnjoy_check, ct.global_blacklisted,
+              ct.blacklist_reason"""
 
 
 def _ligne(r) -> dict:
     cles = ["id", "email", "prenom", "nom", "societe", "tel", "website", "city",
             "dept_code", "region_code", "postal_code", "sectors", "primary_source",
-            "email_score", "mailnjoy_check", "global_blacklisted"]
+            "email_score", "mailnjoy_check", "global_blacklisted", "blacklist_reason"]
     return dict(zip(cles, r))
 
 
@@ -100,6 +152,63 @@ def tous_eligibles(conn=None) -> list[dict]:
     try:
         rows = c.execute(f"SELECT {_colonnes()} {_FROM} WHERE {ELIGIBILITE_SQL}").fetchall()
         return [_ligne(r) for r in rows]
+    finally:
+        if conn is None:
+            c.close()
+
+
+def contact_tel_quel(contact_id: str, conn=None) -> dict | None:
+    """Le contact avec son état, éligible ou non. None seulement s'il n'existe plus.
+
+    Remplace `contact_eligible` dans le chemin d'écriture : PostgreSQL accueille tout le
+    monde, la sélection se fait sur `etat` au moment de piocher, pas à l'entrée.
+    """
+    c = conn or _duck()
+    try:
+        r = c.execute(
+            f"SELECT {_colonnes()}, {ETAT_SQL} AS etat, {MOTIF_SQL} AS motif {_FROM} "
+            f"WHERE ct.id = ?", [contact_id]).fetchone()
+        if not r:
+            return None
+        d = _ligne(r[:-2])
+        d["etat"] = r[-2]
+        d["etat_motif"] = r[-1]
+        return d
+    finally:
+        if conn is None:
+            c.close()
+
+
+def tous_contacts(conn=None) -> list[dict]:
+    """TOUS les contacts du pool, chacun avec son état et son motif.
+
+    Remplace `tous_eligibles` pour la réconciliation : PostgreSQL accueille tout le monde,
+    et c'est l'état qui dit à qui on peut écrire.
+    """
+    c = conn or _duck()
+    try:
+        rows = c.execute(
+            f"SELECT {_colonnes()}, {ETAT_SQL} AS etat, {MOTIF_SQL} AS motif {_FROM}"
+        ).fetchall()
+        out = []
+        for r in rows:
+            d = _ligne(r[:-2])
+            d["etat"] = r[-2]
+            d["etat_motif"] = r[-1]
+            out.append(d)
+        return out
+    finally:
+        if conn is None:
+            c.close()
+
+
+def etat_contact(contact_id: str, conn=None) -> tuple[str, str | None] | None:
+    """L'état d'UN contact, calculé par la même cascade que le balayage."""
+    c = conn or _duck()
+    try:
+        r = c.execute(f"SELECT {ETAT_SQL}, {MOTIF_SQL} {_FROM} WHERE ct.id = ?",
+                      [contact_id]).fetchone()
+        return (r[0], r[1]) if r else None
     finally:
         if conn is None:
             c.close()
