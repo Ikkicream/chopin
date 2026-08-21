@@ -190,3 +190,114 @@ PermissionError: [Errno 13] Permission denied: '/home/autoblog/genesis/memory/al
   "notifie": false,
   "detail": {}
 }
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 0,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {}
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [
+    "tache:réconciliation PostgreSQL"
+  ],
+  "regles": [],
+  "rappels": [],
+  "notifie": true,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 26.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 27.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 28.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 29.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 30.8 h (limite 26 h)."
+  }
+}

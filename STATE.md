@@ -46,6 +46,317 @@ ET sur le `legacy_id` court. `campaign_recipients` porte l'uuid, `list_campaigns
 l'identifiant court : sans les deux clés la jointure tombe à vide et toutes les colonnes
 affichent un tiret.
 
+## 🔒 2026-08-21 — Contacts : colonne secteur, filtre secteur, garde-fou anti-aspiration
+
+**Acquisition — lecture.** Le secteur était un émoji collé au nom du contact : invisible et
+incomparable d'une ligne à l'autre. Il a sa **colonne** (pastilles, deux visibles + « +N »).
+Le filtre secteur, jusqu'ici perdu dans une liste déroulante de la barre de recherche,
+devient le **troisième axe de pastilles sous Étape et Cycle**, avec ses compteurs ; la
+liste déroulante est retirée (deux contrôles pour un même filtre).
+
+**Le garde-fou : `scripts/garde_lecture.py`.** La menace n'est pas un robot anonyme mais un
+compte LÉGITIME — jeton valide, requêtes signées, indiscernables d'un usage normal. Un
+pare-feu applicatif (Cloudflare) filtre l'origine, pas l'intention : **il ne sert à rien
+ici**, et ce n'est donc pas ce qui a été installé. Trois mesures côté serveur, branchées sur
+`/acquisition`, `/pool/contacts` et `/a-rappeler` :
+  1. **Plafond de page par rôle** — 100 lignes hors admin/superadmin (l'écran en affiche 25,
+     donc aucun impact sur le travail réel) ; la valeur `limit` rendue est celle APPLIQUÉE,
+     sinon l'interface croit avoir tout reçu et saute des contacts ;
+  2. **Quota horaire glissant** — **1 000 fiches/heure** pour un commercial (réglage de
+     Camille) : quarante pages pleines en une heure, et plus de huit heures ininterrompues
+     pour lire la base entière. **Aucun quota** pour `superadmin` ni `admin`. Au-delà : 429
+     avec un message qui dit quoi faire ;
+  3. **Journal `lecture_contacts`** (qui, quand, combien, quelle route) + alerte
+     `alertes.py` **au-delà de 1 000 fiches sur l'heure écoulée** — même fenêtre et même
+     seuil que le quota : l'alerte part à l'instant où le compte touche le plafond. Une clé
+     par utilisateur.
+
+**Les alertes partent sur le Telegram privé de Camille** (@Camilledata) via le robot
+`@Chopin_orchestre_bot` — un seul destinataire, câblage vérifié le 21/08. Le message porte
+désormais un pictogramme par famille : 🔥 sécurité (aspiration), ⏰ tâche en retard,
+🛑 service arrêté, 🕷 collecte bloquée, 🩺 relevé en panne. Une aspiration change le TITRE du
+message (`🔥🚨 SÉCURITÉ — <compte> 🚨🔥`) et passe en tête de liste : elle ne doit jamais se
+noyer dans le train-train des tâches en retard. Le compte fautif est nommé dans le titre ET
+dans le détail. Attention : un échec d'envoi Telegram est silencieux et non rejoué.
+
+**Le calcul qui fixe le plafond** (terrain, Camille 2026-08-21) : un commercial passe AU
+PLUS 30 appels dans l'heure. Trente fiches ouvertes, plus la liste pour les trouver — huit
+pages de 25 si la recherche est laborieuse, soit 200 lignes. Un usage intense tient donc
+dans **~230 fiches/heure**. Le plafond de 1 000 laisse un facteur **quatre** : personne ne
+peut l'atteindre en travaillant. Qui le touche n'appelle pas, il aspire.
+
+**Filigrane nominatif** (`components/filigrane.tsx`) sur les deux pages. À dire tel quel :
+**empêcher une capture d'écran est impossible sur le web** — aucune API ne le permet, les
+parades connues se contournent en secondes et un téléphone braqué sur l'écran les ignore
+toutes. Le filigrane ne bloque rien ; il rend toute copie ATTRIBUABLE (nom du compte +
+horodatage, 3,5 % d'opacité, illisible à l'usage, net sur une capture agrandie). C'est la
+certitude d'être identifié qui dissuade, pas l'obstacle technique.
+
+**Export** : le bouton d'Acquisition était déjà réservé au superadmin, et il n'exporte que
+la page affichée (25 lignes). **`/a-rappeler` n'a aucun export** — il n'y avait rien à
+bloquer, et en ajouter un irait contre l'objectif.
+
+## 🕷 2026-08-21 — Refonte de la page Scraping
+
+**Le problème** : 724 lignes, sept blocs empilés (bascule du module, formulaire régional,
+historique complet, formulaire manuel avancé, cron, doc des points d'entrée Serper) pour
+répondre à la question qu'on se pose en arrivant — *est-ce que ça collecte en ce moment ?*
+
+**Trois blocs désormais** : (1) **Collectes en cours**, avec secteur, zone, déclencheur,
+barre de progression, Scrapés / Validés (détail Basile + Serper) / Rejetés / Doublons /
+Net Mailnjoy / Crédits — rafraîchi toutes les 5 s, et l'intervalle s'arrête avec le run ;
+(2) **Mode automatique** : période, cibles de la période, créneaux réservés ;
+(3) **Lancer une collecte** : le wizard.
+
+**L'historique part sur `/scrapper/activite`** (sous-page) : DataTable triable et filtrable
+par secteur, déclencheur et état, 200 derniers runs, avec les totaux en tête. Consulter le
+passé et lancer un scrape sont deux gestes différents.
+
+**Le déclencheur, marque nouvelle.** `run_autoscrape(declencheur=…)` écrit « manuel » ou
+« automatique » dans le log `start_scrape` ; `autoscrape_daily` se déclare automatique.
+Rien ne les distinguait : même fonction, même compte système. Les runs antérieurs sont
+déduits du compte appelant.
+
+**`stephane.py` — l'agent de collecte (ex-`scrape_conseil.py`, renommé et étoffé le 21/08).** Note sur 100, explicable :
+rang du secteur (30) + terrain jamais collecté (25) + taux d'ouverture mesuré de la zone
+(25) + rareté du couple en base (20). Les interdits sont écartés. **Pas de modèle de
+langage** : sur une décision qui engage le budget Serper, une note recalculable à la main
+vaut mieux qu'un avis invérifiable. Premier résultat : `tourisme` et `education-formation`
+sur les Alpes-Maritimes à 100/100 (prioritaire · jamais collecté · zone à 41,2 % d'ouverture
+· aucun contact en base). Servi par `/api/sites/{site}/scrape/conseil`, affiché en tête du
+wizard sous forme de raccourcis cliquables.
+
+**Le wizard** (`components/scrape-wizard.tsx`) : trois questions — quoi (secteurs en
+pastilles, choix multiple), où (région), combien (paliers + saisie libre) — une seule à
+l'écran, fondu de 220 ms, chemin cliquable en arrière uniquement, récapitulatif avant de
+lancer. Les réglages fins (résultats par ville, plafond global) gardent leurs valeurs par
+défaut : personne n'y avait touché depuis trois mois.
+
+**Nouvel endpoint** `/api/sites/{site}/autoscrape/orchestrateur` — l'état du mode
+automatique, à ne pas confondre avec `/autoscrape/status` qui décrit le run en train de
+tourner.
+
+## 🧠 2026-08-21 (suite) — Stéphane : mémoire, trois critères, et la sidebar
+
+**Sa mémoire** (`memoire_stephane`, PostgreSQL) : une ligne par couple **secteur ×
+département** — envois, ouvreurs, cliqueurs, taux, contacts en base. **380 couples** au
+premier passage, actualisée à chaque reconstruction des statistiques (même cron). Elle FIGE
+comme `stats_secteur_jour` : un contact sorti du pool n'efface pas rétroactivement la
+performance d'une zone.
+
+**Sa décision tient compte du clic avant l'ouverture** — le clic pèse deux tiers de la note
+de performance : une ouverture peut venir d'un proxy antispam, un clic est un geste. Il
+utilise d'abord la mesure du COUPLE secteur × zone, et se rabat sur la zone seule à défaut.
+Premier enseignement : `immobilier` × **dept 37** fait **15 % de clic** pour 30 % d'ouverture,
+loin devant le 06 (3,9 % de clic malgré 41,2 % d'ouverture) — l'ouverture seule aurait
+désigné le mauvais gagnant.
+
+**Trois critères réglables** (`config_stephane`, admin uniquement) : (1) secteurs autorisés,
+(2) départements, (3) **ce qui doit primer** — Équilibré / Ce qui répond / Terrain neuf /
+Volume. Le choix REDISTRIBUE les poids, il ne les remplace pas : un secteur interdit ne
+remonte jamais. Vérifié de bout en bout : cadre `restaurant+tourisme × 37+06` en priorité
+« Ce qui répond » → 1 786 candidats ramenés à 4, et le 37 passe devant le 06.
+
+**Écran** : carte « Stéphane » sur `/scrapper` — ce qu'il a retenu (couples classés par
+clic, trophée sur le premier) + le cadre repliable à trois critères. Le bloc
+« Orchestrateur » ne garde que ce qu'il exécute.
+
+**Sidebar** : « Activité des scrapes » ajoutée sous « Scraper » — la sous-page n'était
+atteignable que par un bouton, donc introuvable pour qui la cherchait.
+**Wizard** : les étapes s'annoncent « Étape 1 sur 3 — Quoi collecter » et prennent la forme
+d'onglets (bord bas marqué) au lieu de cadres flottants.
+
+## 🔗 2026-08-21 — L'orchestrateur obéit à Stéphane
+
+`autoscrape_daily.next_target()` ne trie plus la file lui-même : il demande à Stéphane, et
+retient sa première proposition **déjà éligible** (pending, sous le plafond de passes,
+secteur autorisé). Stéphane propose, il ne contourne pas. Deux replis : s'il ne propose
+aucune cible éligible, ou s'il est indisponible, l'ordre historique reprend la main — une
+décision automatique ne doit jamais pouvoir bloquer la collecte. Le choix est tracé dans le
+log (`[autoscrape] Stéphane choisit … — note X/100 : <raison>`) et la raison suit la cible
+dans l'état (`note_stephane`, `pourquoi_stephane`, `priorite_stephane`).
+
+**La liste « prochaines cibles » vient désormais de lui aussi.** Elle gardait le tri
+historique alors que la pioche passait par Stéphane : l'écran annonçait une cible et une
+autre partait. Elle est affichée sur `/scrapper` avec la note et la justification.
+
+**Vérifié en direct avec le cadre réel** : Camille avait enregistré à 11h08 un cadre
+`immobilier × dept 92`. Stéphane ramène 1 786 candidats à 1 et choisit `lcr:immobilier:92`
+(61/100 — « secteur prioritaire · ce secteur y fait 6,1 % de clic et 34,8 % d'ouverture ·
+déjà 28 contacts en 1 passage · 138 contacts en base »). Le cadre est donc bien respecté
+de bout en bout.
+
+## 🎯 2026-08-21 — Basile : les deux correctifs de volume
+
+**1. Collecte par DÉPARTEMENT au lieu de ville par ville.** `run_sector_for_dept()` remplace
+l'appel ville par ville dans la boucle d'autoscrape (un appel par secteur × dept, clé
+`seen_basile_depts`). L'ancien filtre `headquarters_city` était alimenté par les cinq plus
+grandes communes de plus de 10 000 habitants — le reste du département n'existait pas pour
+Basile. **Gain mesuré en direct sur la Gironde :**
+
+| Secteur | 5 villes | Département | Gain |
+|---|---|---|---|
+| artisan | 3 191 | 19 274 | **×6,0** |
+| tourisme | 1 056 | 3 121 | ×3,0 |
+| immobilier | 1 144 | 3 089 | ×2,7 |
+| education-formation | 1 705 | 4 638 | ×2,7 |
+| restaurant | 3 000 | 7 839 | ×2,6 |
+
+**2. Les 7 secteurs inertes sont câblés.** `_nafs()` lit `SECTOR_NAF` (mappings testés en
+prod) puis, à défaut, `secteurs_backend.CATALOGUE` — une seule source de vérité, import
+local pour éviter le cycle. `tourisme`, `education-formation`, `transport`, `industrie`,
+`agroalimentaire`, `luxe-mode`, `services-b2b` renvoyaient `no_naf` et partaient donc à
+100 % sur Serper, la ressource rare — alors que `tourisme` et `education-formation` sont
+les 2e et 3e meilleurs rendements Basile sur dix secteurs testés.
+
+**Essai à blanc validé** : `tourisme` × 33 → 3 121 sociétés vues, extraction en 4 passes ;
+`education-formation` × 33 → 4 638. Le garde-fou des secteurs interdits reste actif
+(`sante-pharma` → `interdit`).
+
+**`docs/basile-api.md` §10 corrigée** : la ligne « `headquarters_department_code` → 0, ne
+pas utiliser » datait d'un essai de juin jamais revérifié. Le code s'y est fié deux mois.
+La note porte désormais l'avertissement et la mesure.
+
+## 🛡️ 2026-08-21 — Droits par rôle : la matrice, et son application côté serveur
+
+**Le problème de fond** : cacher un menu n'est pas interdire. Le rôle décidait des entrées
+de la sidebar côté navigateur ; or tout ce qui vit dans le navigateur se change dans le
+navigateur. Un commercial écrivant `role: "superadmin"` dans `localStorage` retrouvait les
+menus — et les routes d'API répondaient, parce que rien ne les gardait.
+
+**`scripts/roles_backend.py`** : catalogue de **25 pages** (clé, libellé, groupe, URL, et
+surtout **les préfixes d'API qui les alimentent**), 6 rôles, matrice en base
+(`role_pages`), cache 30 s. L'autorisation est attachée aux ROUTES, pas aux écrans : une
+page qu'on n'a pas le droit de voir est une page dont les données ne viennent pas.
+
+**Trois règles non négociables**, écrites dans le module :
+  1. `superadmin` a tout, toujours — il n'est pas stocké dans la matrice et ne peut pas
+     être restreint : sinon un clic malheureux enferme tout le monde dehors ;
+  2. ce qui n'est pas au catalogue n'est pas gardé — les protections existantes
+     (`_ADMIN_PREFIXES`, isolation multi-tenant, quotas de lecture) s'appliquent EN PLUS ;
+  3. matrice illisible → on laisse passer et on trace : refuser en masse sur une panne de
+     base serait un déni de service auto-infligé.
+
+**Application** : dans le middleware de `api.py`, après l'isolation multi-tenant. Le rôle
+vient de la SESSION vérifiée côté serveur. Vérifié par matrice complète (9 routes × 6
+rôles) : `/api/auth/users`, `/api/admin/database` et `/api/admin/roles` ne répondent qu'au
+superadmin ; un commercial est refusé sur le scraping et les campagnes ; un rôle contenu
+est refusé sur la liste d'appels.
+
+**⚠️ Changement de comportement pour le rôle `admin`** : il perd l'accès par défaut à la
+gestion des comptes, aux bases de données, aux logs et à la maintenance (la page
+Utilisateurs annonçait déjà « réservé au superadmin », c'est désormais vrai côté serveur).
+Il suffit de cocher les cases pour le lui rendre.
+
+**Écran** `/admin/users/roles` (fille de `/admin/users`) : une carte par rôle avec sa
+mission en une phrase, puis un tableau page × rôle groupé comme le menu, cases à cocher,
+enregistrement colonne par colonne. La colonne `superadmin` affiche un cadenas.
+
+**Sidebar** : elle demande ses entrées à `/api/mes-pages`, qui déduit les droits de la
+session — la sidebar ne dit pas au serveur quel rôle elle croit avoir. Route sans paramètre,
+donc impossible de demander « les pages du superadmin ».
+
+## 📞 2026-08-21 — Rôles des comptes + tableau de bord commercial
+
+**Comptes** : Gilles → `admin`, Romeo → `user` (demande Camille).
+
+**⚠️ Effet de bord détecté et corrigé.** Plus aucun compte n'avait le rôle `commercial` :
+`commercial_par_defaut('lcr')` rendait `None`, et les contacts promus n'étaient plus
+attribués à personne — en silence. Romeo gardait ses 81 rappels mais n'en recevait plus.
+`followup_backend` rattache désormais l'attribution au TRAVAIL (qui rappelle) et non à
+l'étiquette du rôle : `ROLES_RAPPELANTS = ("commercial", "user", "admin")` et la requête
+`commerciaux()` accepte `user`. Vérifié : Romeo est de nouveau l'attributaire par défaut.
+
+**`/site/{code}/mon-activite`** — le tableau de bord du rappelant. Constat de départ :
+82 rappels en attente, **un seul appel journalisé**. Le CRM savait tout ce qu'il fallait
+faire et rien de ce qui avait été fait ; une liste qui ne raccourcit jamais et ne félicite
+jamais, on l'ouvre une fois.
+
+Trois idées, dans l'ordre d'une journée : **ma journée** (anneau de progression vers
+30 appels — le rythme réel donné par Camille), **ce qui me tire** (série de jours
+consécutifs, paliers nommés en vocabulaire de métier : Prospecteur, Closeur, Vétéran…),
+**où ça mord** (secteurs et départements classés au taux de CLIC, depuis
+`campaign_recipients`). Plus le bloc qui a le plus de valeur : **« À appeler en premier »**
+— les contacts de SA liste qui ont cliqué dans un email, les plus récents d'abord.
+`commercial_backend.py` + `/api/sites/{site}/mon-activite`.
+
+**Parti pris assumé** : aucune donnée inventée. Quand les compteurs sont à zéro, l'écran le
+dit et explique comment ils se rempliront. Un tableau qui affiche des zéros honnêtes reste
+crédible ; un tableau décoratif ne l'est plus jamais.
+
+**Sidebar** : « Activité commerciale » (icône casque) dans Acquisition — visible pour un
+superadmin sans avoir à simuler un rôle — et « Mon activité » en tête de la vue commercial.
+
+## ☎️ 2026-08-21 — La fiche d'appel : script, RDV, présentation, blacklist
+
+**Le constat** : la fiche affichait des informations et laissait le commercial se
+débrouiller. Prendre un rendez-vous = ouvrir un autre écran ; envoyer une présentation =
+son client mail personnel ; blacklister = demander à quelqu'un. Trois ruptures pendant un
+appel de deux minutes, donc trois gestes qu'on ne fait pas.
+
+**`scripts/argumentaire.py`** — le script d'appel par secteur. **Immobilier complet** :
+contexte du métier (mandats qui expirent, fichier acquéreurs dormant, fin du démarchage
+téléphonique), accroche, question qui fait parler, 4 arguments de valeur, **3 objections
+rangées par fréquence réelle** avec parade ET explication de pourquoi elle marche
+(« j'ai déjà un logiciel immobilier », « mes clients n'aiment pas être sollicités »,
+« le RGPD ne me permet pas »), et la sortie vers le rendez-vous. Les autres secteurs
+héritent d'un socle générique **signalé comme tel** : mieux vaut un texte visiblement
+générique qu'un faux texte de métier qui sonne creux à la deuxième phrase.
+
+**`scripts/plaquette.py`** — la plaquette PDF d'une page, **générée à la volée** depuis
+`argumentaire.py` (fpdf2 installé). Aucun fichier à maintenir : le jour où l'argumentaire
+change, la plaquette change avec lui. Une page et une seule, personne ne lit la deuxième.
+
+**Quatre gestes dans la fiche** (`components/actions-appel.tsx`), sans en sortir :
+Script · Rendez-vous (sur les créneaux réellement libres du module existant) ·
+Présentation (email du secteur + PDF joint, **envoi nominatif 1 à 1** depuis une boîte
+Maildoso — pas une campagne) · Blacklister (définitif, avec confirmation).
+**Chaque action écrit dans le journal de la fiche** : sans ça, on rappelle quelqu'un à qui
+on vient d'écrire.
+
+**`maildoso_backend.send_email`** accepte désormais `pieces_jointes` ; une pièce qui échoue
+n'annule pas l'envoi. **`followup_backend.journaliser()`** expose l'écriture d'événement
+hors transaction — une trace qui échoue ne doit pas faire échouer l'action qu'elle décrit.
+
+**Lignes blacklistées inversées** : fond sombre, texte clair. Un contact exclu doit se
+repérer sans lire. `v_a_rappeler` ne portait ni le secteur ni le blacklistage : les deux
+sont maintenant servis depuis `contacts`.
+
+## 🤝 2026-08-21 — Du « je signe » au contrat : opportunités et ventes
+
+**Le tunnel s'arrêtait au rappel.** Quand un prospect disait oui, il n'y avait nulle part
+où le dire : carnet, bouche-à-oreille, messagerie. L'affaire se perdait, et le moment ne
+se fêtait pas.
+
+**`scripts/opportunites.py`** — table `opportunites`, **trois états seulement** (`a_valider`
+→ `contrat_envoye` → `signe`/`perdu`), chacun correspondant à un geste réel. Un état de
+plus serait un état que personne ne mettrait à jour.
+
+**L'origine du lead est FIGÉE à la création** : scraping Serper/Basile, import, formulaire,
+et surtout **la campagne qui l'a fait cliquer**. Vérifié en direct : « Scraping Google
+Places · a cliqué le 2026-08-21 dans "Agent immobilier, loi cazenave" · collecté le
+2026-08-09 ». Si le contact est nettoyé six mois plus tard, on saura toujours ce qui a
+produit cette vente — sans quoi on ne peut pas décider où investir.
+
+**Montants et commissions ne sont jamais devinés** : saisis par le responsable au contrat.
+La page Ventes signale le nombre de contrats signés SANS montant et prévient que le revenu
+affiché est sous-estimé. Un revenu sous-estimé pousse à d'aussi mauvaises décisions qu'un
+revenu surestimé.
+
+**Écrans** : `/site/{code}/opportunites` (DataTable avec colonne « D'où vient ce lead »,
+actions Contrat envoyé / Signé / Perdu réservées aux administrateurs — un commercial n'y
+voit que ce qu'il a transmis, filtré côté serveur) et `/site/{code}/ventes` (clients signés,
+MRR, ARR, commissions, classement par commercial, état du tunnel).
+
+**Le bouton « 🤝 Signature client »** en tête de fiche : gros, vert, il transmet
+l'opportunité ET célèbre — 60 confettis en CSS pur (aucune bibliothèque, aucun réseau),
+le GIF Giphy demandé par Camille en bonus qui s'efface s'il ne charge pas, et
+`prefers-reduced-motion` respecté. La célébration n'est pas décorative : c'est le retour
+immédiat qui donne envie de passer l'appel suivant.
+
+**Groupe « Ventes » dans la sidebar**, entre Acquisition et Campagnes. Bout en bout testé :
+création → contrat 149 €/mois → signé → MRR 149 €, ARR 1 788 €, commission 14,90 €.
+
 ## Dernière mise à jour
 2026-08-21 (Basile audité · liste noire des adresses de rôle · page Statistiques)
 

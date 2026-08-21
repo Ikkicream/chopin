@@ -98,37 +98,49 @@ def diagnostic() -> dict:
         taches = et._taches()
     except Exception as e:  # noqa: BLE001
         taches = {}
-        problemes["releve"] = f"Le relevé technique lui-même est en panne : {e}"
+        problemes["releve"] = f"🩺 Le relevé technique lui-même est en panne : {e}"
 
-    # Lecture massive de la base de contacts par un compte bridé. Le seuil est volontairement
-    # au-dessus du quota horaire : le quota BLOQUE, l'alerte PRÉVIENT — elle ne se déclenche
-    # donc que si quelqu'un a passé plusieurs heures à paginer, ce qu'aucun usage réel ne
-    # produit. Clé par utilisateur : deux comptes différents = deux alertes.
+    # Lecture massive de la base de contacts, sur l'HEURE écoulée — même fenêtre que le
+    # quota, même seuil (1 000 fiches). L'alerte part donc à l'instant où le compte touche
+    # le plafond : le quota bloque, l'alerte prévient, dans le même mouvement.
+    #
+    # Le calcul, à partir du terrain (Camille, 2026-08-21) : un commercial passe AU PLUS
+    # 30 appels dans l'heure. Trente fiches ouvertes, plus la liste pour les trouver — huit
+    # pages de 25 si la recherche est laborieuse, soit 200 lignes. Un usage intense tient
+    # donc dans ~230 fiches/heure. Le plafond de 1 000 laisse un facteur QUATRE : personne
+    # ne peut l'atteindre en travaillant. Qui le touche ne travaille pas, il aspire.
+    #
+    # Clé par utilisateur : deux comptes différents = deux alertes distinctes.
     try:
         import garde_lecture as gl
-        for lecteur in gl.gros_lecteurs(heures=24, seuil=5000):
+        for lecteur in gl.gros_lecteurs(heures=1, seuil=1000):
+            # L'espace des milliers se fabrique sur le NOMBRE seul : un `.replace(",", " ")`
+            # sur toute la phrase mangeait aussi les virgules du texte.
+            fiches = f"{lecteur['lignes']:,}".replace(",", " ")
             problemes[f"aspiration:{lecteur['utilisateur']}"] = (
-                f"Lecture massive de la base : {lecteur['utilisateur']} "
-                f"({lecteur['role'] or 'rôle inconnu'}) a lu {lecteur['lignes']:,} fiches "
-                f"en {lecteur['requetes']} requêtes sur 24 h.".replace(",", " "))
+                f"🔥 *ASPIRATION DE LA BASE — compte « {lecteur['utilisateur']} »* "
+                f"({lecteur['role'] or 'rôle inconnu'})\n"
+                f"   {fiches} fiches lues en {lecteur['requetes']} requêtes dans l'heure. "
+                f"Plafond atteint, lecture bloquée.\n"
+                f"   Usage normal d'un commercial : ~230 fiches/h pour 30 appels.")
     except Exception as e:  # noqa: BLE001
-        problemes["garde_lecture"] = f"Le garde-fou de lecture est illisible : {e}"
+        problemes["garde_lecture"] = f"🔥 Le garde-fou de lecture est illisible : {e}"
 
     for nom, limite in AGE_MAX_H.items():
         info = taches.get(nom) or {}
         if not info.get("present"):
-            problemes[f"tache:{nom}"] = f"*{nom}* : aucune trace d'exécution."
+            problemes[f"tache:{nom}"] = f"⏰ *{nom}* : aucune trace d'exécution."
         elif float(info.get("heures") or 0) > limite:
             problemes[f"tache:{nom}"] = (
-                f"*{nom}* : dernier passage il y a {info['heures']} h "
+                f"⏰ *{nom}* : dernier passage il y a {info['heures']} h "
                 f"(limite {limite} h).")
 
     try:
         for nom, en_ligne in (et._services() or {}).items():
             if not en_ligne:
-                problemes[f"service:{nom}"] = f"*{nom}* : service arrêté."
+                problemes[f"service:{nom}"] = f"🛑 *{nom}* : service arrêté."
     except Exception as e:  # noqa: BLE001
-        problemes["services"] = f"État des services illisible : {e}"
+        problemes["services"] = f"🛑 État des services illisible : {e}"
 
     # Collecte : un blocage fournisseur n'écrit rien dans les logs de tâche, il faut le
     # demander au scrapper lui-même.
@@ -137,7 +149,7 @@ def diagnostic() -> dict:
         live = asb.read_status("lcr") or {}
         if live.get("blocked"):
             problemes["scrape:bloque"] = (
-                f"*Collecte bloquée* : {live.get('message') or 'fournisseur en refus'}.")
+                f"🕷 *Collecte bloquée* : {live.get('message') or 'fournisseur en refus'}.")
     except Exception:  # noqa: BLE001 — pas de statut = pas d'alerte, ce n'est pas un problème
         pass
 
@@ -166,8 +178,19 @@ def controler(forcer: bool = False) -> dict:
 
     lignes = []
     if nouveaux or forcer:
-        lignes.append("🔴 *Genesis — anomalie détectée*")
-        lignes += [f"• {actuels[k]}" for k in (nouveaux or list(actuels))]
+        # Une aspiration de la base et une sauvegarde en retard ne se lisent pas de la même
+        # façon : le titre doit trancher avant même qu'on lise le détail. Sinon l'alerte
+        # grave se noie dans le train-train des tâches en retard.
+        a_traiter = nouveaux or list(actuels)
+        securite = [k for k in a_traiter if k.startswith("aspiration:")]
+        if securite:
+            noms = ", ".join(k.split(":", 1)[1] for k in securite)
+            lignes.append(f"🔥🚨 *SÉCURITÉ — {noms}* 🚨🔥")
+        else:
+            lignes.append("🔴 *Genesis — anomalie détectée*")
+        # Le sujet grave d'abord, le reste ensuite.
+        for k in sorted(a_traiter, key=lambda x: not x.startswith("aspiration:")):
+            lignes.append(f"• {actuels[k]}")
     for k, depuis in a_rappeler:
         heures = round((maintenant - depuis).total_seconds() / 3600)
         lignes.append(f"🔁 Toujours en panne depuis {heures} h : {actuels[k]}")
@@ -197,8 +220,26 @@ def controler(forcer: bool = False) -> dict:
 
 if __name__ == "__main__":
     if "--test" in sys.argv:
-        ok = _envoyer("🔔 *Genesis* — test de la sonnerie d'alerte. Si vous lisez ceci, "
-                      "le câblage Telegram fonctionne.")
+        # Le test ne se contente pas de dire « ça marche » : il montre à quoi ressemblera
+        # chaque famille d'alerte. On ne découvre pas la mise en forme d'un message grave
+        # le jour où il arrive. L'en-tête dit clairement qu'il s'agit d'un essai — un
+        # message de test qu'on prend pour une vraie alerte est pire qu'un silence.
+        ok = _envoyer("\n".join([
+            "🔔 *Genesis — TEST de la sonnerie* (aucune anomalie réelle)",
+            "",
+            "Voici la forme de chaque alerte :",
+            "",
+            "🔥 *ASPIRATION DE LA BASE — compte « exemple »* (commercial)",
+            "   1 200 fiches lues en 12 requêtes dans l'heure. Plafond atteint, lecture bloquée.",
+            "   Usage normal d'un commercial : ~230 fiches/h pour 30 appels.",
+            "⏰ *sauvegarde* : dernier passage il y a 31 h (limite 26 h).",
+            "🛑 *genesis-ui* : service arrêté.",
+            "🕷 *Collecte bloquée* : fournisseur en refus.",
+            "🔁 Toujours en panne depuis 24 h : …",
+            "🟢 *Rétabli* : …",
+            "",
+            "Une aspiration change le TITRE du message et passe en tête de liste.",
+        ]))
         print(json.dumps({"envoye": ok}, ensure_ascii=False))
     elif "--etat" in sys.argv:
         print(json.dumps({"problemes": diagnostic()}, ensure_ascii=False, indent=2))

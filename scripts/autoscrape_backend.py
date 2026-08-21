@@ -487,7 +487,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
                    per_city: int = PER_CITY, max_pages: int = MAX_PAGES,
                    max_seconds: int = MAX_RUN_SECONDS,
                    target_contacts: int = TARGET_CONTACTS,
-                   valid_baseline: int = 0,
+                   valid_baseline: int = 0, declencheur: str = "manuel",
                    progress_cb=None, should_stop=None) -> dict:
     """Scrape EN CONTINU (Serper + Basile) un périmètre, secteur(s) × villes (pop≥10k).
 
@@ -601,10 +601,16 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
 
     # Une seule ligne d'activité par RUN (et non 1 par ville) : start_scrape unique.
     try:
+        # `declencheur` : qui a lancé ce run — un humain depuis l'écran (« manuel ») ou
+        # l'orchestrateur quotidien (« automatique »). Rien ne le distinguait jusqu'ici :
+        # les deux passent par la même fonction, avec le même compte système, et l'écran
+        # d'activité ne pouvait donc pas le dire. Sans cette marque, impossible de savoir
+        # si un scrape qui tourne a été demandé ou s'est déclenché tout seul.
         gm.log_action(site, "autoscrape", "system", "start_scrape",
                       resource="sector", resource_id=sector_label,
                       payload={"sectors": sectors, "region": region, "region_name": region_name,
-                               "scope": scope_label, "cities": all_city_names, "auto": True})
+                               "scope": scope_label, "cities": all_city_names, "auto": True,
+                               "declencheur": declencheur})
     except Exception:
         pass
 
@@ -651,7 +657,11 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
         skip_cities = set(city_progress["done"])
         cum["cities_done"] += len(skip_cities & set(dept_cities[dcode]))
 
-        seen_basile_cities: set[str] = set()  # évite d'appeler Basile N fois pour PARIS/LYON/MARSEILLE
+        # Basile ne travaille plus ville par ville mais par DÉPARTEMENT : un seul appel
+        # par secteur et par dept, qui voit tout le département au lieu des cinq villes de
+        # plus de 10 000 habitants. Mesuré sur la Gironde : 3 089 sociétés vues contre
+        # 1 144 — 63 % de l'univers était invisible.
+        seen_basile_depts: set[str] = set()
         for city in dept_cities[dcode]:
             if city in skip_cities:
                 continue
@@ -685,22 +695,23 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
 
                 # ── Source 1 : Basile d'abord (forfait large, zéro crédit Serper) ─
                 if basile_available and not target_reached():
-                    # Basile normalise Paris 1er/2e/... → PARIS, idem Lyon/Marseille.
-                    # On n'appelle Basile qu'UNE FOIS par ville Basile réelle par dept.
-                    basile_city_key = f"{sector}:{bb._city_to_basile_city(city)}"
-                    if basile_city_key in seen_basile_cities:
-                        pass  # déjà fait pour cette ville Basile ce dept → skip
+                    # Un seul appel par secteur × département. La boucle reste sur les
+                    # villes pour Serper, qui lui travaille bien ville par ville.
+                    basile_dept_key = f"{sector}:{dcode}"
+                    if basile_dept_key in seen_basile_depts:
+                        pass  # ce département est déjà passé pour ce secteur
                     else:
-                        seen_basile_cities.add(basile_city_key)
-                        cum["current_detail"] = f"{sector} · Basile {city}"
+                        seen_basile_depts.add(basile_dept_key)
+                        cum["current_detail"] = f"{sector} · Basile dept {dcode}"
                         emit()
-                        remaining = max(1, target_contacts - cum["valid"]) if target_contacts else per_city
+                        # La cible Basile porte sur tout le département : elle n'a plus à
+                        # être taillée pour une ville. On lui laisse ce qui reste à faire.
+                        remaining = (max(1, target_contacts - cum["valid"])
+                                     if target_contacts else per_city * 5)
                         try:
-                            rb = bb.run_sector_for_city(
-                                site, sector, city,
-                                dept_code=dcode, region_code=region,
-                                target=min(remaining, per_city * 2),
-                                dry_run=False,
+                            rb = bb.run_sector_for_dept(
+                                site, sector, dcode, region_code=region,
+                                target=remaining, dry_run=False,
                             )
                             cum["valid_basile"] += rb.get("valid", 0)
                             cum["rejected"] += rb.get("rejected", 0)

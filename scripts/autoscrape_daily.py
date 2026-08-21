@@ -213,9 +213,23 @@ def _night_id(now=None) -> str:
 
 
 def _max_cibles() -> int:
-    """Plafond de cibles par période : 3 par nuit en mode fenêtre, 12 par jour en continu."""
+    """Plafond de cibles par période : 3 par nuit en mode fenêtre, 12 par jour en continu.
+
+    En mode continu, le plafond se règle dans `.env` (`SCRAPE_MAX_CIBLES_JOUR`), sur le
+    même modèle que `SCRAPE_MAX_JOUR` pour les contacts — c'est un réglage d'exploitation,
+    qui doit pouvoir changer pour une journée sans qu'on touche au code ni qu'on
+    redéploie. Absent ou illisible : on retombe sur la constante.
+    """
     import autoscrape_backend as asb
-    return MAX_TARGETS_PER_NIGHT if asb._fenetre() is not None else MAX_TARGETS_PER_DAY
+    if asb._fenetre() is not None:
+        return MAX_TARGETS_PER_NIGHT
+    try:
+        for ligne in (BASE_DIR / ".env").read_text().splitlines():
+            if ligne.startswith("SCRAPE_MAX_CIBLES_JOUR="):
+                return max(1, int(ligne.split("=", 1)[1].strip() or MAX_TARGETS_PER_DAY))
+    except Exception:  # noqa: BLE001
+        pass
+    return MAX_TARGETS_PER_DAY
 
 
 def _creneau_reserve(now=None) -> tuple[str, str] | None:
@@ -337,6 +351,35 @@ def next_target(site: str = SITE) -> dict | None:
     items = [t for t in items if t["sector"] in prio]
     if not items:
         return None
+    # ── Le choix revient à Stéphane ──────────────────────────────────────────
+    # L'ordre historique (passes faites, rang du secteur, populations) ne regardait que la
+    # file. Stéphane, lui, sait ce que chaque couple secteur × département a DONNÉ : taux
+    # de clic, taux d'ouverture, contacts déjà en base, terrain jamais collecté. À budget
+    # Serper constant, collecter là où ça répond vaut mieux que collecter là où c'est gros.
+    #
+    # Deux garde-fous, parce qu'une décision automatique ne doit jamais pouvoir bloquer la
+    # collecte :
+    #   - on n'accepte de Stéphane qu'une cible DÉJÀ éligible ici (pending, sous le plafond
+    #     de passes, secteur autorisé) — il propose, il ne contourne pas ;
+    #   - s'il est muet, illisible ou sans candidat, on retombe sur l'ordre historique.
+    eligibles = {t["id"]: t for t in items}
+    try:
+        import stephane
+        avis = stephane.conseiller(site, combien=len(eligibles) or 1)
+        for c in avis.get("conseil") or []:
+            t = eligibles.get(c["id"])
+            if t:
+                t["note_stephane"] = c["note"]
+                t["pourquoi_stephane"] = c["pourquoi"]
+                t["priorite_stephane"] = avis.get("priorite_libelle")
+                print(f"[autoscrape] Stéphane choisit {c['id']} — note {c['note']}/100 : "
+                      f"{c['pourquoi']}", flush=True)
+                return t
+        print("[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique",
+              flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"[autoscrape] Stéphane indisponible ({e}) — ordre historique", flush=True)
+
     items.sort(key=lambda t: (t["runs"], prio.get(t["sector"], 999),
                               -(t["region_pop"] or 0), -(t["dept_pop"] or 0)))
     return items[0]
@@ -576,7 +619,12 @@ def work() -> dict:
         t = d["target"]
         cur = {"id": t["id"], "sector": t["sector"], "dept": t["dept_code"],
                "dept_name": t["dept_name"], "region_name": t["region_name"],
-               "night": _night_id(), "started_at": _now_iso(), "resumes": 0}
+               "night": _night_id(), "started_at": _now_iso(), "resumes": 0,
+               # Pourquoi CETTE cible : une décision automatique qui ne se justifie pas
+               # est une décision qu'on ne peut pas corriger.
+               "note_stephane": t.get("note_stephane"),
+               "pourquoi_stephane": t.get("pourquoi_stephane"),
+               "priorite_stephane": t.get("priorite_stephane")}
         st["current"] = cur
         _mark_night_worked(st, cur["id"])
         save_state(st)
@@ -613,7 +661,7 @@ def work() -> dict:
           f"acquis={baseline} · scrape jusqu'à {asb.SCRAPE_STOP} ({budget_min} min), "
           f"nettoyage jusqu'à {asb.CLEANUP_STOP} Paris", flush=True)
 
-    res = asb.run_autoscrape(SITE, [cur["sector"]], dept=cur["dept"],
+    res = asb.run_autoscrape(SITE, [cur["sector"]], dept=cur["dept"], declencheur="automatique",
                              cities_done=cities_done, cities_dept=cities_dept,
                              target_contacts=remaining, valid_baseline=baseline,
                              progress_cb=lambda s: asb.write_status(SITE, s),
@@ -676,10 +724,30 @@ def targets(limit: int = 20, site: str = SITE) -> dict:
     # « Prochaines cibles » doit montrer ce qui va RÉELLEMENT tourner : les secteurs
     # interdits n'y ont pas leur place, ils ne seront jamais pioches.
     cand = [r for r in cand if r[0] in prio]
-    cand = sorted(cand, key=lambda r: (r[6], prio.get(r[0], 999), -(r[4] or 0), -(r[5] or 0)))
+
+    # L'ordre annoncé doit être celui qui sera JOUÉ. Tant que cette liste gardait le tri
+    # historique alors que la pioche passait par Stéphane, l'écran annonçait une cible et
+    # une autre partait — le pire des deux mondes pour qui essaie de comprendre.
+    par_stephane = {}
+    try:
+        import stephane
+        avis = stephane.conseiller(site, combien=2000)
+        par_stephane = {c["id"]: c for c in (avis.get("conseil") or [])}
+    except Exception:  # noqa: BLE001
+        pass
+
+    if par_stephane:
+        cand = [r for r in cand if f"{site}:{r[0]}:{r[1]}" in par_stephane]
+        cand.sort(key=lambda r: -par_stephane[f"{site}:{r[0]}:{r[1]}"]["note"])
+    else:
+        cand = sorted(cand, key=lambda r: (r[6], prio.get(r[0], 999),
+                                           -(r[4] or 0), -(r[5] or 0)))
     for r in cand[:limit]:
+        avis_r = par_stephane.get(f"{site}:{r[0]}:{r[1]}") or {}
         nxt.append({"secteur": r[0], "dept": f"{r[1]} {r[2]}", "region": r[3],
-                    "pop_region": r[4], "pop_dept": r[5], "passes": r[6]})
+                    "pop_region": r[4], "pop_dept": r[5], "passes": r[6],
+                    "note_stephane": avis_r.get("note"),
+                    "pourquoi_stephane": avis_r.get("pourquoi")})
     return {"resume": {r[0]: {"cibles": r[1], "contacts": r[2]} for r in rows},
             "prochaines": nxt,
             "jouees": [{"secteur": p[0], "dept": f"{p[1]} {p[2]}", "region": p[3],

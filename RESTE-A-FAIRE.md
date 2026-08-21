@@ -63,14 +63,13 @@
   qui manquait pour arbitrer tout le reste.
 - ✅ Alertes réparées (le fichier d'état appartenait à `root`, le cron tourne en
   `autoblog` : il plantait toutes les heures depuis le 20/08 13h53). **Le Lot 5 est clos.**
-- ⛔ **Correctifs Basile identifiés mais NON appliqués** — c'est le premier chantier à
-  reprendre :
-  1. passer le filtre géo de `headquarters_city` à `headquarters_department_code`
-     (× 2,7 sur l'univers visible ; la note `docs/basile-api.md:170` qui l'interdit est
-     périmée, vérifié sur 5 départements) ;
-  2. compléter `SECTOR_NAF` avec les 7 secteurs du catalogue qui renvoient `no_naf` ;
-  3. arbitrer la voie **dirigeants nommés** (Emelia, 1 crédit/dirigeant) — devenue la
-     seule source de volume nominatif depuis la liste noire.
+- ✅ **Correctifs Basile appliqués le 21/08** : collecte par département (gain mesuré ×2,6 à
+  ×6 selon le secteur) et les 7 secteurs inertes câblés via le catalogue. Doc corrigée.
+- ⛔ **Reste la voie « dirigeants nommés »** (Emelia, 1 crédit/dirigeant, PAYANT) — devenue
+  la seule source de volume nominatif depuis la liste noire des adresses de rôle. Attend
+  l'arbitrage de Camille sur le coût.
+- ⛔ **Contention DuckDB** : le dispatch et le scraping se disputent `god_mode.duckdb`.
+  Gêne sans bloquer ; disparaîtra avec la fin du Lot 1.
 
 ## Le plan par lots
 

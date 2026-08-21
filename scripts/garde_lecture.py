@@ -39,11 +39,18 @@ SANS_BRIDE = ("superadmin", "admin")
 PLAFOND_PAGE = {"commercial": 100, "contenu": 100, "strategie": 100}
 PLAFOND_PAGE_DEFAUT = 100
 
-# Lignes maximum par heure glissante et par compte. 3 000 = soixante pages pleines en une
-# heure, soit une page toutes les minutes sans interruption : très au-dessus d'un usage
-# réel, très en dessous d'une aspiration de la base (8 500 contacts).
-QUOTA_HEURE = {"commercial": 3000, "contenu": 3000, "strategie": 3000}
-QUOTA_HEURE_DEFAUT = 3000
+# Lignes maximum par heure glissante et par compte.
+#
+# 1 000 pour un commercial (réglage de Camille, 2026-08-21) : quarante pages pleines en une
+# heure, soit une page toutes les quatre-vingt-dix secondes sans jamais s'arrêter. Un
+# commercial ouvre des fiches et téléphone ; il ne parcourt pas mille contacts par heure.
+# Et il faudrait plus de huit heures ininterrompues pour lire la base entière — largement
+# le temps que l'alerte parte.
+#
+# Les rôles `superadmin` et `admin` n'ont AUCUN quota : ce sont eux qui exportent, migrent
+# et réconcilient (voir SANS_BRIDE).
+QUOTA_HEURE = {"commercial": 1000, "contenu": 1000, "strategie": 1000}
+QUOTA_HEURE_DEFAUT = 1000
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS lecture_contacts (

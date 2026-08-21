@@ -28,6 +28,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 ROLES_ADMIN = ("admin", "superadmin")
 ROLE_COMMERCIAL = "commercial"
 
+# Les rôles qui peuvent RECEVOIR un rappel. « commercial » n'est plus le seul depuis le
+# 2026-08-21 : Camille a fait passer Gilles en `admin` et Romeo en `user` sans changer leur
+# métier — ils décrochent toujours le téléphone. Or l'attribution par défaut ne reconnaissait
+# que `commercial` : plus aucun compte ne correspondait, `commercial_par_defaut` rendait
+# `None`, et les contacts promus n'étaient plus attribués à personne. En silence.
+#
+# On rattache donc l'attribution au TRAVAIL (qui rappelle) et non à l'étiquette du rôle.
+ROLES_RAPPELANTS = ("commercial", "user", "admin")
+
+# Libellés des états d'opportunité, pour que le refus DISE où en est l'affaire plutôt que
+# de renvoyer un « accès refusé » que personne ne sait interpréter.
+ETATS_OPP = {
+    "a_valider": "en attente de validation",
+    "contrat_envoye": "contrat envoyé",
+    "signe": "client signé",
+    "perdu": "affaire perdue",
+}
+
 STATUTS = ("a_faire", "en_cours", "a_relancer", "gagne", "perdu", "injoignable")
 STATUTS_OUVERTS = ("a_faire", "en_cours", "a_relancer")
 
@@ -64,7 +82,8 @@ _COLONNES = ["contact_id", "email", "site_code", "prenom", "nom", "societe", "te
              "website", "city", "dept_code", "prenom_source", "state", "followup_id",
              "statut", "assigned_to", "assigned_at", "next_action_at", "last_call_at",
              "outcome", "notes", "last_open_at", "last_click_at", "opens", "clicks",
-             "nb_interactions", "flash", "flash_at"]
+             "nb_interactions", "flash", "flash_at", "secteur", "blacklisted",
+             "opportunite"]
 
 
 def _ligne(r) -> dict:
@@ -100,8 +119,19 @@ def lister(site: str, role: str, username: str, vue: str = "mes") -> dict:
                dept_code, prenom_source, state, followup_id, statut, assigned_to,
                assigned_at, next_action_at, last_call_at, outcome, notes,
                last_open_at, last_click_at, opens, clicks, nb_interactions,
-               flash, flash_at
-        FROM v_a_rappeler
+               flash, flash_at,
+               -- Le secteur alimente le script d'appel, le blacklistage colore la ligne.
+               -- Les deux viennent de `contacts` : la vue ne les portait pas, l'écran ne
+               -- pouvait donc ni adapter l'argumentaire ni signaler une exclusion.
+               (SELECT sectors[1] FROM contacts x WHERE x.id = v.contact_id) AS secteur,
+               COALESCE((SELECT global_blacklisted FROM contacts x WHERE x.id = v.contact_id),
+                        FALSE) AS blacklisted,
+               -- L'affaire est-elle déjà remontée ? Sans cette colonne, un commercial
+               -- rappellerait un prospect dont un collègue a déjà obtenu l'accord — le
+               -- pire appel qu'on puisse passer.
+               (SELECT o.statut FROM opportunites o
+                 WHERE o.site_code = v.site_code AND o.email = v.email) AS opportunite
+        FROM v_a_rappeler v
         WHERE {' AND '.join(where)}
         ORDER BY
             -- Les contacts épinglés d'abord : c'est le sens même de l'épingle, « celui-là,
@@ -286,7 +316,7 @@ def commerciaux() -> list[dict]:
     try:
         rows = a.execute("""SELECT username, prenom, nom, role, sites FROM users
                             WHERE COALESCE(disabled, FALSE) = FALSE
-                              AND role IN ('commercial', 'admin', 'superadmin')
+                              AND role IN ('commercial', 'user', 'admin', 'superadmin')
                             ORDER BY role, username""").fetchall()
     finally:
         a.close()
@@ -313,6 +343,28 @@ def _garantir_suivi(cur, site: str, email: str, contact_id: str | None) -> str:
     return cur.fetchone()[0]
 
 
+def journaliser(site: str, email: str, auteur: str, type_: str, detail: str = "",
+                meta: dict | None = None) -> bool:
+    """Écrit un événement de fiche depuis l'extérieur (une route, un script).
+
+    `_journaliser` attend un curseur parce qu'il est appelé DANS une transaction qui fait
+    autre chose. Ici on ouvre la nôtre : une trace qui échoue ne doit pas faire échouer
+    l'action qu'elle décrit — un rendez-vous pris et non journalisé reste un rendez-vous
+    pris.
+    """
+    import pool_pg
+    c = pool_pg._conn()
+    try:
+        with c:
+            with c.cursor() as cur:
+                _journaliser(cur, site, email, auteur, type_, detail, meta)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+    finally:
+        pool_pg._rendre(c)
+
+
 def _journaliser(cur, site: str, email: str, auteur: str, type_: str,
                  detail: str = "", meta: dict | None = None) -> None:
     cur.execute("""INSERT INTO followup_events (email, site_code, auteur, type, detail, meta)
@@ -331,13 +383,38 @@ def _contact_id(cur, site: str, email: str) -> str | None:
 def _peut_agir(cur, site: str, email: str, role: str, username: str) -> tuple[bool, str]:
     """Le demandeur a-t-il la main sur ce contact ?
 
-    Un administrateur, toujours. Un commercial, seulement si le contact lui est attribué ou
-    n'appartient à personne — sinon il écrirait dans le suivi d'un collègue, et deux
-    versions de la même relation cohabiteraient.
+    Point de passage UNIQUE de toutes les écritures du suivi (attribuer, épingler, retirer,
+    enregistrer un appel). Le mettre ici plutôt que dans chaque route garantit qu'une route
+    ajoutée demain sera gardée sans qu'on y pense.
+
+    Trois règles, dans cet ordre :
+
+    1. **Une affaire remontée verrouille le contact.** Dès qu'une opportunité existe, le
+       prospect n'appartient plus au commercial mais au responsable. L'écran le grise déjà ;
+       ici on le REFUSE, parce qu'un écran ne protège rien : un appel direct à l'API, un
+       onglet resté ouvert avant la remontée, et deux personnes travaillent le même client.
+    2. **Un administrateur passe toujours**, y compris sur une affaire remontée : c'est lui
+       qui la traite.
+    3. **Un commercial n'agit que sur ce qui est à lui** ou n'est à personne — sinon il
+       écrirait dans le suivi d'un collègue.
     """
+    if role not in ROLES_ADMIN:
+        try:
+            cur.execute("SELECT statut FROM opportunites WHERE site_code = %s AND email = %s",
+                        [site, email])
+            opp = cur.fetchone()
+        except Exception:  # noqa: BLE001 — table absente : rien à verrouiller
+            opp = None
+        if opp:
+            return False, ("affaire transmise au responsable "
+                           f"({ETATS_OPP.get(opp[0], opp[0])}) — fiche verrouillée")
     if role in ROLES_ADMIN:
         return True, ""
-    if role != ROLE_COMMERCIAL:
+    # « commercial » n'est plus le seul rôle qui appelle : Camille a fait passer Gilles en
+    # `admin` et Romeo en `user` le 2026-08-21 sans changer leur métier. Refuser `user` ici
+    # aurait rendu la liste d'appels consultable mais inutilisable — on l'a vu sur
+    # l'attribution par défaut, même cause, même correctif.
+    if role not in ROLES_RAPPELANTS:
         return False, "rôle sans accès au suivi commercial"
     cur.execute("SELECT assigned_to FROM contact_followup WHERE email = %s AND site_code = %s",
                 [email, site])
@@ -422,7 +499,7 @@ def commercial_par_defaut(site: str) -> str | None:
         for u in commerciaux():
             if u["username"].lower() != COMMERCIAL_PAR_DEFAUT.lower():
                 continue
-            if u["role"] == ROLE_COMMERCIAL and (not u["sites"] or site in u["sites"]):
+            if u["role"] in ROLES_RAPPELANTS and (not u["sites"] or site in u["sites"]):
                 vers = u["username"]
             break
     except Exception:

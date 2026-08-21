@@ -80,6 +80,33 @@ SECTOR_NAF: dict[str, list[str]] = {
 }
 
 
+def _nafs(sector: str | None) -> list[str] | None:
+    """Les codes NAF d'un secteur — mapping confirmé d'abord, catalogue ensuite.
+
+    `SECTOR_NAF` ne contient que les mappings TESTÉS en production (2026-06-17). Le
+    catalogue de `secteurs_backend` en porte sept autres, ajoutés depuis la nomenclature
+    officielle mais jamais essayés : `tourisme`, `education-formation`, `transport`,
+    `industrie`, `agroalimentaire`, `luxe-mode`, `services-b2b`. Ils étaient inertes —
+    `run_sector_for_*` lisait uniquement `SECTOR_NAF` et renvoyait `no_naf`, donc ces
+    secteurs partaient à 100 % sur Serper, la ressource rare. Mesuré le 2026-08-21 :
+    `tourisme` et `education-formation` sont les 2e et 3e meilleurs rendements Basile sur
+    dix secteurs testés (44 % de livrable), devant l'immobilier.
+
+    L'import est local : `secteurs_backend` importe déjà `basile_backend`, un import au
+    niveau du module créerait un cycle.
+    """
+    if not sector:
+        return None
+    confirmes = SECTOR_NAF.get(sector)
+    if confirmes:
+        return confirmes
+    try:
+        import secteurs_backend as sb
+        return (sb.CATALOGUE.get(sector) or {}).get("naf")
+    except Exception:  # noqa: BLE001 — catalogue illisible : on ne bloque pas la collecte
+        return None
+
+
 def _ssl_context():
     try:
         import certifi
@@ -593,6 +620,60 @@ def _city_to_basile_city(city_name: str) -> str:
     return city_name.upper()
 
 
+def run_sector_for_dept(site: str, sector: str, dept_code: str,
+                        region_code: str | None = None, target: int = 200,
+                        delay: float = DEFAULT_DELAY, dry_run: bool = False) -> dict:
+    """Collecte Basile pour un secteur × un DÉPARTEMENT entier.
+
+    Remplace l'appel ville par ville. Le filtre `headquarters_city` ne voyait que les
+    communes de plus de 10 000 habitants retenues par `resolve_dept_to_cities` — cinq au
+    plus par département. Mesuré sur la Gironde le 2026-08-21 : ces cinq villes totalisent
+    **1 144 sociétés d'immobilier sur les 3 089 du département**. Soit 63 % de l'univers
+    invisible pour Basile, alors que Serper, lui, ratisse autour de chaque ville.
+
+    `headquarters_department_code` FONCTIONNE — vérifié sur les départements 33, 75, 69, 64
+    et 87. La note de `docs/basile-api.md` §10 qui le déclare inopérant date d'un essai de
+    juin et n'a jamais été revérifiée ; elle est périmée.
+    """
+    global BASILE_BLOCKED_STATUS
+    try:
+        import secteurs_backend as sb
+        if sb.est_interdit(sector, site):
+            return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 0,
+                    "status": "interdit", "sector": sector, "dept": dept_code}
+    except Exception:  # noqa: BLE001
+        pass
+
+    nafs = _nafs(sector)
+    if not nafs:
+        return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 0,
+                "status": "no_naf", "sector": sector, "dept": dept_code}
+    if not BASILE_KEY:
+        return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 0,
+                "status": "no_key", "sector": sector, "dept": dept_code}
+
+    filters = {
+        "naf_code":        {"include": nafs},
+        "company_ceased":  False,
+        "headquarters_department_code": {"include": [str(dept_code)]},
+    }
+    try:
+        BASILE_BLOCKED_STATUS = None
+        res = run_segment(site, "companies", filters, sector=sector, dept_code=dept_code,
+                          region_code=region_code, max_contacts=target, delay=delay,
+                          dry_run=dry_run)
+        res["dept"] = dept_code
+        return res
+    except RuntimeError as e:
+        msg = str(e)
+        return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 1,
+                "status": "blocked" if "BASILE_BLOCKED" in msg else "error",
+                "dept": dept_code, "error": msg}
+    except Exception as e:  # noqa: BLE001
+        return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 1,
+                "status": "error", "dept": dept_code, "error": str(e)}
+
+
 def run_sector_for_city(site: str, sector: str, city_name: str,
                         dept_code: str | None = None, region_code: str | None = None,
                         target: int = 50, delay: float = DEFAULT_DELAY,
@@ -618,7 +699,7 @@ def run_sector_for_city(site: str, sector: str, city_name: str,
     except Exception:  # noqa: BLE001 — politique illisible : on ne bloque pas la collecte
         pass
 
-    nafs = SECTOR_NAF.get(sector)
+    nafs = _nafs(sector)
     if not nafs:
         return {"valid": 0, "rejected": 0, "duplicates": 0, "errors": 0, "status": "no_naf",
                 "sector": sector, "city": city_name}

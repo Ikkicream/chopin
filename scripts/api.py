@@ -3,7 +3,8 @@
 api.py — Backend FastAPI pour le dashboard Genesis.
 Agrège les données de Emdash, Emelia, CRM interne (DuckDB), pm2, orchestrateur.
 
-Lancer: uvicorn scripts.api:app --host 0.0.0.0 --port 8080 --reload
+Lancer: uvicorn scripts.api:app --host 127.0.0.1 --port 8080 --reload
+        (127.0.0.1 : joignable seulement par Nginx en local — ne PAS exposer 8080 à Internet)
 Ou:     python3 scripts/api.py
 """
 
@@ -12,7 +13,7 @@ import sys
 import subprocess
 sys.path.insert(0, str(__import__('pathlib').Path(__file__).parent))
 from god_mode_api import router as god_mode_router
-from auth_backend import login as auth_login, reset_password as auth_reset, send_password_telegram as auth_send_telegram, log_login as auth_log_login, get_login_logs as auth_get_logs, verify_session as auth_verify, logout as auth_logout, list_users as auth_list_users, create_user as auth_create_user, delete_user as auth_delete_user, update_user as auth_update_user, count_online_users as auth_count_online
+from auth_backend import login as auth_login, reset_password as auth_reset, send_password_telegram as auth_send_telegram, log_login as auth_log_login, get_login_logs as auth_get_logs, verify_session as auth_verify, logout as auth_logout, list_users as auth_list_users, create_user as auth_create_user, delete_user as auth_delete_user, update_user as auth_update_user, count_online_users as auth_count_online, list_online_users as auth_list_online
 from emelia_campaign_manager import (
     get_sector_breakdown as emelia_sectors, get_prospects_by_sector as emelia_prospects,
     create_emelia_campaign as emelia_create, configure_steps as emelia_steps,
@@ -111,6 +112,11 @@ _AUTH_OPEN_PATHS = {
     # seule, sans donnée sensible (un booléen et un message d'accueil).
     "/api/maintenance",
 }
+# Préfixes ouverts SANS authentification. La plaquette est un document commercial destiné
+# à des prospects qui n'ont évidemment pas de compte : le lien de l'email doit s'ouvrir.
+# Elle est ENGENDRÉE à la volée depuis `argumentaire.py` et ne contient aucune donnée de
+# la base — ni contact, ni chiffre, ni nom de client.
+_AUTH_OPEN_PREFIXES = ("/api/public/",)
 _ADMIN_PREFIXES = ("/api/auth/users", "/api/auth/logs", "/api/enrichment/run",
                    "/api/admin/maintenance", "/api/admin/database",
                    "/api/admin/secteurs")
@@ -149,6 +155,9 @@ async def auth_middleware(request: Request, call_next):
         return JSONResponse(status_code=401, content={"error": "webhook token invalid"})
 
     # Routes d'auth publiques (handler valide les credentials)
+    if any(path.startswith(pref) for pref in _AUTH_OPEN_PREFIXES):
+        return await call_next(request)
+
     if path in _AUTH_OPEN_PATHS:
         return await call_next(request)
 
@@ -205,6 +214,37 @@ async def auth_middleware(request: Request, call_next):
             from fastapi.responses import JSONResponse
             return JSONResponse(status_code=403,
                 content={"error": f"access denied for site '{forbidden[0]}'"})
+
+    # ── Droits par rôle : la matrice page → routes ────────────────────────────
+    # C'est ICI que se joue l'interdiction, pas dans le menu. Le rôle vient de la SESSION
+    # vérifiée côté serveur ; ce que le navigateur raconte de son rôle n'a aucun effet.
+    # Quelqu'un qui réécrit `localStorage` verra peut-être un menu réapparaître, mais les
+    # routes qui l'alimentent répondront 403 : une page sans données est une page vide.
+    #
+    # `superadmin` n'est jamais filtré (cf. `roles_backend`, règle 1). Et si la matrice est
+    # illisible, on laisse passer : couper la plateforme sur une panne de base serait un
+    # déni de service qu'on se serait infligé (règle 3).
+    # `_SUPER` vaut ("admin", "superadmin") — il sert à l'isolation multi-tenant, où admin
+    # et superadmin voient bien tous les sites. Mais la MATRICE DES DROITS, elle, n'exempte
+    # QUE le superadmin (règle 1 de `roles_backend`) : le rôle `admin` est configurable
+    # depuis /admin/users/roles, et la case décochée doit avoir un effet. En réutilisant
+    # `_SUPER` ici, on rendait ce réglage décoratif — la case se cochait, se sauvegardait,
+    # s'affichait, et la route répondait quand même.
+    if sess.get("role") != "superadmin":
+        try:
+            sys.path.insert(0, str(BASE_DIR / "scripts"))
+            import roles_backend as rbk
+            codes = _known_site_codes()
+            site_vu = next((seg for seg in path.split("/") if seg in codes), None)
+            refus = rbk.route_interdite(path, sess.get("role") or "", site_vu)
+            if refus:
+                from fastapi.responses import JSONResponse
+                return JSONResponse(status_code=403, content={
+                    "error": "accès refusé",
+                    "detail": f"Votre rôle n'a pas accès à « {refus} ».",
+                    "page": refus})
+        except Exception:  # noqa: BLE001
+            pass
 
     # Attache la session au request pour les handlers
     request.state.session = sess
@@ -320,13 +360,20 @@ async def api_superadmin_bar(request: Request):
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=403, content={"error": "superadmin only"})
 
-    xff = request.headers.get("x-forwarded-for", "")
-    ip = xff.split(",")[0].strip() if xff else (request.client.host if request.client else "")
+    # Même source d'IP que partout : celle que pose Nginx, pas la première valeur d'un
+    # en-tête que le client contrôle. Ici c'est cosmétique (l'IP affichée dans la barre),
+    # mais afficher une IP falsifiée induirait en erreur qui la lit.
+    ip = _real_ip(request)
 
     try:
         users_online = auth_count_online()
+        try:
+            users_online_list = auth_list_online()
+        except Exception:  # noqa: BLE001 — le détail est un confort, le compteur est l'essentiel
+            users_online_list = []
     except Exception:
         users_online = 0
+        users_online_list = []
 
     import time as _t, os as _os
     routing = _SB_CACHE["routing"]
@@ -342,7 +389,8 @@ async def api_superadmin_bar(request: Request):
         except Exception:
             pass
 
-    return {"ok": True, "ip": ip, "users_online": users_online, "campaigns_routing": routing}
+    return {"ok": True, "ip": ip, "users_online": users_online,
+            "users_online_list": users_online_list, "campaigns_routing": routing}
 
 
 # ── /api/articles ─────────────────────────────────────────────────────────────
@@ -1592,7 +1640,13 @@ def delete_site(code: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("scripts.api:app", host="0.0.0.0", port=8080, reload=False)
+    # 127.0.0.1 et non 0.0.0.0 : l'API ne doit être joignable QUE par Nginx (qui passe par
+    # la boucle locale). Écouter sur 0.0.0.0 exposait le port 8080 à Internet en direct,
+    # court-circuitant Nginx et la protection anti-force-brute (revue de sécurité 2026-08-21).
+    # Pour ouvrir volontairement à toutes les interfaces : HOST_API=0.0.0.0 dans .env.
+    import os as _os
+    uvicorn.run("scripts.api:app", host=_os.environ.get("HOST_API", "127.0.0.1"),
+                port=8080, reload=False)
 
 
 # ── /api/indexation ──────────────────────────────────────────────────────────
@@ -2538,10 +2592,35 @@ async def api_crm_webhook(site: str, request: Request):
 # ── Auth System ───────────────────────────────────────────────────────────────
 
 def _real_ip(request: Request) -> str:
-    """X-Forwarded-For first (Nginx proxy), fallback to socket peer."""
+    """L'IP RÉELLE du client — celle que pose Nginx, jamais celle qu'envoie le client.
+
+    Défaut corrigé le 2026-08-21 (revue de sécurité). L'ancienne version prenait la
+    PREMIÈRE valeur de `X-Forwarded-For`. Or Nginx est configuré avec
+    `$proxy_add_x_forwarded_for`, qui AJOUTE l'IP réelle À LA FIN de ce que le client a
+    envoyé. La première valeur est donc entièrement contrôlée par le client : un attaquant
+    changeait cet en-tête à chaque requête et obtenait un compteur anti-force-brute neuf à
+    chaque fois — limite ET fail2ban contournés (démontré en test : 15 essais, 0 blocage).
+
+    L'ordre de confiance, du plus sûr au moins sûr :
+
+    1. **`X-Real-IP`** — Nginx le pose avec `proxy_set_header X-Real-IP $remote_addr`, ce
+       qui ÉCRASE toute valeur reçue du client. C'est l'IP du pair TCP réel, non falsifiable
+       tant que la requête passe par Nginx.
+    2. **La DERNIÈRE valeur de `X-Forwarded-For`** — celle que Nginx a ajoutée en bout, donc
+       le pair réel, si `X-Real-IP` venait à manquer.
+    3. **Le pair de la socket** — dernier recours (accès direct hors proxy).
+
+    Un seul proxy de confiance : Nginx. Si l'application était un jour exposée en direct,
+    ces en-têtes redeviendraient falsifiables — mais alors le pair de la socket (3) serait
+    la vraie IP, et le repli tomberait juste.
+    """
+    real = request.headers.get("x-real-ip", "").strip()
+    if real:
+        return real
     xff = request.headers.get("x-forwarded-for", "")
     if xff:
-        return xff.split(",")[0].strip()
+        # La DERNIÈRE valeur = l'IP ajoutée par Nginx (le pair réel), pas la première.
+        return xff.split(",")[-1].strip()
     return request.client.host if request.client else ""
 
 
@@ -5230,6 +5309,62 @@ def api_statistiques_reconstruire(site: str):
         return JSONResponse(status_code=503, content={"error": str(e)[:200]})
 
 
+@app.get("/api/admin/roles")
+def api_roles_etat(request: Request):
+    """La matrice des droits : rôles, pages, et qui voit quoi. Superadmin uniquement."""
+    sess = getattr(request.state, "session", None) or {}
+    if sess.get("role") != "superadmin":
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=403,
+                            content={"error": "réservé au superadmin"})
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import roles_backend as rbk
+    try:
+        return rbk.etat()
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.post("/api/admin/roles")
+async def api_roles_enregistrer(request: Request):
+    """Remplace les droits d'UN rôle. Superadmin uniquement, et jamais sur lui-même.
+
+    Deux verrous plutôt qu'un : la route refuse tout autre rôle, et `roles_backend` refuse
+    de restreindre `superadmin` même si l'appel arrive. Le second verrou protège du jour où
+    quelqu'un appellera la fonction depuis un script.
+    """
+    sess = getattr(request.state, "session", None) or {}
+    if sess.get("role") != "superadmin":
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=403, content={"error": "réservé au superadmin"})
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import roles_backend as rbk
+    body = await request.json()
+    try:
+        return rbk.enregistrer(body.get("role") or "", body.get("pages") or [],
+                               par=sess.get("username") or "")
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.get("/api/mes-pages")
+def api_mes_pages(request: Request):
+    """Les pages que MON rôle a le droit de voir — lu de la session, pas du navigateur.
+
+    C'est cette route que la sidebar interroge. Elle ne prend aucun paramètre : impossible
+    de demander « les pages du rôle superadmin » en changeant un argument.
+    """
+    sess = getattr(request.state, "session", None) or {}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import roles_backend as rbk
+    try:
+        return {"role": sess.get("role") or "", "pages": rbk.pages_autorisees(sess.get("role") or "")}
+    except Exception:  # noqa: BLE001
+        return {"role": sess.get("role") or "", "pages": [p["cle"] for p in rbk.PAGES]}
+
+
 @app.get("/api/admin/secteurs")
 def api_secteurs(site: str = "lcr"):
     """La politique des secteurs : prioritaire / secondaire / interdit.
@@ -5383,6 +5518,293 @@ def api_pool_count_secteur(site: str, sector: str = ""):
 def _qui(request: Request) -> tuple[str, str]:
     sess = getattr(request.state, "session", None) or {}
     return (sess.get("role") or ""), (sess.get("username") or "")
+
+
+@app.get("/api/public/plaquette/{site}/{secteur}.pdf")
+def api_plaquette_publique(site: str, secteur: str, societe: str = ""):
+    """La plaquette du secteur, en accès libre — c'est un document commercial.
+
+    Publique par nécessité : le lien vit dans un email envoyé à un prospect, qui n'a pas
+    de compte. Sans donnée de la base : le PDF est engendré depuis `argumentaire.py`, il ne
+    contient que notre discours et, éventuellement, le nom de la société destinataire passé
+    en paramètre. Rien à fuiter.
+    """
+    from fastapi.responses import Response, JSONResponse
+    if site not in ("lcr", "mkd", "tst"):
+        return JSONResponse(status_code=404, content={"error": "site inconnu"})
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import plaquette as pl
+    try:
+        pdf = pl.construire(secteur, (societe or "")[:80])
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+    return Response(content=pdf, media_type="application/pdf", headers={
+        "Content-Disposition": f'inline; filename="{pl.nom_fichier(secteur)}"',
+        "Cache-Control": "public, max-age=3600",
+    })
+
+
+@app.post("/api/sites/{site}/opportunites")
+async def api_opportunite_creer(site: str, request: Request):
+    """« Le client dit oui » — le commercial transmet, il ne conclut pas seul."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import opportunites as op
+    role, user = _qui(request)
+    b = await request.json()
+    try:
+        return op.creer(site, b.get("email") or "", user or "inconnu", b.get("notes") or "")
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)[:200]}
+
+
+@app.get("/api/sites/{site}/opportunites")
+def api_opportunites_lister(site: str, request: Request, statut: str = ""):
+    """La file des opportunités. Un commercial ne voit que les siennes ; les
+    administrateurs voient tout — c'est eux qui envoient les contrats."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import opportunites as op
+    role, user = _qui(request)
+    tout = role in ("admin", "superadmin")
+    try:
+        return {"opportunites": op.lister(site, statut, "" if tout else user),
+                "vue_complete": tout, "etats": op.ETATS}
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.get("/api/sites/{site}/opportunites/count")
+def api_opportunites_compte(site: str, request: Request):
+    """Le nombre d'affaires en attente de validation — la pastille du menu.
+
+    Requête volontairement minuscule : elle est appelée à chaque affichage de la barre
+    latérale. Un commercial compte les siennes, un administrateur compte tout, puisque
+    c'est lui qui doit agir.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import opportunites as op
+    role, user = _qui(request)
+    try:
+        opps = op.lister(site, "a_valider", "" if role in ("admin", "superadmin") else user)
+        return {"a_valider": len(opps)}
+    except Exception:  # noqa: BLE001 — une pastille absente vaut mieux qu'un menu en erreur
+        return {"a_valider": 0}
+
+
+@app.post("/api/sites/{site}/opportunites/{oid}")
+async def api_opportunite_changer(site: str, oid: str, request: Request):
+    """Fait avancer une opportunité. Réservé aux administrateurs : envoyer un contrat et
+    déclarer une signature engagent l'entreprise, pas seulement le commercial."""
+    sess = getattr(request.state, "session", None) or {}
+    if sess.get("role") not in ("admin", "superadmin"):
+        return {"ok": False, "error": "réservé aux administrateurs"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import opportunites as op
+    b = await request.json()
+    try:
+        return op.changer(site, oid, b.get("statut") or "", sess.get("username") or "",
+                          montant_mensuel=b.get("montant_mensuel"),
+                          commission_pct=b.get("commission_pct"),
+                          responsable=b.get("responsable"),
+                          notes=b.get("notes"), perdu_motif=b.get("perdu_motif"))
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)[:200]}
+
+
+@app.get("/api/sites/{site}/ventes")
+def api_ventes(site: str):
+    """Le récapitulatif commercial : signés, en cours, MRR, commissions."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import opportunites as op
+    try:
+        return op.ventes(site)
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.get("/api/sites/{site}/a-rappeler/script")
+def api_script_appel(site: str, secteur: str = ""):
+    """Le script d'appel du secteur : accroche, question, valeur, objections, sortie."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import argumentaire as ar
+    return ar.script(secteur)
+
+
+@app.get("/api/sites/{site}/a-rappeler/creneaux")
+def api_creneaux(site: str, jour: str = ""):
+    """Les créneaux libres — ceux du module de rendez-vous déjà en place, pas d'autres.
+
+    Sans `jour` : les jours réservables. Avec : les créneaux de ce jour-là.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import booking_backend as bb
+    try:
+        if jour:
+            return {"jour": jour, "creneaux": bb.available_slots(site, jour)}
+        return {"jours": bb.available_days(site)}
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.post("/api/sites/{site}/a-rappeler/rdv")
+async def api_prendre_rdv(site: str, request: Request):
+    """Pose un rendez-vous pour ce prospect, depuis la fiche, sur un créneau libre.
+
+    Deux choses que la route publique de prise de rendez-vous fait autrement, et qu'il
+    fallait décider ici :
+
+    - **La confirmation au client n'est PAS automatique.** Sur le lien public, le prospect
+      s'inscrit lui-même et attend un accusé. Ici, c'est le commercial qui pose le créneau
+      pendant l'appel : c'est LUI qui décide si le client reçoit un récapitulatif, parce
+      que lui seul sait ce qui vient d'être dit. Un email qui part sans qu'il l'ait vu
+      passer est exactement ce qu'on veut éviter.
+    - **Le téléphone est vérifié et enregistré.** Un rendez-vous sans numéro est un
+      rendez-vous qu'on ne pourra pas honorer : la réponse le signale, et si le commercial
+      saisit le numéro manquant, on le range dans la fiche du contact.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import booking_backend as bb
+    import followup_backend as fb
+    role, user = _qui(request)
+    b = await request.json()
+    email = (b.get("email") or "").strip().lower()
+    creneau = (b.get("slot_start") or "").strip()
+    tel = (b.get("tel") or "").strip()
+    envoyer = bool(b.get("envoyer_email", False))
+    if not email or not creneau:
+        return {"ok": False, "error": "email et créneau requis"}
+    try:
+        r = bb.create_booking(site, b.get("motif") or "demo", creneau,
+                              b.get("nom") or email, email, tel, b.get("note") or "")
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)[:200]}
+    if not r.get("ok", True):
+        return r
+
+    # Le numéro saisi à la volée rejoint la fiche : sans ça, il faudrait le ressaisir au
+    # rendez-vous suivant, et il finirait sur un papier.
+    tel_enregistre = False
+    if tel:
+        try:
+            import contacts_pool_backend as pool
+            tel_enregistre = bool(pool.create_in_pool({"email": email, "tel": tel},
+                                                      primary_source="crm"))
+        except Exception:  # noqa: BLE001
+            pass
+
+    # Par MAILDOSO, pas par Sweego (décision Camille, 2026-08-21) : un rendez-vous posé
+    # pendant un appel prolonge une conversation, il doit partir de l'adresse qui a servi
+    # aux échanges précédents — et c'est là que le prospect répondra.
+    notif = None
+    if envoyer:
+        try:
+            notif = bb.envoyer_confirmation_maildoso(r["booking"], r["config"], site)
+        except Exception as e:  # noqa: BLE001
+            notif = {"email": {"ok": False, "error": str(e)[:150]}}
+
+    # Le rendez-vous est un ÉVÉNEMENT de la fiche : sans cette trace, le commercial suivant
+    # ne saurait pas qu'un rendez-vous a été pris pendant l'appel.
+    try:
+        detail = f"Rendez-vous posé le {creneau}"
+        detail += (" · récapitulatif envoyé au client" if (notif or {}).get("email", {}).get("ok")
+                   else " · sans email au client" if not envoyer
+                   else " · envoi du récapitulatif ÉCHOUÉ")
+        fb.journaliser(site, email, user, "rdv", detail)
+    except Exception:  # noqa: BLE001
+        pass
+
+    return {**r, "email_envoye": bool((notif or {}).get("email", {}).get("ok")),
+            "email_erreur": (notif or {}).get("email", {}).get("error"),
+            "expediteur": (notif or {}).get("email", {}).get("mailbox"),
+            "tel_enregistre": tel_enregistre}
+
+
+@app.post("/api/sites/{site}/a-rappeler/presentation")
+async def api_envoyer_presentation(site: str, request: Request):
+    """Envoie l'email de présentation du secteur, plaquette PDF jointe, depuis une boîte
+    Maildoso. Un envoi nominatif, un seul destinataire — ce n'est pas une campagne."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import argumentaire as ar, plaquette as pl, maildoso_backend as md
+    import followup_backend as fb
+    role, user = _qui(request)
+    b = await request.json()
+    email = (b.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return {"ok": False, "error": "destinataire invalide"}
+    secteur = (b.get("secteur") or "").strip().lower()
+    contact = {"prenom": b.get("prenom") or "", "societe": b.get("societe") or ""}
+    # La plaquette est EN ATTENTE (décision Camille, 2026-08-21 : « les documents .pdf ne
+    # sont pas bons pour le moment »). Elle ne part donc plus par défaut : il faut la
+    # demander explicitement. Le jour où elle est validée, ce défaut repasse à True — et
+    # d'ici là, aucun prospect ne reçoit un document qu'on ne veut pas montrer.
+    joindre = bool(b.get("joindre_plaquette", False))
+    lien = (f"https://api.cheffer.email/api/public/plaquette/{site}/{secteur}.pdf"
+            if joindre and secteur else "")
+    modele = ar.email_presentation(secteur, contact, user, site=site, lien_plaquette=lien)
+    sujet = (b.get("sujet") or modele["sujet"]).strip()
+    corps = (b.get("corps") or modele["corps"]).strip()
+    try:
+        pieces = []
+        if joindre:
+            pieces = [{"nom": pl.nom_fichier(secteur),
+                       "contenu": pl.construire(secteur, contact["societe"]),
+                       "type": "application/pdf"}]
+        r = md.send_email(email, sujet, text=corps, html=modele.get("html"), site=site,
+                          to_name=contact["societe"] or None, pieces_jointes=pieces)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)[:200]}
+    if r.get("ok"):
+        try:
+            fb.journaliser(site, email, user, "email",
+                           f"Présentation {secteur or 'générique'} envoyée depuis "
+                           f"{r.get('mailbox')}" + (" (plaquette jointe)" if joindre else ""))
+        except Exception:  # noqa: BLE001
+            pass
+    return r
+
+
+@app.post("/api/sites/{site}/a-rappeler/blacklist")
+async def api_blacklister(site: str, request: Request):
+    """Blackliste définitivement ce contact : plus aucun envoi, sur aucun site."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import contacts_pool_backend as pool
+    import followup_backend as fb
+    role, user = _qui(request)
+    b = await request.json()
+    email = (b.get("email") or "").strip().lower()
+    if not email:
+        return {"ok": False, "error": "email requis"}
+    motif = (b.get("motif") or f"blacklisté depuis la fiche par {user}")[:200]
+    try:
+        ok = pool.set_global_blacklist(email, motif)
+        try:
+            fb.journaliser(site, email, user, "blacklist", motif)
+        except Exception:  # noqa: BLE001
+            pass
+        return {"ok": bool(ok), "email": email, "motif": motif}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e)[:200]}
+
+
+@app.get("/api/sites/{site}/mon-activite")
+def api_mon_activite(site: str, request: Request, qui: str = ""):
+    """Le tableau de bord du rappelant : sa journée, sa série, où ça mord.
+
+    `qui` n'est lu QUE pour un admin — il permet de regarder l'activité d'un commercial
+    sans prendre son compte. Un non-admin ne voit que la sienne, quoi qu'il demande :
+    le paramètre est ignoré, pas refusé, pour que l'interface reste simple.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import commercial_backend as cb
+    role, user = _qui(request)
+    cible = qui if (qui and role in ("admin", "superadmin")) else user
+    try:
+        return cb.tableau_de_bord(site, cible, role)
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
 
 
 @app.get("/api/sites/{site}/a-rappeler")
@@ -6933,10 +7355,97 @@ def api_scrape_active():
             "current_city": st.get("current_city") or "",
             "valid": st.get("valid") or 0,
             "target": st.get("target_contacts") or 0,
+            # Les mêmes compteurs que le tableau « Collectes en cours » de la page
+            # Scraping : la barre et la page lisent la même source, elles doivent afficher
+            # les mêmes chiffres. Deux écrans qui décrivent le même run avec des nombres
+            # différents, c'est un écran de trop.
+            "valid_basile": st.get("valid_basile") or 0,
+            "valid_serper": st.get("valid_serper") or 0,
+            "examined": st.get("examined") or 0,
+            "duplicates": st.get("duplicates") or 0,
+            "rejected": st.get("rejected") or 0,
+            "cities_done": st.get("cities_done") or 0,
+            "cities_total": st.get("cities_total") or 0,
             "sectors": st.get("sectors") or [],
             "updated_at": st.get("updated_at") or 0,
         })
     return {"count": len(items), "items": items}
+
+
+@app.get("/api/sites/{site}/autoscrape/orchestrateur")
+def api_autoscrape_orchestrateur(site: str):
+    """L'état du mode AUTOMATIQUE : quota du jour, cible en cours, créneaux réservés.
+
+    À ne pas confondre avec `/autoscrape/status`, qui décrit le run en train de tourner —
+    celui-ci décrit l'orchestrateur qui décide QUOI lancer et QUAND. L'écran a besoin des
+    deux : l'un dit « ça tourne », l'autre dit « voilà pourquoi, et ce qui vient après ».
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    try:
+        import autoscrape_daily as ad
+        return ad.status()
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.get("/api/sites/{site}/scrape/conseil")
+def api_scrape_conseil(site: str, combien: int = 10):
+    """Les prochaines cibles selon Stéphane — note explicable, pas un oracle.
+
+    Chaque point vient d'un chiffre de la base : rang du secteur, performance mesurée du
+    couple secteur × zone (clic d'abord), terrain jamais collecté, rareté en base. Le
+    conseil ne lance rien.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import stephane
+    try:
+        return stephane.conseiller(site, combien)
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.get("/api/sites/{site}/stephane/memoire")
+def api_stephane_memoire(site: str, limite: int = 20):
+    """Ce que Stéphane a retenu : les couples secteur × zone qui répondent, et les autres."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import stephane
+    try:
+        return stephane.memoire(site, limite)
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.get("/api/sites/{site}/stephane/config")
+def api_stephane_config(site: str):
+    """Le cadre posé à Stéphane : secteurs autorisés, départements, ce qui doit primer."""
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import stephane
+    try:
+        return stephane.config(site)
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
+@app.post("/api/sites/{site}/stephane/config")
+async def api_stephane_config_set(site: str, request: Request):
+    """Change le cadre. Réservé aux administrateurs : il pilote la dépense Serper."""
+    sess = getattr(request.state, "session", None) or {}
+    if sess.get("role") not in ("admin", "superadmin"):
+        return {"ok": False, "error": "rôle admin requis"}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import stephane
+    body = await request.json()
+    try:
+        return stephane.enregistrer_config(
+            site, body.get("secteurs") or [], body.get("depts") or [],
+            body.get("priorite") or "equilibre", par=sess.get("username") or "")
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
 
 
 @app.get("/api/sites/{site}/autoscrape/status")
@@ -7847,6 +8356,11 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 start_payload = {}
             cities = start_payload.get("cities") or []
             max_results = start_payload.get("max_results", 0)
+            # Runs antérieurs au 2026-08-21 : la marque n'existait pas. On la déduit — un
+            # run lancé par un compte nommé est manuel, le reste vient de l'orchestrateur.
+            declencheur = start_payload.get("declencheur") or (
+                "manuel" if (username and username not in ("cron", "system", "autoscrape"))
+                else "automatique")
 
             # Libellé périmètre (région) issu du start_scrape — autoscrape région agrégé.
             scope = start_payload.get("scope") or start_payload.get("region_name")
@@ -7959,6 +8473,7 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 "message":       run_message,
                 "max_results":   max_results,
                 "username":      username or "cron",
+                "declencheur":   declencheur,
                 "status":        status,
                 "scraped":       scraped,
                 "valid":         valid,

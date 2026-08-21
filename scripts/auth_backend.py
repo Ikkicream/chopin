@@ -346,6 +346,29 @@ def count_online_users() -> int:
         conn.close()
 
 
+def list_online_users() -> list[dict]:
+    """QUI est connecté, et depuis quand — pas seulement combien.
+
+    La barre superadmin affichait « 3 en ligne » : un compteur qui ne sert qu'à savoir
+    qu'on n'est pas seul. Savoir QUI change la nature de l'information — on peut appeler
+    la personne, ou comprendre pourquoi la base est sollicitée.
+
+    Une session par utilisateur, la plus récente : quelqu'un connecté sur deux navigateurs
+    reste une personne.
+    """
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT u.username, u.role, max(s.expires_at) "
+            "FROM sessions s JOIN users u ON u.id = s.user_id "
+            "WHERE s.expires_at > ? GROUP BY u.username, u.role ORDER BY u.username",
+            [datetime.now(timezone.utc).isoformat()],
+        ).fetchall()
+    finally:
+        conn.close()
+    return [{"username": r[0], "role": r[1], "expire_a": r[2]} for r in rows]
+
+
 def reset_password(user_id):
     """Génère un nouveau mdp aléatoire (16 chars) et le retourne en clair une fois."""
     new_pass = secrets.token_urlsafe(12)

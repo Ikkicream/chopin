@@ -167,9 +167,18 @@ Tests réels effectués (clé API active) :
 - **`naf_code`** : format exact `"56.10A"`. **Pas de wildcard `.x`** (`"56.1"` → 0).
 - **`activity`** : préfixe **`concept:`** obligatoire (`concept:restaurant_table` → 364 k). Trouver
   l'ID via `activity-suggest` (`value:"concept:xxx"`).
-- **Géo entreprises** : `headquarters_department_code` / `headquarters_region_code` → **0** (ne pas
-  utiliser). Utiliser **`headquarters_postal_code`** (exact 5 chiffres, pas de préfixe `"69"`) ou
-  **`headquarters_city`** en **MAJUSCULES** (`"LYON"`, via `city-suggest`).
+- **Géo entreprises** : **`headquarters_department_code` FONCTIONNE** — re-vérifié le 2026-08-21
+  sur les départements 33, 75, 69, 64 et 87 (Gironde × immobilier : 3 089 sociétés). C'est le
+  filtre à utiliser pour couvrir un département entier, et c'est celui que `run_sector_for_dept`
+  emploie.
+  > ⚠️ Cette ligne affirmait le contraire (« → 0, ne pas utiliser ») depuis un essai de juin
+  > jamais revérifié. Le code s'y est fié pendant deux mois et filtrait sur `headquarters_city`,
+  > alimenté par les cinq plus grandes villes du département : **63 % de l'univers restait
+  > invisible** (1 144 sociétés vues sur 3 089 en Gironde). Gain mesuré au correctif : ×2,6 à ×6
+  > selon le secteur.
+
+  `headquarters_postal_code` (exact, 5 chiffres) et `headquarters_city` (MAJUSCULES, via
+  `city-suggest`) restent valides pour un ciblage plus fin qu'un département.
 - **FIELD MAP `data` CONFIRMÉ** (et câblé dans `lead_to_prospect`) :
   - *companies* : `company_name`, `legal_name`, `siren`, `email` (générique), `phone` (`+33…`),
     `headquarters_city` (MAJ), `headquarters_postal_code`, `naf_code`, `naf_code_label`,

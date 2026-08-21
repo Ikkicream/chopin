@@ -275,6 +275,13 @@ def reconstruire() -> dict:
     finally:
         p._rendre(c)
     promus = _affiner_nominatives()
+    # Stéphane observe ce que la reconstruction vient de rendre mesurable. Sa mémoire suit
+    # donc exactement le même rythme que les statistiques — jamais en retard sur elles.
+    try:
+        import stephane
+        stephane.observer("lcr")
+    except Exception:  # noqa: BLE001 — l'agent ne doit pas casser la statistique
+        pass
     p2 = _pool()
     jours_figes = p2._q("SELECT count(*) FROM stats_secteur_jour")[0][0]
     return {"ok": True, "envois": n, "evenements": evts, "orphelins": orphelins,

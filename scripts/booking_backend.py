@@ -436,6 +436,39 @@ def _confirmation_sms(booking: dict, cfg: dict) -> str:
             f"Questions : romeo@leclientroi.com")
 
 
+def envoyer_confirmation_maildoso(booking: dict, cfg: dict, site: str = "") -> dict:
+    """La confirmation de rendez-vous, expédiée par une boîte Maildoso.
+
+    Pourquoi pas Sweego, qui fait déjà les confirmations du lien public : un rendez-vous
+    posé PENDANT un appel prolonge une conversation. Il doit partir de la même adresse que
+    le reste des échanges avec ce prospect — celle des boîtes Maildoso, en rotation — et
+    non d'une adresse transactionnelle qu'il n'a jamais vue. Le prospect répond à ce mail :
+    autant que la réponse arrive au bon endroit.
+
+    La rotation des quatre boîtes et leur plafond journalier s'appliquent : cette
+    confirmation est un envoi comme un autre du point de vue de la réputation.
+    """
+    import maildoso_backend as md
+    site = site or booking.get("site_code") or "lcr"
+    marque = cfg.get("from_name") or site.upper()
+    quand = _fmt_slot_fr(booking["slot_start"], booking["slot_minutes"])
+    sujet = f"Votre rendez-vous du {quand} — {marque}"
+    texte = (
+        f"Bonjour {booking.get('name') or ''},\n\n"
+        f"Votre rendez-vous est confirmé : {quand}.\n"
+        f"Motif : {booking.get('reason_label') or 'échange'}\n\n"
+        f"Si vous souhaitez le déplacer, répondez simplement à cet email.\n\n"
+        f"À très vite,\n{marque}"
+    ).replace("Bonjour ,", "Bonjour,")
+    try:
+        r = md.send_email(booking["email"], sujet, text=texte,
+                          html=_confirmation_html(booking, cfg), site=site,
+                          to_name=booking.get("name"))
+    except Exception as e:  # noqa: BLE001
+        return {"email": {"ok": False, "error": str(e)[:180]}, "sms": {"skipped": True}}
+    return {"email": r, "sms": {"skipped": True, "raison": "Maildoso n'envoie pas de SMS"}}
+
+
 def send_confirmations(booking: dict, cfg: dict) -> dict:
     """Envoie email (Sweego transac) + SMS (best-effort). Retourne {email, sms}."""
     out = {"email": {"ok": False}, "sms": {"skipped": True}}

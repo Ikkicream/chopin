@@ -8024,3 +8024,843 @@
   "ok": true,
   "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
 }
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+[autoscrape] Stéphane choisit lcr:immobilier:37 — note 96.4/100 : secteur prioritaire · ce secteur y fait 15.0 % de clic et 30.0 % d'ouverture · jamais collecté · 22 contacts en base
+[daily] 2026-08-21T11:36:44+00:00 start immobilier / dept 37 Indre-et-Loire — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1063 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:27 — note 80.8/100 : secteur prioritaire · ce secteur y fait 5.0 % de clic et 20.0 % d'ouverture · jamais collecté · 17 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 13,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:37",
+    "runs": 1,
+    "valid_total": 13,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:27 — note 80.8/100 : secteur prioritaire · ce secteur y fait 5.0 % de clic et 20.0 % d'ouverture · jamais collecté · 17 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "27 Eure",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:27 — note 80.8/100 : secteur prioritaire · ce secteur y fait 5.0 % de clic et 20.0 % d'ouverture · jamais collecté · 17 contacts en base
+[daily] 2026-08-21T11:45:04+00:00 start immobilier / dept 27 Eure — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1054 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 27",
+    "valid": 13,
+    "current_city": "Pont-Audemer"
+  }
+}
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:94 — note 66.0/100 : secteur prioritaire · ce secteur y fait 7.9 % de clic et 34.2 % d'ouverture · déjà 46 contacts en 1 passage(s) · 69 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 13,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:27",
+    "runs": 1,
+    "valid_total": 13,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:94 — note 66.0/100 : secteur prioritaire · ce secteur y fait 7.9 % de clic et 34.2 % d'ouverture · déjà 46 contacts en 1 passage(s) · 69 contacts en base
+[daily] 2026-08-21T12:02:00+00:00 start immobilier / dept 94 Val-de-Marne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1037 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 94",
+    "valid": 4,
+    "current_city": "Cachan"
+  }
+}
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:94 — note 66.0/100 : secteur prioritaire · ce secteur y fait 7.9 % de clic et 34.2 % d'ouverture · déjà 53 contacts en 2 passage(s) · 69 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 7,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:94",
+    "runs": 2,
+    "valid_total": 53,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:94 — note 66.0/100 : secteur prioritaire · ce secteur y fait 7.9 % de clic et 34.2 % d'ouverture · déjà 53 contacts en 2 passage(s) · 69 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "94 Val-de-Marne",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:94 — note 66.0/100 : secteur prioritaire · ce secteur y fait 7.9 % de clic et 34.2 % d'ouverture · déjà 53 contacts en 2 passage(s) · 69 contacts en base
+[daily] 2026-08-21T12:30:05+00:00 start immobilier / dept 94 Val-de-Marne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1009 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 94",
+    "valid": 2,
+    "current_city": "Vincennes"
+  }
+}
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:92 — note 61.0/100 : secteur prioritaire · ce secteur y fait 6.1 % de clic et 34.8 % d'ouverture · déjà 28 contacts en 1 passage(s) · 138 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 2,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:94",
+    "runs": 3,
+    "valid_total": 55,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:92 — note 61.0/100 : secteur prioritaire · ce secteur y fait 6.1 % de clic et 34.8 % d'ouverture · déjà 28 contacts en 1 passage(s) · 138 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "92 Hauts-de-Seine",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:92 — note 61.0/100 : secteur prioritaire · ce secteur y fait 6.1 % de clic et 34.8 % d'ouverture · déjà 28 contacts en 1 passage(s) · 138 contacts en base
+[daily] 2026-08-21T13:00:04+00:00 start immobilier / dept 92 Hauts-de-Seine — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (979 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 92",
+    "valid": 14,
+    "current_city": "Nanterre"
+  }
+}
+[serper_places] error: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:92 — note 61.0/100 : secteur prioritaire · ce secteur y fait 6.1 % de clic et 34.8 % d'ouverture · déjà 42 contacts en 2 passage(s) · 138 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 14,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:92",
+    "runs": 2,
+    "valid_total": 42,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:92 — note 61.0/100 : secteur prioritaire · ce secteur y fait 6.1 % de clic et 34.8 % d'ouverture · déjà 42 contacts en 2 passage(s) · 138 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "92 Hauts-de-Seine",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:92 — note 61.0/100 : secteur prioritaire · ce secteur y fait 6.1 % de clic et 34.8 % d'ouverture · déjà 42 contacts en 2 passage(s) · 138 contacts en base
+[daily] 2026-08-21T13:30:04+00:00 start immobilier / dept 92 Hauts-de-Seine — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (949 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 92",
+    "valid": 0,
+    "current_city": "Clamart"
+  }
+}
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:78 — note 59.9/100 : secteur prioritaire · ce secteur y fait 5.3 % de clic et 26.3 % d'ouverture · déjà 50 contacts en 1 passage(s) · 89 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 1,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:92",
+    "runs": 3,
+    "valid_total": 43,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:78 — note 59.9/100 : secteur prioritaire · ce secteur y fait 5.3 % de clic et 26.3 % d'ouverture · déjà 50 contacts en 1 passage(s) · 89 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "78 Yvelines",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:78 — note 59.9/100 : secteur prioritaire · ce secteur y fait 5.3 % de clic et 26.3 % d'ouverture · déjà 50 contacts en 1 passage(s) · 89 contacts en base
+[daily] 2026-08-21T14:00:04+00:00 start immobilier / dept 78 Yvelines — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (919 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:78",
+    "sector": "immobilier",
+    "dept": "78",
+    "dept_name": "Yvelines",
+    "region_name": "Île-de-France",
+    "night": "2026-08-21",
+    "started_at": "2026-08-21T14:00:04+00:00",
+    "resumes": 0,
+    "note_stephane": 59.9,
+    "pourquoi_stephane": "secteur prioritaire · ce secteur y fait 5.3 % de clic et 26.3 % d'ouverture · déjà 50 contacts en 1 passage(s) · 89 contacts en base",
+    "priorite_stephane": "Équilibré"
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:78",
+    "runs": 2,
+    "valid_total": 50,
+    "status": "pending"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 78",
+    "valid": 15,
+    "current_city": "Houilles"
+  }
+}
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:95 — note 59.1/100 : secteur prioritaire · ce secteur y fait 4.8 % de clic et 21.4 % d'ouverture · déjà 42 contacts en 1 passage(s) · 62 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 15,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:78",
+    "runs": 3,
+    "valid_total": 65,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:95 — note 59.1/100 : secteur prioritaire · ce secteur y fait 4.8 % de clic et 21.4 % d'ouverture · déjà 42 contacts en 1 passage(s) · 62 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "95 Val-d'Oise",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:95 — note 59.1/100 : secteur prioritaire · ce secteur y fait 4.8 % de clic et 21.4 % d'ouverture · déjà 42 contacts en 1 passage(s) · 62 contacts en base
+[daily] 2026-08-21T14:45:04+00:00 start immobilier / dept 95 Val-d'Oise — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (874 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 95",
+    "valid": 5,
+    "current_city": "Beaumont-sur-Oise"
+  }
+}
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:95 — note 59.1/100 : secteur prioritaire · ce secteur y fait 4.8 % de clic et 21.4 % d'ouverture · déjà 48 contacts en 2 passage(s) · 62 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 6,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:95",
+    "runs": 2,
+    "valid_total": 48,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:95 — note 59.1/100 : secteur prioritaire · ce secteur y fait 4.8 % de clic et 21.4 % d'ouverture · déjà 48 contacts en 2 passage(s) · 62 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "95 Val-d'Oise",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:95 — note 59.1/100 : secteur prioritaire · ce secteur y fait 4.8 % de clic et 21.4 % d'ouverture · déjà 48 contacts en 2 passage(s) · 62 contacts en base
+[daily] 2026-08-21T15:15:04+00:00 start immobilier / dept 95 Val-d'Oise — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (844 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 95",
+    "valid": 2,
+    "current_city": "Jouy-le-Moutier"
+  }
+}
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:59 — note 57.5/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 33.8 % d'ouverture · déjà 26 contacts en 1 passage(s) · 112 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 4,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:95",
+    "runs": 3,
+    "valid_total": 52,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:59 — note 57.5/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 33.8 % d'ouverture · déjà 26 contacts en 1 passage(s) · 112 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "59 Nord",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:59 — note 57.5/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 33.8 % d'ouverture · déjà 26 contacts en 1 passage(s) · 112 contacts en base
+[daily] 2026-08-21T15:45:05+00:00 start immobilier / dept 59 Nord — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (814 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 390205) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 59",
+    "valid": 10,
+    "current_city": "Coudekerque-Branche"
+  }
+}
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:59 — note 57.5/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 33.8 % d'ouverture · déjà 36 contacts en 2 passage(s) · 112 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 10,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:59",
+    "runs": 2,
+    "valid_total": 36,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:59 — note 57.5/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 33.8 % d'ouverture · déjà 36 contacts en 2 passage(s) · 112 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "59 Nord",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:59 — note 57.5/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 33.8 % d'ouverture · déjà 36 contacts en 2 passage(s) · 112 contacts en base
+[daily] 2026-08-21T16:15:04+00:00 start immobilier / dept 59 Nord — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (784 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 59",
+    "valid": 1,
+    "current_city": "Roncq"
+  }
+}
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:93 — note 55.2/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 14.3 % d'ouverture · déjà 19 contacts en 1 passage(s) · 53 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 4,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:59",
+    "runs": 3,
+    "valid_total": 40,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:93 — note 55.2/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 14.3 % d'ouverture · déjà 19 contacts en 1 passage(s) · 53 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "93 Seine-Saint-Denis",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:93 — note 55.2/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 14.3 % d'ouverture · déjà 19 contacts en 1 passage(s) · 53 contacts en base
+[daily] 2026-08-21T16:45:04+00:00 start immobilier / dept 93 Seine-Saint-Denis — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (754 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 93",
+    "valid": 2,
+    "current_city": "Le Raincy"
+  }
+}
+[serper_places] error: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:93 — note 55.2/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 14.3 % d'ouverture · déjà 22 contacts en 2 passage(s) · 53 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 3,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:93",
+    "runs": 2,
+    "valid_total": 22,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:93 — note 55.2/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 14.3 % d'ouverture · déjà 22 contacts en 2 passage(s) · 53 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "93 Seine-Saint-Denis",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:93 — note 55.2/100 : secteur prioritaire · ce secteur y fait 2.9 % de clic et 14.3 % d'ouverture · déjà 22 contacts en 2 passage(s) · 53 contacts en base
+[daily] 2026-08-21T17:15:04+00:00 start immobilier / dept 93 Seine-Saint-Denis — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (724 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 93",
+    "valid": 0,
+    "current_city": "Montfermeil"
+  }
+}
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:69 — note 53.1/100 : secteur prioritaire · ce secteur y fait 0.0 % de clic et 38.3 % d'ouverture · déjà 77 contacts en 1 passage(s) · 152 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 0,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:93",
+    "runs": 3,
+    "valid_total": 22,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:69 — note 53.1/100 : secteur prioritaire · ce secteur y fait 0.0 % de clic et 38.3 % d'ouverture · déjà 77 contacts en 1 passage(s) · 152 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "69 Rhône",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:69 — note 53.1/100 : secteur prioritaire · ce secteur y fait 0.0 % de clic et 38.3 % d'ouverture · déjà 77 contacts en 1 passage(s) · 152 contacts en base
+[daily] 2026-08-21T17:45:04+00:00 start immobilier / dept 69 Rhône — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (694 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 69",
+    "valid": 32,
+    "current_city": "Lyon 5e"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 69",
+    "valid": 42,
+    "current_city": "Corbas"
+  }
+}
+[mailnjoy] 23 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 24 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 25 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 25 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:69 — note 53.1/100 : secteur prioritaire · ce secteur y fait 0.0 % de clic et 38.3 % d'ouverture · déjà 119 contacts en 2 passage(s) · 152 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 42,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:69",
+    "runs": 2,
+    "valid_total": 119,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:69 — note 53.1/100 : secteur prioritaire · ce secteur y fait 0.0 % de clic et 38.3 % d'ouverture · déjà 119 contacts en 2 passage(s) · 152 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "69 Rhône",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:69 — note 53.1/100 : secteur prioritaire · ce secteur y fait 0.0 % de clic et 38.3 % d'ouverture · déjà 119 contacts en 2 passage(s) · 152 contacts en base
+[daily] 2026-08-21T18:30:04+00:00 start immobilier / dept 69 Rhône — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (649 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 69",
+    "valid": 6,
+    "current_city": "Lyon 5e"
+  }
+}
+[mailnjoy] 25 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 25 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:13 — note 52.6/100 : secteur prioritaire · ce secteur y fait 3.8 % de clic et 28.3 % d'ouverture · déjà 724 contacts en 2 passage(s) · 232 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 7,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:69",
+    "runs": 3,
+    "valid_total": 126,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:13 — note 52.6/100 : secteur prioritaire · ce secteur y fait 3.8 % de clic et 28.3 % d'ouverture · déjà 724 contacts en 2 passage(s) · 232 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "13 Bouches-du-Rhône",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:13 — note 52.6/100 : secteur prioritaire · ce secteur y fait 3.8 % de clic et 28.3 % d'ouverture · déjà 724 contacts en 2 passage(s) · 232 contacts en base
+[daily] 2026-08-21T19:00:04+00:00 start immobilier / dept 13 Bouches-du-Rhône — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (619 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:13",
+    "sector": "immobilier",
+    "dept": "13",
+    "dept_name": "Bouches-du-Rhône",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "night": "2026-08-21",
+    "started_at": "2026-08-21T19:00:04+00:00",
+    "resumes": 0,
+    "note_stephane": 52.6,
+    "pourquoi_stephane": "secteur prioritaire · ce secteur y fait 3.8 % de clic et 28.3 % d'ouverture · déjà 724 contacts en 2 passage(s) · 232 contacts en base",
+    "priorite_stephane": "Équilibré"
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:13",
+    "runs": 3,
+    "valid_total": 724,
+    "status": "retired"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 56,
+    "current_city": "Arles"
+  }
+}
+[mailnjoy] 25 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 25 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:33 — note 49.4/100 : secteur prioritaire · jamais sollicité par email · déjà 456 contacts en 2 passage(s) · 16 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 64,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:13",
+    "runs": 4,
+    "valid_total": 788,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:33 — note 49.4/100 : secteur prioritaire · jamais sollicité par email · déjà 456 contacts en 2 passage(s) · 16 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "33 Gironde",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:33 — note 49.4/100 : secteur prioritaire · jamais sollicité par email · déjà 456 contacts en 2 passage(s) · 16 contacts en base
+[daily] 2026-08-21T19:45:05+00:00 start immobilier / dept 33 Gironde — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (574 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:33",
+    "sector": "immobilier",
+    "dept": "33",
+    "dept_name": "Gironde",
+    "region_name": "Nouvelle-Aquitaine",
+    "night": "2026-08-21",
+    "started_at": "2026-08-21T19:45:05+00:00",
+    "resumes": 0,
+    "note_stephane": 49.4,
+    "pourquoi_stephane": "secteur prioritaire · jamais sollicité par email · déjà 456 contacts en 2 passage(s) · 16 contacts en base",
+    "priorite_stephane": "Équilibré"
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:33",
+    "runs": 3,
+    "valid_total": 456,
+    "status": "retired"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 33",
+    "valid": 52,
+    "current_city": "Mérignac"
+  }
+}
+[mailnjoy] 25 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane choisit lcr:immobilier:75 — note 48.4/100 : secteur prioritaire · jamais sollicité par email · déjà 16 contacts en 1 passage(s) · 39 contacts en base
+{
+  "ok": true,
+  "closed": true,
+  "valid": 52,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:33",
+    "runs": 4,
+    "valid_total": 508,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:75 — note 48.4/100 : secteur prioritaire · jamais sollicité par email · déjà 16 contacts en 1 passage(s) · 39 contacts en base
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "75 Paris",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane choisit lcr:immobilier:75 — note 48.4/100 : secteur prioritaire · jamais sollicité par email · déjà 16 contacts en 1 passage(s) · 39 contacts en base
+[daily] 2026-08-21T20:30:04+00:00 start immobilier / dept 75 Paris — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (529 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:immobilier:75",
+    "sector": "immobilier",
+    "dept": "75",
+    "dept_name": "Paris",
+    "region_name": "Île-de-France",
+    "night": "2026-08-21",
+    "started_at": "2026-08-21T20:30:04+00:00",
+    "resumes": 0,
+    "note_stephane": 48.4,
+    "pourquoi_stephane": "secteur prioritaire · jamais sollicité par email · déjà 16 contacts en 1 passage(s) · 39 contacts en base",
+    "priorite_stephane": "Équilibré"
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:75",
+    "runs": 2,
+    "valid_total": 16,
+    "status": "pending"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}

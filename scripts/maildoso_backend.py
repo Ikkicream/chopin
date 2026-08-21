@@ -324,7 +324,8 @@ def _add_tracking(html_str: str, site: str, email: str, campaign_id: str) -> str
 def send_email(to_email: str, subject: str, text: str | None = None, html: str | None = None,
                site: str = SITE_DEFAULT, campaign_id: str | None = None,
                to_name: str | None = None, mailbox: dict | None = None,
-               in_reply_to: str | None = None, contact: dict | None = None) -> dict:
+               in_reply_to: str | None = None, contact: dict | None = None,
+               pieces_jointes: list | None = None) -> dict:
     """Envoie UN email via une boîte Maildoso (rotation auto si `mailbox` non fourni).
 
     text/html : au moins un des deux. Cold email → préférer text seul.
@@ -372,8 +373,28 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
         msg["In-Reply-To"] = in_reply_to
         msg["References"] = in_reply_to
     msg.set_content(text)
+    # Pièces jointes : [{"nom", "contenu" (bytes), "type" ("application/pdf")}]. Ajoutées
+    # APRÈS le corps — `add_attachment` bascule le message en multipart, et l'ordre décide
+    # de ce que les clients mail affichent en premier.
+    # L'HTML AVANT les pièces jointes : `add_alternative` sur un message déjà passé en
+    # multipart/mixed range la version HTML à côté du PDF au lieu de l'attacher au texte.
+    # Résultat constaté le 2026-08-21 : le destinataire recevait le corps, jamais la pièce.
     if html:
         msg.add_alternative(html, subtype="html")
+    for pj in (pieces_jointes or []):
+        # Un échec de pièce jointe n'était pas rendu : l'envoi partait sans elle, et
+        # personne ne le savait avant que le destinataire ne le signale. On le REMONTE.
+        grand, petit = (pj.get("type") or "application/octet-stream").split("/", 1)
+        contenu = pj.get("contenu")
+        if not isinstance(contenu, (bytes, bytearray)):
+            return {"ok": False, "mailbox": mb["email"],
+                    "error": f"pièce jointe « {pj.get('nom')} » : contenu non binaire"}
+        try:
+            msg.add_attachment(bytes(contenu), maintype=grand, subtype=petit,
+                               filename=pj.get("nom") or "piece-jointe")
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "mailbox": mb["email"],
+                    "error": f"pièce jointe « {pj.get('nom')} » refusée : {e}"}
 
     try:
         with smtplib.SMTP(mb.get("smtp_host", SMTP_HOST), int(mb.get("smtp_port", SMTP_PORT)),
@@ -387,7 +408,12 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
 
     _increment_sent(mb["email"])
     _record_sent(site, campaign_id, mb["email"], to_email, subject, rfc_msgid, "sent")
-    return {"ok": True, "mailbox": mb["email"], "rfc_msgid": rfc_msgid}
+    # Ce qui a RÉELLEMENT été transmis. Une pièce jointe qui n'arrive pas est invisible
+    # côté serveur : sans cette liste, on en est réduit à croire le destinataire sur parole.
+    parties = [f"{p.get_content_type()}"
+               + (f" ({p.get_filename()})" if p.get_filename() else "")
+               for p in msg.walk() if not p.get_content_type().startswith("multipart")]
+    return {"ok": True, "mailbox": mb["email"], "rfc_msgid": rfc_msgid, "parties": parties}
 
 
 def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[dict | str],
