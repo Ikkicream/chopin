@@ -6,7 +6,154 @@
 > **Reste à faire : voir `RESTE-A-FAIRE.md`** (plan par lots + anomalies ouvertes,
 > tenu à jour depuis le 2026-08-20).
 
+## 🧹 2026-08-21 — Tableau de bord allégé + tableau des campagnes lisible (demandes Camille)
+
+**Tableau de bord** : rafraîchissement auto passé de 10 min à **une heure** (rien n'y bouge
+à cette cadence — un dispatch par jour, un scrape par nuit — et le retour sur l'onglet
+recharge de toute façon). Retirés : le tableau des campagnes (il vit sur `/campaigns`, deux
+écrans ne doivent pas montrer le même tableau) et la carte « Contacts — à rappeler /
+derniers contactés » (redondante avec `/a-rappeler` et `/acquisition`) — avec les deux
+appels d'API qui ne servaient qu'à elle. Chaque tuile de tête mène désormais à son écran :
+Contacts → `/acquisition`, À rappeler → `/a-rappeler`, Rendez-vous → `/booking`.
+
+**Fusion des compteurs de contacts (21/08, second passage).** « À rappeler » et
+« Rendez-vous » avaient chacun sa carte pour UN nombre : trois cadres, trois titres et
+trois liens pour trois chiffres qui parlent des mêmes personnes. Ils sont descendus en pied
+de la carte **Contacts**, sous le total et son lien, en deux lignes cliquables (la ligne
+Rendez-vous passe en rouge dès qu'il y en a un à traiter). Rangée de tête : deux cartes au
+lieu de quatre. Au passage, `type Contact`, `STATE_LABEL`/`STATE_COLOR`, `nbCold`,
+`recoCount` et **deux appels d'API SEO** (`/api/seo-ahrefs`, `/api/seo-strategy`) ont été
+retirés : ils alimentaient des variables que plus rien n'affichait depuis le retrait du
+tableau de contacts.
+
+**Recomposition** : les rendez-vous étaient le REPLI de la tuile de scraping — ils
+n'apparaissaient que si aucun scrape ne tournait, et la collecte disparaissait de l'écran
+dès qu'elle s'arrêtait. Trois informations pour une case. Désormais : rendez-vous en tuile
+de tête fixe, puis une rangée « ce qui tourne maintenant » avec **Scraping** (visible en
+cours ET au repos, avec le motif de l'attente) et **Campagne en cours** (nom, secteurs,
+canal, barre d'avancement, taux d'ouverture — ou « aucune campagne en cours »).
+
+**Tableau des campagnes** (`campagnes-table.tsx`, partagé avec `/campaigns`) : le secteur
+sort de sous le nom en gris 11 px pour avoir **sa colonne** en pastilles ; la barre
+d'avancement passe à 2,5 px avec **« X % envoyés » / « Y % restants »** en clair ; deux
+nouvelles colonnes **Ouverture** et **Clic** alimentées par `campaign_recipients` (tiret =
+pas encore mesurable, jamais « zéro »). L'erreur du moteur — une trace DuckDB de 300
+caractères qui débordait et rendait la ligne illisible — devient « base occupée — envoi
+interrompu », détail complet au survol.
+
+**Attention au branchement** : `engagement_par_campagne()` est indexé sur l'uuid PostgreSQL
+ET sur le `legacy_id` court. `campaign_recipients` porte l'uuid, `list_campaigns` rend
+l'identifiant court : sans les deux clés la jointure tombe à vide et toutes les colonnes
+affichent un tiret.
+
 ## Dernière mise à jour
+2026-08-21 (Basile audité · liste noire des adresses de rôle · page Statistiques)
+
+## 📊 2026-08-21 — Page Statistiques + comportement des destinataires
+
+**Ce qui a été construit.** `campaign_recipients` (PostgreSQL) : UNE ligne par envoi
+journalisé, avec ce que le destinataire en a fait. Le recollage était le problème — une
+ligne `sent` porte sa campagne, les `open`/`click` qui suivent n'en portent aucune (webhook
+identifié par l'adresse seule). Règle d'attribution : **une ouverture appartient au dernier
+envoi fait à cette adresse avant elle**, la fenêtre se fermant au réenvoi suivant. 1 712
+envois reconstruits, reconstruction complète et idempotente (`stats_backend.py
+reconstruire`, cron horaire à :50).
+
+**Ce qu'on ne mesure pas, et qu'on n'invente pas.** Sweego envoie en masse : aucun envoi
+par destinataire, donc aucun dénominateur. Ses 1 491 rebonds et 21 plaintes sont comptés
+**à part** (`angles_morts`, affiché en bas de page), jamais fondus dans les taux — les y
+verser donnerait un taux calculé sur des envois jamais comptés.
+
+**Page** `/site/{code}/statistiques` (menu Pilotage) : carte de tête « ce qui marche / ce
+qui ne marche pas » (meilleur et pire secteur, meilleure et pire zone, à partir de 20
+envois — sous ce seuil on ne désigne personne), 4 tuiles, puis cinq tableaux : canal, type
+d'adresse, secteurs, zones, campagnes.
+
+**Analyse sectorielle préparée d'avance (21/08, après-midi).** Trois ajouts pour que le
+jour où d'autres secteurs partent en campagne, il n'y ait rien à construire :
+`stats_secteur_jour` (historique FIGÉ jour × secteur — `campaign_recipients` est
+reconstruite toutes les heures en rejoignant `contacts`, donc un contact sorti du pool
+ferait basculer rétroactivement son envoi de juin en « inconnu » ; l'historique, lui, ne se
+réécrit pas), `comparaison_secteurs()` (les 31 secteurs, sollicités ou NON, avec rang de la
+politique + contacts disponibles en base + colonne `recul` : suffisant / à confirmer /
+jamais sollicité) et `par_secteur_zone()` (croisement secteur × département, cases sous
+5 envois écartées). Côté écran : deux DataTable triables et filtrables (TanStack, composant
+maison déjà en place) remplacent le tableau figé des secteurs.
+
+**Ce que ça montre tout de suite** : `tourisme` est prioritaire, a **153 contacts en base**
+et n'a **jamais reçu un email** ; `restaurant` 97, `retail` 45. Et 883 contacts
+`agence-marketing` dorment en base alors que le secteur est désormais interdit.
+
+**⚠️ Doublons de migration corrigés le 21/08 (question de Camille sur le canal « inconnu »).**
+La reprise depuis `contact_site_history` a rejoué 405 envois maildoso qui figuraient DÉJÀ
+au journal : deux lignes `sent`, même adresse, même jour — une réelle (canal `maildoso`),
+une de reprise (canal `inconnu`, sans campagne ni boîte). Ce n'était pas qu'un compteur
+gonflé : deux lignes le même jour FERMAIENT la fenêtre d'attribution de la première sur la
+seconde, et l'ouverture était portée au crédit de la ligne fantôme. Maildoso affichait
+20,3 % et le fantôme 27,5 % — **le second volait les ouvertures du premier**. **PURGÉES du journal le 21/08** sur décision de Camille, via
+`scripts/purge_doublons_journal.py` (essai à blanc par défaut, `--apply` pour écrire) :
+405 lignes retirées, `email_events.sent` 1 712 → 1 307. Sauvegarde JSON intégrale et
+restaurable (identifiants compris) dans `backups/journal/`. Trois conditions cumulatives
+pour être supprimée — canal `inconnu`, `meta.source = contact_site_history`, ET un jumeau
+le même jour sur un canal connu : aucune adresse ne pouvait donc perdre son dernier envoi.
+Contrôle DANS la transaction : `v_suppression` inchangée à 808, sinon abandon. Sans effet
+sur la règle des 120 jours ni sur les compteurs de campagne.
+
+**Le filtre reste dans `stats_backend` en garde-fou** (au cas où une réimportation en
+referait), mais RESSERRÉ sur cette seule signature : 7 doublons subsistent en juillet-août
+qui sont de **vrais** envois — deux campagnes dispatchées le même matin à la même adresse.
+Les fondre effacerait de la statistique un email réellement reçu. `stats_secteur_jour` a
+été vidée deux fois, les jours ayant été figés sur des chiffres successivement faux.
+
+**Ce que les chiffres disent (après correction)** : **29,4 % d'ouverture · 5,0 % de clic
+sur 1 307 envois** (maildoso 29,1 %). Zone la plus forte **06 Alpes-Maritimes (41,2 %)**, la plus faible
+**60 Oise (8,0 %)**. Meilleure campagne : « loi Cazenave » 35,6 %.
+Aucune comparaison sectorielle possible : l'immobilier fait la quasi-totalité des envois.
+**Et surtout : générique 26,7 % d'ouverture contre nominative 29,6 %** — 3 points d'écart,
+et les génériques cliquent plus (4,7 % contre 3,3 %). C'est l'analyse que Camille voulait
+pour trancher sur les 1 943 `contact@` en base.
+
+## 🔎 2026-08-21 — Basile : pourquoi 26 contre 202 Serper
+
+Trois causes mesurées en direct, aucune corrigée à ce jour :
+1. **Le filtre géo montre 37 % du terrain.** `run_sector_for_city` filtre sur
+   `headquarters_city`, alimenté par les 5 plus grandes villes du dept (≥ 10 000 hab).
+   Gironde : 1 144 sociétés vues sur 3 089. `headquarters_department_code` **fonctionne**
+   (vérifié sur 33, 75, 69, 64, 87) — `docs/basile-api.md:170` dit le contraire, la note
+   est périmée et le code s'y fie.
+2. **16 secteurs câblés sur 28.** `SECTOR_NAF` n'a jamais reçu les NAF du catalogue :
+   `tourisme`, `education-formation`, `transport`, `services-b2b`, `industrie`,
+   `agroalimentaire`, `luxe-mode` renvoient `no_naf` → 100 % Serper.
+3. **On ne scrape que l'immobilier**, 5e en rendement sur 10 secteurs testés.
+
+Extraction test de 1 000 leads (Gironde), livrable = email direct + repli page-contact
+(mesuré à 52 % sur 40 sites) : artisan 61 % · tourisme 44 % · education-formation 44 % ·
+immobilier 35 % · restaurant 23 % · coiffeur 11 %. **Sur le seul dept 33, les secteurs
+prioritaires pèsent ≈ 18 000 contacts livrables** — Serper n'a aucune raison d'être la
+source principale.
+
+## 🚫 2026-08-21 — Liste noire des adresses de rôle (décision Camille)
+
+`contact@` `info@` `accueil@` `agence@` `compta@` `devis@` + gabarits `exemple@domaine.fr`
+sont désormais **rejetés à la collecte** (`email_validator`, étage 3, avant le contrôle MX).
+157 parties locales, 43 boîtes d'accueil, 34 gabarits, 29 domaines de gabarit. Règle du
+suffixe numérique : `contact33@` tombe, `dupont33@` passe.
+
+**Coût mesuré, assumé** : −60 % du rendement Basile en email direct (183 → 73 sur
+1 000 leads) ; l'immobilier tombe de 13 à 2 pour 100 leads. Conséquence : pour du volume
+ET du nominatif, il faudra la voie **dirigeants** (`run_dirigeant_segment`, Emelia payant).
+
+**Les 1 943 contacts génériques déjà en base ne sont PAS touchés** — décision de Camille du
+21/08 : elle veut d'abord voir s'ils répondent. C'est ce que mesure la page Statistiques.
+
+## 🗂️ 2026-08-21 — Classement des secteurs enregistré
+
+`sector_policy` renseignée pour `lcr` et `mkd` (376 cibles interdites retirées de la file).
+Prioritaires : immobilier · restaurant · tourisme · education-formation · garagiste ·
+coiffeur · retail. `artisan` reste **collecté mais secondaire** (arbitrage Camille : le
+volume est là, l'ajustement produit est plus faible). Interdits inchangés (9).
+
+
 2026-08-20 (session fermée anormalement — état des lieux repris dans RESTE-A-FAIRE.md)
 2026-08-19 (Prénoms depuis l'email + MINI-CRM commercial avec attribution des rappels)
 

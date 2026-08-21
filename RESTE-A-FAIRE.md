@@ -51,6 +51,27 @@
    est bien dans le code ; `logs/pg_reconcile.log` **n'existe toujours pas**.
    Premier vrai test demain 6h30 UTC.
 
+## Journée du 2026-08-21
+
+- ✅ **Classement des secteurs enregistré** (`sector_policy`, lcr + mkd) — `artisan`
+  collecté mais secondaire, 376 cibles interdites retirées. **Le Lot 2 est clos.**
+- ✅ **Liste noire des adresses de rôle** — `contact@`, `info@`, `compta@`, gabarits :
+  rejetés à la collecte. Les 1 943 déjà en base sont conservés (décision Camille : voir
+  d'abord s'ils répondent).
+- ✅ **Page Statistiques** `/site/{code}/statistiques` + table `campaign_recipients` +
+  cron horaire de reconstruction. **Ce n'était dans aucun lot** — c'est l'outil de mesure
+  qui manquait pour arbitrer tout le reste.
+- ✅ Alertes réparées (le fichier d'état appartenait à `root`, le cron tourne en
+  `autoblog` : il plantait toutes les heures depuis le 20/08 13h53). **Le Lot 5 est clos.**
+- ⛔ **Correctifs Basile identifiés mais NON appliqués** — c'est le premier chantier à
+  reprendre :
+  1. passer le filtre géo de `headquarters_city` à `headquarters_department_code`
+     (× 2,7 sur l'univers visible ; la note `docs/basile-api.md:170` qui l'interdit est
+     périmée, vérifié sur 5 départements) ;
+  2. compléter `SECTOR_NAF` avec les 7 secteurs du catalogue qui renvoient `no_naf` ;
+  3. arbitrer la voie **dirigeants nommés** (Emelia, 1 crédit/dirigeant) — devenue la
+     seule source de volume nominatif depuis la liste noire.
+
 ## Le plan par lots
 
 - **Lot 0 — Relevé technique `/admin/etat-technique`** — ✅ livré le 2026-08-20.

@@ -100,6 +100,20 @@ def diagnostic() -> dict:
         taches = {}
         problemes["releve"] = f"Le relevé technique lui-même est en panne : {e}"
 
+    # Lecture massive de la base de contacts par un compte bridé. Le seuil est volontairement
+    # au-dessus du quota horaire : le quota BLOQUE, l'alerte PRÉVIENT — elle ne se déclenche
+    # donc que si quelqu'un a passé plusieurs heures à paginer, ce qu'aucun usage réel ne
+    # produit. Clé par utilisateur : deux comptes différents = deux alertes.
+    try:
+        import garde_lecture as gl
+        for lecteur in gl.gros_lecteurs(heures=24, seuil=5000):
+            problemes[f"aspiration:{lecteur['utilisateur']}"] = (
+                f"Lecture massive de la base : {lecteur['utilisateur']} "
+                f"({lecteur['role'] or 'rôle inconnu'}) a lu {lecteur['lignes']:,} fiches "
+                f"en {lecteur['requetes']} requêtes sur 24 h.".replace(",", " "))
+    except Exception as e:  # noqa: BLE001
+        problemes["garde_lecture"] = f"Le garde-fou de lecture est illisible : {e}"
+
     for nom, limite in AGE_MAX_H.items():
         info = taches.get(nom) or {}
         if not info.get("present"):

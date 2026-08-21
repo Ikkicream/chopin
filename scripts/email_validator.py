@@ -115,25 +115,75 @@ def is_forbidden_tld(email: str) -> tuple[bool, str]:
 FORBIDDEN_LOCAL_PARTS = {
     # Sécurité / abuse
     "abuse", "postmaster", "hostmaster", "webmaster", "admin", "administrator",
-    "root", "security", "noc", "soc",
+    "root", "security", "noc", "soc", "sysadmin", "sysop", "it", "informatique",
+    "dns", "mx", "smtp", "imap", "pop", "ftp", "ssl", "spam", "phishing",
     # Automatique / no-reply
     "noreply", "no-reply", "donotreply", "do-not-reply", "notification",
-    "notifications", "alerts", "alert", "system", "daemon", "mailer-daemon",
-    "bounce", "bounces", "mailer", "auto", "autoreply",
+    "notifications", "alerts", "alert", "alerte", "alertes", "system", "daemon",
+    "mailer-daemon", "bounce", "bounces", "mailer", "auto", "autoreply",
+    "automatique", "robot", "bot",
     # Support / SAV
     "support", "help", "helpdesk", "service", "services", "customercare",
     "customer-care", "customer-service", "sav", "client", "clients",
-    "assistance",
+    "assistance", "reclamation", "reclamations", "litige", "litiges",
     # Sales / marketing / presse
-    "sales", "marketing", "newsletter", "communications", "comms", "media",
-    "press", "presse", "rp", "publicrelations",
+    "sales", "marketing", "newsletter", "newsletters", "communications",
+    "comms", "communication", "com", "media", "medias", "press", "presse",
+    "rp", "publicrelations", "pub", "publicite",
     # RH / juridique
     "rh", "hr", "recruitment", "recrutement", "jobs", "career", "carriere",
-    "legal", "juridique", "compliance", "privacy",
+    "candidature", "candidatures", "emploi", "stage", "stages",
+    "legal", "juridique", "compliance", "privacy", "conformite", "cnil",
+    "mentions", "mentions-legales",
+    # Comptabilité / administratif — ne décident jamais, et polluent le taux de réponse
+    "compta", "comptabilite", "comptable", "facture", "factures", "facturation",
+    "billing", "invoice", "invoices", "finance", "finances", "tresorerie",
+    "paiement", "paiements", "reglement", "adv", "achats", "fournisseurs",
     # rgpd, gdpr, dpo retirés ici -> traités comme honeypots (étage 3.4)
 }
 
+# ── Boîtes d'accueil génériques ────────────────────────────────────────────────
+# Ajouté le 2026-08-21 sur décision de Camille : « toutes les adresses en contact@,
+# dpo@, postmaster@ — nous n'en voulons pas. » Ces adresses arrivent dans une boîte
+# partagée que personne ne s'approprie : elles gonflent le volume et écrasent le taux
+# de réponse. Elles étaient jusqu'ici seulement pénalisées (-15 au score, cf.
+# GENERIC_LOCALS) et partaient quand même en campagne.
+GENERIC_INBOX = {
+    "contact", "contacts", "info", "infos", "information", "informations",
+    "hello", "hi", "bonjour", "salut", "welcome", "bienvenue",
+    "accueil", "reception", "standard", "secretariat", "secretaire", "bureau",
+    "mail", "email", "e-mail", "courrier", "message", "messages", "boite",
+    "agence", "siege", "societe", "entreprise", "cabinet", "office",
+    "direction", "gerance", "gestion", "administration", "general", "generale",
+    "commercial", "commerciale", "commerciaux", "vente", "ventes", "devis",
+}
+FORBIDDEN_LOCAL_PARTS |= GENERIC_INBOX
+
+# ── Adresses de gabarit ────────────────────────────────────────────────────────
+# Trouvées le 2026-08-20 dans le repli « page contact » de Basile : des sites dont le
+# modèle n'a jamais été rempli rendent `exemple@domaine.fr` ou `email@domaine.com`.
+# Elles passaient avec un score de 75 — au-dessus d'un contact@ légitime.
+PLACEHOLDER_LOCALS = {
+    "exemple", "example", "votreemail", "votre-email", "votremail", "monemail",
+    "mon-email", "votrenom", "votre-nom", "yourname", "your-name", "youremail",
+    "your-email", "nom", "prenom", "nomprenom", "name", "firstname", "lastname",
+    "utilisateur", "user", "username", "test", "tests", "essai", "sample",
+    "demo", "exemple1", "xxx", "aaa", "abc", "azerty", "qwerty", "lorem",
+}
+PLACEHOLDER_DOMAINS = {
+    "domaine.fr", "domaine.com", "domain.com", "domain.fr", "votredomaine.fr",
+    "votredomaine.com", "mondomaine.fr", "mondomaine.com", "example.com",
+    "example.fr", "example.org", "exemple.fr", "exemple.com", "votresite.fr",
+    "votresite.com", "monsite.fr", "monsite.com", "site.com", "site.fr",
+    "email.com", "mail.com", "adresse.fr", "societe.fr", "entreprise.fr",
+    "nomdedomaine.fr", "test.com", "test.fr", "localhost", "domaine.tld",
+}
+
 FORBIDDEN_LOCAL_PREFIXES = ("noreply", "no-reply", "donotreply", "abuse")
+
+# Suffixes numériques ou géographiques collés à une boîte générique : contact2@,
+# contact33@, info-paris@ restent des boîtes génériques.
+_SUFFIXE_NUM = re.compile(r"(\d+)$")
 
 
 def is_role_based(email: str) -> tuple[bool, str]:
@@ -142,9 +192,27 @@ def is_role_based(email: str) -> tuple[bool, str]:
     canonical_set = {p.replace("-", "").replace("_", "") for p in FORBIDDEN_LOCAL_PARTS}
     if canonical in canonical_set:
         return True, f"role_based:{canonical}"
+    # contact2@, contact33@, info75@ : même boîte, un chiffre en plus. On ne coupe le
+    # suffixe QUE si la racine est elle-même générique — jamais sur un nom propre
+    # (marie2@, dupont33@ restent des personnes).
+    racine = _SUFFIXE_NUM.sub("", canonical)
+    if racine != canonical and racine in canonical_set:
+        return True, f"role_based_num:{racine}"
     for prefix in FORBIDDEN_LOCAL_PREFIXES:
         if local.startswith(prefix):
             return True, f"role_based_prefix:{prefix}"
+    return False, ""
+
+
+def is_placeholder(email: str) -> tuple[bool, str]:
+    """Adresse de gabarit non modifié (exemple@domaine.fr) : ni une personne, ni une
+    société — un site web qu'on n'a jamais fini de remplir."""
+    local, _, domain = email.partition("@")
+    canonical = local.replace(".", "").replace("-", "").replace("_", "")
+    if domain in PLACEHOLDER_DOMAINS:
+        return True, f"placeholder_domain:{domain}"
+    if canonical in {p.replace("-", "").replace("_", "") for p in PLACEHOLDER_LOCALS}:
+        return True, f"placeholder_local:{canonical}"
     return False, ""
 
 
@@ -379,7 +447,8 @@ def validate_and_score(email_raw: str, prospect: dict) -> dict:
                 "decision": "drop", "reasons": [reason]}
 
     # Étage 3 — Hard rejects (dans l'ordre du moins cher au plus cher)
-    for check in (is_honeypot, is_forbidden_tld, is_role_based, is_disposable):
+    for check in (is_honeypot, is_forbidden_tld, is_role_based, is_placeholder,
+                  is_disposable):
         rejected, reason = check(email)
         if rejected:
             return {"email": email, "valid": False, "score": 0,

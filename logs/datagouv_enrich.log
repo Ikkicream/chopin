@@ -32,3 +32,28 @@ Traceback (most recent call last):
     latitude=float(siege["latitude"]) if siege.get("latitude") else None,
              ^^^^^^^^^^^^^^^^^^^^^^^^
 ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'
+2026-08-21 06:30:02,298 [INFO] 632 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-21 06:30:02,299 [INFO] Durée estimée minimale : ~158s (632 × 4 req/s)
+2026-08-21 06:30:18,201 [INFO]   ...50/632 (26 enrichis, 4 exclus, API=58 cache=0)
+2026-08-21 06:30:33,636 [INFO]   ...100/632 (53 enrichis, 4 exclus, API=116 cache=0)
+2026-08-21 06:30:47,962 [INFO]   ...150/632 (78 enrichis, 4 exclus, API=169 cache=0)
+2026-08-21 06:31:04,079 [INFO]   ...200/632 (101 enrichis, 7 exclus, API=230 cache=0)
+2026-08-21 06:31:21,092 [INFO]   ...250/632 (122 enrichis, 7 exclus, API=294 cache=0)
+2026-08-21 06:31:37,765 [INFO]   ...300/632 (147 enrichis, 7 exclus, API=357 cache=0)
+2026-08-21 06:31:54,768 [INFO]   ...350/632 (173 enrichis, 7 exclus, API=421 cache=0)
+2026-08-21 06:32:09,291 [INFO]   ...400/632 (204 enrichis, 9 exclus, API=475 cache=0)
+2026-08-21 06:32:24,494 [INFO]   ...450/632 (230 enrichis, 9 exclus, API=532 cache=0)
+2026-08-21 06:32:39,642 [INFO]   ...500/632 (250 enrichis, 9 exclus, API=589 cache=0)
+2026-08-21 06:32:55,346 [INFO]   ...550/632 (268 enrichis, 11 exclus, API=648 cache=1)
+2026-08-21 06:33:06,849 [INFO]   ...600/632 (293 enrichis, 11 exclus, API=690 cache=17)
+2026-08-21 06:33:21,995 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-21 06:33:22,968 [INFO] ============================================================
+2026-08-21 06:33:22,968 [INFO] Total: 632 | Enrichis: 308 | Non-vérifiés(contactables): 311 | Exclus durs: 12 | Transitoires(non écrits): 1 | API: 718 | Cache: 30 | 429: 0 | 200.7s
+2026-08-21 06:33:22,968 [INFO] Exclusions DURES par motif (filtrées au push): {"administration_service_public": 4, "entreprise_fermee": 8}
+2026-08-21 06:33:22,968 [INFO] Non-vérifiés par motif (restent contactables): {"match_ambigu": 39, "non_trouve": 272}
+2026-08-21 06:33:22,968 [INFO] Échantillon enrichis:
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "Immobilière BRUN SALAT", "denomination": "IMMOBILIERE BRUN SALAT", "siret": "34302598700052", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "NONTRON", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "IMPERIUM IMMOBILIER", "denomination": "IMPERIUM IMMOBILIER", "siret": "93140156600019", "code_naf": "68.31Z", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "VERDUN", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "GB IMMOBILIER SAINT DIZIER", "denomination": "GB VITRY SARL", "siret": "35044952600010", "code_naf": "70.3A", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "VITRY-LE-FRANCOIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "Neobilis", "denomination": "NEOBILIS", "siret": "30565026900031", "code_naf": "68.20A", "categorie_entreprise": "ETI", "tranche_effectif_libelle": "1-2", "commune": "EPINAL", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "THOMAS IMMOBILIER", "denomination": "THOMAS IMMOBILIER", "siret": "79361061900017", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "6-9", "commune": "EPINAL", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}

@@ -4320,7 +4320,7 @@ async def api_prospects_push_emelia(site: str, request: Request):
 
 @app.get("/api/sites/{site}/acquisition")
 def api_acq_list(
-    site: str, state: str = "", source: str = "", search: str = "",
+    site: str, request: Request, state: str = "", source: str = "", search: str = "",
     limit: int = 100, offset: int = 0,
 ):
     """Liste paginée avec filtres multi-valeurs séparées par virgule.
@@ -4333,9 +4333,17 @@ def api_acq_list(
     # gelée de 1 653 lignes dont 1 506 blacklistés, pendant que le pool en compte 7 916.
     # Même correction que les compteurs, même cause.
     import contacts_pool_backend as pool
+    import garde_lecture as gl
+    role, qui = _qui(request)
+    etat = gl.verifier(qui, role)
+    if not etat["ok"]:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=429, content=gl.refus(etat))
     states  = [x for x in (state or "").split(",") if x]
     sources = [x for x in (source or "").split(",") if x]
-    lim = min(500, max(1, limit))
+    # Le plafond dépend du rôle : un écran montre cinquante lignes, personne n'a besoin
+    # d'en demander cinq cents. Voir `garde_lecture`.
+    lim = gl.plafonner(role, limit)
     try:
         contacts = pool.list_contacts_for_site(
             site, state=states or None, source=sources or None,
@@ -4345,6 +4353,7 @@ def api_acq_list(
         return JSONResponse(status_code=503, content={"error": f"pool indisponible: {e}"[:200]})
     # `total` conservé pour ne pas casser les appelants ; sur une page pleine on ne connaît
     # pas le total exact sans un second comptage — on le signale plutôt que de mentir.
+    gl.journaliser(qui, role, site, "acquisition", len(contacts))
     return {"contacts": contacts, "total": len(contacts),
             "total_exact": len(contacts) < lim}
 
@@ -4952,7 +4961,7 @@ def api_vision(site: str):
 
 
 @app.get("/api/sites/{site}/pool/contacts")
-def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
+def api_pool_contacts(site: str, request: Request, state: str = "", sectors_in: str = "",
                       source: str = "", search: str = "", engagement: str = "",
                       etape: str = "", limit: int = 500, offset: int = 0):
     """Liste les contacts du pool utilisés par ce site (avec filtres + recherche).
@@ -4960,6 +4969,13 @@ def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     from contacts_pool_backend import (list_contacts_for_site, count_contacts_for_site,
                                        compter_par_etape, ETAPES)
+    import garde_lecture as gl
+    role, qui = _qui(request)
+    etat = gl.verifier(qui, role)
+    if not etat["ok"]:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=429, content=gl.refus(etat))
+    lim = gl.plafonner(role, limit)
     filtres = dict(
         state=state.split(",") if state else None,
         sectors_in=sectors_in.split(",") if sectors_in else None,
@@ -4971,11 +4987,15 @@ def api_pool_contacts(site: str, state: str = "", sectors_in: str = "",
     # `total` est le nombre de contacts correspondant aux filtres, pas le nombre de lignes
     # rendues : sans lui l'interface ne peut pas paginer, et affichait « 25 contacts »
     # quelle que soit la taille réelle de la sélection.
+    contacts = list_contacts_for_site(site_code=site, limit=lim, offset=offset, **filtres)
+    gl.journaliser(qui, role, site, "pool/contacts", len(contacts))
     return {
-        "contacts": list_contacts_for_site(site_code=site, limit=limit, offset=offset,
-                                           **filtres),
+        "contacts": contacts,
         "total": count_contacts_for_site(site_code=site, **filtres),
-        "limit": limit, "offset": offset,
+        # `limit` rendu = celui APPLIQUÉ, pas celui demandé : l'interface doit paginer sur
+        # ce qu'elle a reçu, sinon elle croit avoir tout et saute des contacts.
+        "limit": lim, "offset": offset,
+        "plafonne": lim < limit,
         # Le vocabulaire des étapes vient du serveur : c'est lui qui les calcule.
         "etapes": ETAPES,
         # Compteurs par étape POUR LES AUTRES FILTRES en cours (l'étape elle-même est
@@ -5171,6 +5191,45 @@ def api_pression_marketing(limite: int = 50):
             "reglage": "PRESSION_MAX_MOIS dans .env"}
 
 
+@app.get("/api/sites/{site}/statistiques")
+def api_statistiques(site: str, jours: int | None = None, limite: int = 10):
+    """Le comportement des destinataires : par canal, par type d'adresse, par secteur, par zone.
+
+    Ne lit QUE des campagnes réellement envoyées (`campaign_recipients`, une ligne par
+    envoi journalisé). Les événements reçus sans envoi par destinataire — Sweego en masse
+    — sont rendus à part dans `angles_morts`, jamais fondus dans les taux.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import stats_backend as st
+    try:
+        return st.tableau_de_bord(site, jours, limite)
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        msg = str(e)
+        if "campaign_recipients" in msg and "exist" in msg:
+            return JSONResponse(status_code=503, content={
+                "error": "table des destinataires absente",
+                "remede": "lancer une reconstruction (bouton « Recalculer »)"})
+        return JSONResponse(status_code=503, content={"error": msg[:200]})
+
+
+@app.post("/api/sites/{site}/statistiques/reconstruire")
+def api_statistiques_reconstruire(site: str):
+    """Rebâtit la table des destinataires depuis le journal d'événements.
+
+    Reconstruction complète et idempotente : quelques milliers de lignes. Appelée par le
+    cron horaire et par le bouton de la page — les deux peuvent se marcher dessus sans
+    conséquence, la dernière écriture gagne et dit la même chose.
+    """
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import stats_backend as st
+    try:
+        return st.reconstruire()
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": str(e)[:200]})
+
+
 @app.get("/api/admin/secteurs")
 def api_secteurs(site: str = "lcr"):
     """La politique des secteurs : prioritaire / secondaire / interdit.
@@ -5335,9 +5394,17 @@ def api_a_rappeler(site: str, request: Request, vue: str = "mes"):
     """
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import followup_backend as fb
+    import garde_lecture as gl
     role, user = _qui(request)
+    etat = gl.verifier(user, role)
+    if not etat["ok"]:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=429, content=gl.refus(etat))
     try:
-        return fb.lister(site, role, user, vue=vue if vue in ("mes", "vivier", "tous") else "mes")
+        res = fb.lister(site, role, user, vue=vue if vue in ("mes", "vivier", "tous") else "mes")
+        n = len(res.get("contacts") or res.get("a_rappeler") or []) if isinstance(res, dict) else 0
+        gl.journaliser(user, role, site, "a-rappeler", n)
+        return res
     except Exception as e:  # noqa: BLE001
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=503, content={"error": f"suivi indisponible: {e}"[:200]})
@@ -6156,7 +6223,18 @@ def api_campaigns_list(site: str):
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import campaign_engine as ce
     try:
-        return {"campaigns": ce.list_campaigns(site)}
+        campagnes = ce.list_campaigns(site)
+        # Ce qui est parti ne dit rien de ce que ça a donné : deux campagnes à 100 %
+        # d'envoi n'ont rien à voir si l'une ouvre à 35 % et l'autre à 5 %. L'engagement
+        # est greffé ici plutôt que réclamé par un second appel de l'interface.
+        try:
+            import stats_backend as st
+            eng = st.engagement_par_campagne(site)
+            for c in campagnes:
+                c["engagement"] = eng.get(str(c.get("id")))
+        except Exception:  # noqa: BLE001 — sans statistiques, la liste reste utilisable
+            pass
+        return {"campaigns": campagnes}
     except Exception as e:  # noqa: BLE001
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=503,

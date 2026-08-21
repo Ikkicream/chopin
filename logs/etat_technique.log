@@ -1,0 +1,85 @@
+{
+ "at": "2026-08-21T06:45:01+00:00",
+ "jour": "2026-08-20",
+ "bases": {
+  "fichiers": {
+   "contacts.duckdb": 1091842048,
+   "god_mode.duckdb": 219426816,
+   "auth.duckdb": 4730880,
+   "postgresql": 36420631
+  },
+  "tables": {
+   "pool.contacts": 8556,
+   "pool.contact_site_history": 11332,
+   "pool.contact_enrichment": 7789,
+   "pool.email_suppression": 782,
+   "god_mode.scrappe": 7072,
+   "god_mode.scrappe_pending": 22,
+   "god_mode.scrappe_rejected": 8121,
+   "god_mode.maildoso_sent": 1273,
+   "god_mode.mass_campaigns": 1,
+   "god_mode.sweego_events": 4271,
+   "god_mode.god_mode_serper_calls": 75052,
+   "god_mode.autoscrape_targets": 2162,
+   "pg.contact_sites": 8832,
+   "pg.contacts": 8832,
+   "pg.contact_enrichment": 6417,
+   "pg.email_events": 3694,
+   "pg.followup_events": 84,
+   "pg.contact_followup": 78,
+   "pg.mailbox_ramp_log": 32,
+   "pg.campaigns": 8,
+   "pg.mailboxes": 4,
+   "pg.etat_technique_journalier": 1,
+   "pg.segments": 1,
+   "pg.sector_policy": 0
+  }
+ },
+ "flux_hier": {
+  "scrape_serper": 392,
+  "scrape_basile": 96,
+  "mailnjoy_verifies": 54,
+  "mailnjoy_rejetes": 172,
+  "datagouv_enrichis": 50,
+  "emails_envoyes": 52,
+  "contacts_crees": 488,
+  "en_attente_mailnjoy": 22
+ },
+ "crm": {
+  "a_rappeler": 78,
+  "attribues": 78,
+  "appels_7j": 1,
+  "rdv_a_traiter": 0
+ },
+ "taches": {
+  "enrichissement data.gouv": {
+   "present": true,
+   "dernier": "2026-08-21T06:33:22+00:00",
+   "heures": 0.2,
+   "octets": 5588
+  },
+  "réconciliation PostgreSQL": {
+   "present": true,
+   "dernier": "2026-08-20T13:37:13+00:00",
+   "heures": 17.1,
+   "octets": 321
+  },
+  "dispatch campagnes": {
+   "present": true,
+   "dernier": "2026-08-20T09:06:05+00:00",
+   "heures": 21.6,
+   "octets": 26550
+  },
+  "sauvegarde": {
+   "present": true,
+   "dernier": "2026-08-20T21:00:25+00:00",
+   "heures": 9.7,
+   "octets": 175626
+  }
+ },
+ "services": {
+  "genesis-dashboard": true,
+  "genesis-ui": true,
+  "genesis-mailnjoy-drain": true
+ }
+}

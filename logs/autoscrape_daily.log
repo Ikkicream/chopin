@@ -7192,3 +7192,835 @@
     "lcr:immobilier:24"
   ]
 }
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:09",
+    "lcr:immobilier:48",
+    "lcr:immobilier:33",
+    "lcr:immobilier:64",
+    "lcr:immobilier:87",
+    "lcr:immobilier:17",
+    "lcr:immobilier:86",
+    "lcr:immobilier:40",
+    "lcr:immobilier:79",
+    "lcr:immobilier:47",
+    "lcr:immobilier:16",
+    "lcr:immobilier:24"
+  ]
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "19 Corrèze",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T22:00:02+00:00 start immobilier / dept 19 Corrèze — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (439 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 18,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:19",
+    "runs": 1,
+    "valid_total": 18,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "23 Creuse",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T22:15:03+00:00 start immobilier / dept 23 Creuse — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (424 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 7,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:23",
+    "runs": 1,
+    "valid_total": 7,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "67 Bas-Rhin",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T22:30:04+00:00 start immobilier / dept 67 Bas-Rhin — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (409 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 67",
+    "valid": 56,
+    "current_city": "Illkirch-Graffenstaden"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 67",
+    "valid": 70,
+    "current_city": "Hœnheim"
+  }
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2159354) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 21 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 70,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:67",
+    "runs": 1,
+    "valid_total": 70,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "57 Moselle",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T23:15:03+00:00 start immobilier / dept 57 Moselle — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (364 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 57",
+    "valid": 41,
+    "current_city": "Amnéville"
+  }
+}
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 59,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:57",
+    "runs": 1,
+    "valid_total": 59,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "68 Haut-Rhin",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-20T23:45:04+00:00 start immobilier / dept 68 Haut-Rhin — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (334 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 68",
+    "valid": 38,
+    "current_city": "Guebwiller"
+  }
+}
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 51,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:68",
+    "runs": 1,
+    "valid_total": 51,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "51 Marne",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-21T00:15:04+00:00 start immobilier / dept 51 Marne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (304 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 39,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:51",
+    "runs": 1,
+    "valid_total": 39,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "54 Meurthe-et-Moselle",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-21T00:30:04+00:00 start immobilier / dept 54 Meurthe-et-Moselle — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (289 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 54",
+    "valid": 41,
+    "current_city": "Pont-à-Mousson"
+  }
+}
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 41,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:54",
+    "runs": 1,
+    "valid_total": 41,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "10 Aube",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-21T01:00:04+00:00 start immobilier / dept 10 Aube — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (259 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 13,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:10",
+    "runs": 1,
+    "valid_total": 13,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "08 Ardennes",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-21T01:15:03+00:00 start immobilier / dept 08 Ardennes — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (244 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 5,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:08",
+    "runs": 1,
+    "valid_total": 5,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "88 Vosges",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-21T01:30:04+00:00 start immobilier / dept 88 Vosges — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (229 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 5,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:88",
+    "runs": 1,
+    "valid_total": 5,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "52 Haute-Marne",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-21T01:45:04+00:00 start immobilier / dept 52 Haute-Marne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (214 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 3,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:52",
+    "runs": 1,
+    "valid_total": 3,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "immobilier",
+    "dept": "55 Meuse",
+    "why": "nouvelle cible"
+  }
+}
+[daily] 2026-08-21T02:00:04+00:00 start immobilier / dept 55 Meuse — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (199 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 22 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{
+  "ok": true,
+  "closed": true,
+  "valid": 8,
+  "result": {
+    "ok": true,
+    "id": "lcr:immobilier:55",
+    "runs": 1,
+    "valid_total": 8,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "quota du jour atteint (12/12 cibles)",
+  "cibles_de_la_periode": [
+    "lcr:immobilier:19",
+    "lcr:immobilier:23",
+    "lcr:immobilier:67",
+    "lcr:immobilier:57",
+    "lcr:immobilier:68",
+    "lcr:immobilier:51",
+    "lcr:immobilier:54",
+    "lcr:immobilier:10",
+    "lcr:immobilier:08",
+    "lcr:immobilier:88",
+    "lcr:immobilier:52",
+    "lcr:immobilier:55"
+  ]
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
