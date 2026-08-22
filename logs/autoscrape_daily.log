@@ -9859,3 +9859,415 @@
   "ok": true,
   "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
 }
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "75 Paris",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-22T10:00:04+00:00 start restaurant / dept 75 Paris — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1159 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 75",
+    "valid": 60,
+    "current_city": "Paris 5e"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 75",
+    "valid": 123,
+    "current_city": "Paris 9e"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 75",
+    "valid": 188,
+    "current_city": "Paris 13e"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 75",
+    "valid": 247,
+    "current_city": "Paris 17e"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 75",
+    "valid": 300,
+    "current_city": "Paris 20e"
+  }
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 500898) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2023939) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2023939) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2023939) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2023939) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 36 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 36 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 36 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 36 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 300,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:75",
+    "runs": 1,
+    "valid_total": 300,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "93 Seine-Saint-Denis",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-22T11:30:04+00:00 start restaurant / dept 93 Seine-Saint-Denis — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1069 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 93",
+    "valid": 45,
+    "current_city": "Bobigny"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 93",
+    "valid": 97,
+    "current_city": "Noisy-le-Grand"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 93",
+    "valid": 149,
+    "current_city": "Villemomble"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 93",
+    "valid": 195,
+    "current_city": "Neuilly-sur-Marne"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 93",
+    "valid": 239,
+    "current_city": "Aulnay-sous-Bois"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 93",
+    "valid": 252,
+    "current_city": "Épinay-sur-Seine"
+  }
+}
+[mailnjoy] 37 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 37 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 38 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 38 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 252,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:93",
+    "runs": 1,
+    "valid_total": 252,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "92 Hauts-de-Seine",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-22T13:15:04+00:00 start restaurant / dept 92 Hauts-de-Seine — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (964 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:restaurant:92",
+    "sector": "restaurant",
+    "dept": "92",
+    "dept_name": "Hauts-de-Seine",
+    "region_name": "Île-de-France",
+    "night": "2026-08-22",
+    "started_at": "2026-08-22T13:15:04+00:00",
+    "resumes": 0,
+    "note_stephane": null,
+    "pourquoi_stephane": null,
+    "priorite_stephane": null
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:92",
+    "runs": 1,
+    "valid_total": 0,
+    "status": "pending"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 92",
+    "valid": 77,
+    "current_city": "Boulogne-Billancourt"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 92",
+    "valid": 127,
+    "current_city": "Suresnes"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 92",
+    "valid": 170,
+    "current_city": "Neuilly-sur-Seine"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 92",
+    "valid": 228,
+    "current_city": "Bois-Colombes"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 92",
+    "valid": 275,
+    "current_city": "Sceaux"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 92",
+    "valid": 316,
+    "current_city": "Asnières-sur-Seine"
+  }
+}
+[mailnjoy] 39 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 39 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 341,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:92",
+    "runs": 2,
+    "valid_total": 341,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "94 Val-de-Marne",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-22T15:15:05+00:00 start restaurant / dept 94 Val-de-Marne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (844 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 94",
+    "valid": 51,
+    "current_city": "Arcueil"
+  }
+}
+[mailnjoy] 39 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 39 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[daily] 2026-08-22T15:37:19+00:00 passe non terminée (status=quota) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "quota",
+  "valid": 72
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "resume",
+    "sector": "restaurant",
+    "dept": "94 Val-de-Marne",
+    "why": "statut 'quota' — relance"
+  }
+}
+[daily] 2026-08-22T15:45:04+00:00 resume restaurant / dept 94 Val-de-Marne — cible=2000 reliquat=1928 acquis=72 · scrape jusqu'à 07:20 (814 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 39 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 39 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[daily] 2026-08-22T15:57:43+00:00 passe non terminée (status=quota) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "quota",
+  "valid": 89
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}

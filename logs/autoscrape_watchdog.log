@@ -904,3 +904,36 @@
 [veilleur autoscrape] 2026-08-22 10:00:01 UTC
   {"site": "lcr", "status": "done", "heartbeat_min": 103.2, "valid": 5, "target": 2000, "action": "rien — statut « done » non reprenable"}
   {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 11:00:01 UTC
+  {"site": "lcr", "status": "running", "heartbeat_min": 0.2, "valid": 247, "target": 2000, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 12:00:01 UTC
+  {"site": "lcr", "status": "running", "heartbeat_min": 0.1, "valid": 97, "target": 2000, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 13:00:01 UTC
+  {"site": "lcr", "status": "cleaning", "heartbeat_min": 1.5, "valid": 252, "target": 2000, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 14:00:01 UTC
+  {"site": "lcr", "status": "running", "heartbeat_min": 0.0, "valid": 127, "target": 2000, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 15:00:01 UTC
+  {"site": "lcr", "status": "running", "heartbeat_min": 0.1, "valid": 316, "target": 2000, "action": "rien — scrape actif (battement récent)"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 16:00:01 UTC
+  {"site": "lcr", "status": "quota", "heartbeat_min": 2.3, "valid": 17, "target": 1928, "action": "rien — statut « quota » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 17:00:01 UTC
+  {"site": "lcr", "status": "quota", "heartbeat_min": 62.3, "valid": 17, "target": 1928, "action": "rien — statut « quota » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 18:00:01 UTC
+  {"site": "lcr", "status": "quota", "heartbeat_min": 122.3, "valid": 17, "target": 1928, "action": "rien — statut « quota » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 19:00:01 UTC
+  {"site": "lcr", "status": "quota", "heartbeat_min": 182.3, "valid": 17, "target": 1928, "action": "rien — statut « quota » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 20:00:01 UTC
+  {"site": "lcr", "status": "quota", "heartbeat_min": 242.3, "valid": 17, "target": 1928, "action": "rien — statut « quota » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
+[veilleur autoscrape] 2026-08-22 21:00:01 UTC
+  {"site": "lcr", "status": "quota", "heartbeat_min": 302.3, "valid": 17, "target": 1928, "action": "rien — statut « quota » non reprenable"}
+  {"site": "mkd", "status": "idle", "heartbeat_min": null, "valid": null, "target": null, "action": "rien — aucune progression enregistrée"}
