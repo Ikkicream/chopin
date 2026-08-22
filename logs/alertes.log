@@ -301,3 +301,146 @@ PermissionError: [Errno 13] Permission denied: '/home/autoblog/genesis/memory/al
     "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 30.8 h (limite 26 h)."
   }
 }
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 31.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 32.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 33.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 34.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 35.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 36.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 37.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 38.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 39.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 40.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 41.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 42.8 h (limite 26 h)."
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:réconciliation PostgreSQL": "⏰ *réconciliation PostgreSQL* : dernier passage il y a 43.8 h (limite 26 h)."
+  }
+}

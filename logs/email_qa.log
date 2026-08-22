@@ -776,3 +776,18 @@ Traceback (most recent call last):
     return duckdb.connect(str(GOD_DB))
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _duckdb.IOException: IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3597342) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/email_qa.py", line 59, in <module>
+    out = qa_site(site)
+          ^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/email_qa.py", line 38, in qa_site
+    elb.save_result(site, "structure", item["id"].split(":", 1)[1], lint, by="recette")
+  File "/home/autoblog/genesis/scripts/email_lint_backend.py", line 171, in save_result
+    _ensure_table()
+  File "/home/autoblog/genesis/scripts/email_lint_backend.py", line 55, in _ensure_table
+    c = _conn()
+        ^^^^^^^
+  File "/home/autoblog/genesis/scripts/email_lint_backend.py", line 51, in _conn
+    return duckdb.connect(str(GOD_DB))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_duckdb.IOException: IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1741571) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency

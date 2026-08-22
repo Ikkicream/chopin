@@ -57,3 +57,22 @@ ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'
 2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "GB IMMOBILIER SAINT DIZIER", "denomination": "GB VITRY SARL", "siret": "35044952600010", "code_naf": "70.3A", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "VITRY-LE-FRANCOIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "Neobilis", "denomination": "NEOBILIS", "siret": "30565026900031", "code_naf": "68.20A", "categorie_entreprise": "ETI", "tranche_effectif_libelle": "1-2", "commune": "EPINAL", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "THOMAS IMMOBILIER", "denomination": "THOMAS IMMOBILIER", "siret": "79361061900017", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "6-9", "commune": "EPINAL", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-22 06:30:02,333 [INFO] 333 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-22 06:30:02,334 [INFO] Durée estimée minimale : ~83s (333 × 4 req/s)
+2026-08-22 06:30:16,501 [INFO]   ...50/333 (46 enrichis, 0 exclus, API=51 cache=0)
+2026-08-22 06:30:32,367 [INFO]   ...100/333 (73 enrichis, 1 exclus, API=111 cache=0)
+2026-08-22 06:30:48,630 [INFO]   ...150/333 (108 enrichis, 1 exclus, API=172 cache=0)
+2026-08-22 06:31:04,608 [INFO]   ...200/333 (139 enrichis, 3 exclus, API=232 cache=1)
+2026-08-22 06:31:18,456 [INFO]   ...250/333 (185 enrichis, 4 exclus, API=283 cache=1)
+2026-08-22 06:31:32,717 [INFO]   ...300/333 (231 enrichis, 4 exclus, API=336 cache=1)
+2026-08-22 06:31:50,156 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-22 06:31:51,235 [INFO] ============================================================
+2026-08-22 06:31:51,235 [INFO] Total: 333 | Enrichis: 257 | Non-vérifiés(contactables): 71 | Exclus durs: 4 | Transitoires(non écrits): 1 | API: 373 | Cache: 2 | 429: 0 | 108.9s
+2026-08-22 06:31:51,235 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 3, "administration_service_public": 1}
+2026-08-22 06:31:51,236 [INFO] Non-vérifiés par motif (restent contactables): {"non_trouve": 57, "match_ambigu": 14}
+2026-08-22 06:31:51,236 [INFO] Échantillon enrichis:
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "PROPERTY DEAL TRANSACTIONS", "denomination": "PROPERTY DEAL TRANSACTIONS", "siret": "52218115500022", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "NOYERS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "L'IMMOBILIER DE BRIENON", "denomination": "L'IMMOBILIER DE BRIENON", "siret": "42230736300016", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "BRIENON-SUR-ARMANCON", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "BRETON", "denomination": "BRETON", "siret": "90046373800014", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "MONTHOLON", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "AGENCE CHARNY IMMOBILIER", "denomination": "AGENCE CHARNY IMMOBILIER", "siret": "52813349900012", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "CHARNY OREE DE PUISAYE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "AGENCE OPTIMUS", "denomination": "AGENCE OPTIMUS", "siret": "48361398000018", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "VILLENEUVE-LA-GUYARD", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
