@@ -76,3 +76,32 @@ ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'
 2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "BRETON", "denomination": "BRETON", "siret": "90046373800014", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "MONTHOLON", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
 2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "AGENCE CHARNY IMMOBILIER", "denomination": "AGENCE CHARNY IMMOBILIER", "siret": "52813349900012", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "CHARNY OREE DE PUISAYE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "AGENCE OPTIMUS", "denomination": "AGENCE OPTIMUS", "siret": "48361398000018", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "VILLENEUVE-LA-GUYARD", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:30:02,550 [INFO] 766 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-23 06:30:02,551 [INFO] Durée estimée minimale : ~192s (766 × 4 req/s)
+2026-08-23 06:30:18,455 [INFO]   ...50/766 (18 enrichis, 0 exclus, API=58 cache=0)
+2026-08-23 06:30:33,194 [INFO]   ...100/766 (39 enrichis, 2 exclus, API=112 cache=0)
+2026-08-23 06:30:48,652 [INFO]   ...150/766 (51 enrichis, 2 exclus, API=169 cache=0)
+2026-08-23 06:31:02,696 [INFO]   ...200/766 (70 enrichis, 4 exclus, API=220 cache=0)
+2026-08-23 06:31:17,092 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 500898) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-23 06:31:19,791 [INFO]   ...250/766 (72 enrichis, 5 exclus, API=278 cache=0)
+2026-08-23 06:31:35,561 [INFO]   ...300/766 (72 enrichis, 5 exclus, API=337 cache=0)
+2026-08-23 06:31:50,168 [INFO]   ...350/766 (83 enrichis, 6 exclus, API=391 cache=0)
+2026-08-23 06:32:04,112 [INFO]   ...400/766 (121 enrichis, 7 exclus, API=442 cache=0)
+2026-08-23 06:32:18,950 [INFO]   ...450/766 (141 enrichis, 7 exclus, API=497 cache=0)
+2026-08-23 06:32:34,262 [INFO]   ...500/766 (165 enrichis, 9 exclus, API=554 cache=0)
+2026-08-23 06:32:49,901 [INFO]   ...550/766 (188 enrichis, 12 exclus, API=612 cache=0)
+2026-08-23 06:33:05,911 [INFO]   ...600/766 (209 enrichis, 12 exclus, API=672 cache=0)
+2026-08-23 06:33:20,957 [INFO]   ...650/766 (215 enrichis, 12 exclus, API=728 cache=0)
+2026-08-23 06:33:34,510 [INFO]   ...700/766 (248 enrichis, 14 exclus, API=778 cache=0)
+2026-08-23 06:33:48,506 [INFO]   ...750/766 (264 enrichis, 15 exclus, API=830 cache=0)
+2026-08-23 06:34:02,447 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-23 06:34:03,392 [INFO] ============================================================
+2026-08-23 06:34:03,392 [INFO] Total: 766 | Enrichis: 269 | Non-vérifiés(contactables): 479 | Exclus durs: 17 | Transitoires(non écrits): 1 | API: 853 | Cache: 0 | 429: 0 | 240.8s
+2026-08-23 06:34:03,392 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 17}
+2026-08-23 06:34:03,392 [INFO] Non-vérifiés par motif (restent contactables): {"non_trouve": 435, "match_ambigu": 44}
+2026-08-23 06:34:03,392 [INFO] Échantillon enrichis:
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Pizza Caffé", "denomination": "NOTRE AVENTURE LM", "siret": "94046476100011", "code_naf": "56.10C", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "FUVEAU", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Monde 2 douceurs", "denomination": null, "siret": "52537318900014", "code_naf": "10.71D", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "MARIGNANE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Paisa Papa Marignane", "denomination": "PAISA PAPA", "siret": "90228856200017", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "MARIGNANE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "PRONTO BURGER", "denomination": "LE KING", "siret": "84814668400016", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "MARIGNANE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Roche Belle", "denomination": "ROCHE BELLE", "siret": "51107560800014", "code_naf": "68.20B", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "LA CIOTAT", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}

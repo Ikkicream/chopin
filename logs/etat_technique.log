@@ -175,3 +175,95 @@
   "genesis-mailnjoy-drain": true
  }
 }
+{
+ "at": "2026-08-23T06:45:01+00:00",
+ "jour": "2026-08-22",
+ "bases": {
+  "fichiers": {
+   "contacts.duckdb": 1189097472,
+   "god_mode.duckdb": 217067520,
+   "auth.duckdb": 5255168,
+   "postgresql": 39132183
+  },
+  "tables": {
+   "pool.contacts": 9626,
+   "pool.contact_site_history": 12401,
+   "pool.contact_enrichment": 8886,
+   "pool.email_suppression": 967,
+   "god_mode.scrappe": 9528,
+   "god_mode.scrappe_pending": 47,
+   "god_mode.scrappe_rejected": 10130,
+   "god_mode.maildoso_sent": 1462,
+   "god_mode.mass_campaigns": 1,
+   "god_mode.sweego_events": 4272,
+   "god_mode.god_mode_serper_calls": 88437,
+   "god_mode.autoscrape_targets": 2162,
+   "pg.contacts": 11828,
+   "pg.contact_sites": 11826,
+   "pg.contact_enrichment": 6417,
+   "pg.email_events": 3824,
+   "pg.campaign_recipients": 1623,
+   "pg.memoire_stephane": 380,
+   "pg.followup_events": 114,
+   "pg.contact_followup": 106,
+   "pg.sector_policy": 56,
+   "pg.stats_secteur_jour": 34,
+   "pg.mailbox_ramp_log": 32,
+   "pg.campaigns": 8,
+   "pg.mailboxes": 4,
+   "pg.etat_technique_journalier": 3,
+   "pg.segments": 1,
+   "pg.opportunites": 1,
+   "pg.config_stephane": 1,
+   "pg.role_pages": 0,
+   "pg.lecture_contacts": 0
+  }
+ },
+ "flux_hier": {
+  "scrape_serper": 226,
+  "scrape_basile": 87,
+  "mailnjoy_verifies": 280,
+  "mailnjoy_rejetes": 547,
+  "datagouv_enrichis": 332,
+  "emails_envoyes": 160,
+  "contacts_crees": 313,
+  "en_attente_mailnjoy": 47
+ },
+ "crm": {
+  "a_rappeler": 106,
+  "attribues": 106,
+  "appels_7j": 2,
+  "rdv_a_traiter": 0
+ },
+ "taches": {
+  "enrichissement data.gouv": {
+   "present": true,
+   "dernier": "2026-08-23T06:34:03+00:00",
+   "heures": 0.2,
+   "octets": 13128
+  },
+  "réconciliation PostgreSQL": {
+   "present": true,
+   "dernier": "2026-08-20T13:37:13+00:00",
+   "heures": 65.1,
+   "octets": 321
+  },
+  "dispatch campagnes": {
+   "present": true,
+   "dernier": "2026-08-22T10:15:12+00:00",
+   "heures": 20.5,
+   "octets": 27395
+  },
+  "sauvegarde": {
+   "present": true,
+   "dernier": "2026-08-22T21:00:24+00:00",
+   "heures": 9.7,
+   "octets": 181070
+  }
+ },
+ "services": {
+  "genesis-dashboard": true,
+  "genesis-ui": true,
+  "genesis-mailnjoy-drain": true
+ }
+}

@@ -10271,3 +10271,758 @@
   "ok": true,
   "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
 }
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1011/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "resume",
+    "sector": "restaurant",
+    "dept": "94 Val-de-Marne",
+    "why": "statut 'quota' — relance"
+  }
+}
+[daily] 2026-08-22T22:00:02+00:00 resume restaurant / dept 94 Val-de-Marne — cible=2000 reliquat=1911 acquis=89 · scrape jusqu'à 07:20 (439 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 94",
+    "valid": 26,
+    "current_city": "Ivry-sur-Seine"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 94",
+    "valid": 88,
+    "current_city": "Thiais"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 94",
+    "valid": 141,
+    "current_city": "Villecresnes"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 94",
+    "valid": 186,
+    "current_city": "Villejuif"
+  }
+}
+[mailnjoy] 39 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 40 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 40 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 275,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:94",
+    "runs": 1,
+    "valid_total": 275,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "78 Yvelines",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-22T23:15:04+00:00 start restaurant / dept 78 Yvelines — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (364 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 78",
+    "valid": 56,
+    "current_city": "Rambouillet"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 78",
+    "valid": 93,
+    "current_city": "Trappes"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 78",
+    "valid": 142,
+    "current_city": "Maurepas"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 78",
+    "valid": 187,
+    "current_city": "Sartrouville"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 78",
+    "valid": 234,
+    "current_city": "Élancourt"
+  }
+}
+[mailnjoy] 41 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 41 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 234,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:78",
+    "runs": 1,
+    "valid_total": 234,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "95 Val-d'Oise",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-23T00:45:04+00:00 start restaurant / dept 95 Val-d'Oise — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (274 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 95",
+    "valid": 26,
+    "current_city": "L'Isle-Adam"
+  }
+}
+[mailnjoy] 41 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 41 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 30,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:95",
+    "runs": 1,
+    "valid_total": 30,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "91 Essonne",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-23T01:15:04+00:00 start restaurant / dept 91 Essonne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (244 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:restaurant:91",
+    "sector": "restaurant",
+    "dept": "91",
+    "dept_name": "Essonne",
+    "region_name": "Île-de-France",
+    "night": "2026-08-23",
+    "started_at": "2026-08-23T01:15:04+00:00",
+    "resumes": 0,
+    "note_stephane": null,
+    "pourquoi_stephane": null,
+    "priorite_stephane": null
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:91",
+    "runs": 1,
+    "valid_total": 0,
+    "status": "pending"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 91",
+    "valid": 72,
+    "current_city": "Ris-Orangis"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 91",
+    "valid": 120,
+    "current_city": "Athis-Mons"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 91",
+    "valid": 157,
+    "current_city": "Saint-Pierre-du-Perray"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 91",
+    "valid": 202,
+    "current_city": "Mennecy"
+  }
+}
+[mailnjoy] 42 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 42 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 231,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:91",
+    "runs": 2,
+    "valid_total": 231,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "77 Seine-et-Marne",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-23T02:45:04+00:00 start restaurant / dept 77 Seine-et-Marne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (154 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 77",
+    "valid": 53,
+    "current_city": "Meaux"
+  }
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 77",
+    "valid": 93,
+    "current_city": "Provins"
+  }
+}
+
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 77",
+    "valid": 135,
+    "current_city": "Avon"
+  }
+}
+
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 77",
+    "valid": 183,
+    "current_city": "Ozoir-la-Ferrière"
+  }
+}
+
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 77",
+    "valid": 226,
+    "current_city": "Moissy-Cramayel"
+  }
+}
+
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3849410) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 43 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 43 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 236,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:77",
+    "runs": 1,
+    "valid_total": 236,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "13 Bouches-du-Rhône",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-23T04:15:05+00:00 start restaurant / dept 13 Bouches-du-Rhône — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (64 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:restaurant:13",
+    "sector": "restaurant",
+    "dept": "13",
+    "dept_name": "Bouches-du-Rhône",
+    "region_name": "Provence-Alpes-Côte d'Azur",
+    "night": "2026-08-23",
+    "started_at": "2026-08-23T04:15:05+00:00",
+    "resumes": 0,
+    "note_stephane": null,
+    "pourquoi_stephane": null,
+    "priorite_stephane": null
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:13",
+    "runs": 1,
+    "valid_total": 0,
+    "status": "pending"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 96,
+    "current_city": "Marseille 4e"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 141,
+    "current_city": "Marseille 9e"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 206,
+    "current_city": "Aix-en-Provence"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 273,
+    "current_city": "Vitrolles"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 324,
+    "current_city": "Gignac-la-Nerthe"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 380,
+    "current_city": "Pélissanne"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 13",
+    "valid": 435,
+    "current_city": "La Ciotat"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 13",
+    "valid": 454,
+    "current_city": "Fuveau"
+  }
+}
+[mailnjoy] 46 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 46 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 47 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 47 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 454,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:13",
+    "runs": 2,
+    "valid_total": 454,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "06 Alpes-Maritimes",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-23T07:30:04+00:00 start restaurant / dept 06 Alpes-Maritimes — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (0 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 06",
+    "valid": 72,
+    "current_city": "Nice"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 06",
+    "valid": 141,
+    "current_city": "Cannes"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 06",
+    "valid": 213,
+    "current_city": "Beausoleil"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 06",
+    "valid": 274,
+    "current_city": "Carros"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 06",
+    "valid": 320,
+    "current_city": "Cagnes-sur-Mer"
+  }
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 06",
+    "valid": 320,
+    "current_city": "Cagnes-sur-Mer"
+  }
+}
+[mailnjoy] 47 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 49 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 51 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 51 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 320,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:06",
+    "runs": 1,
+    "valid_total": 320,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
