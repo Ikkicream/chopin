@@ -198,29 +198,10 @@ def retirer_par_email(email: str) -> bool:
 
 
 def sync_blacklist(email: str, reason: str = "") -> bool:
-    """Un contact blacklisté est MARQUÉ, jamais retiré.
-
-    Il l'était jusqu'au 2026-08-23 : hérité du modèle en entonnoir, où PostgreSQL ne
-    devait contenir que du contactable. Ce modèle est tombé le 2026-08-20 — PostgreSQL
-    accueille tout le monde et `etat` dit à qui on a le droit d'écrire — mais cette
-    fonction-là avait gardé le vieux réflexe. Elle faisait donc disparaître le contact de
-    tous les écrans jusqu'à la réconciliation du lendemain matin, qui le réinsérait :
-    l'effacer, c'est perdre la mémoire de l'avoir écarté, et le re-scraper plus tard.
-
-    La contrepartie du marquage est déjà en place : la pioche d'envoi exige `etat = 'ok'`,
-    et `global_blacklisted` la barre une seconde fois."""
-    em = (email or "").strip().lower()
-    if not em:
-        return False
-    return _executer("blacklist_contact", """
-        UPDATE contacts SET global_blacklisted = true,
-                            blacklist_reason = COALESCE(NULLIF(%s, ''), blacklist_reason),
-                            blacklisted_at = now(),
-                            etat = 'spam',
-                            etat_motif = COALESCE(NULLIF(%s, ''), 'blacklisté'),
-                            etat_at = now(), updated_at = now()
-        WHERE email = %s
-    """, (reason, reason, em), {"email": em})
+    """Un contact blacklisté n'a plus sa place dans PostgreSQL : on le retire, on ne le
+    marque pas. Le garder avec un drapeau, c'est accepter d'accumuler du non-contactable —
+    précisément ce que le modèle en entonnoir refuse. Son journal reste."""
+    return retirer_par_email(email)
 
 
 def _attribuer_rappel(contact_id: str, site_code: str) -> None:

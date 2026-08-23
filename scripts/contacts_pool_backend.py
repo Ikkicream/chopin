@@ -1149,7 +1149,8 @@ NEVER_CONTACTED_FIRST_SQL = "(csh.last_contacted_by_site_at IS NULL) DESC"
 
 
 def record_engagement(site_code: str, email: str, kind: str, channel: str,
-                      at: str | None = None, only_if_null: bool = False) -> bool:
+                      at: str | None = None, only_if_null: bool = False,
+                      proxy: bool = False) -> bool:
     """Enregistre une ouverture ('open') ou un clic ('click') pour un contact,
     quel que soit le canal (emelia/sweego/maildoso). Ne garde que la date LA PLUS
     RÉCENTE. Un clic implique aussi une ouverture. `only_if_null` : ne pose la date
@@ -1178,6 +1179,18 @@ def record_engagement(site_code: str, email: str, kind: str, channel: str,
     # l'ouverture quand il reçoit un clic (une seule date par contact, il faut choisir) ;
     # le journal, lui, n'a pas cette contrainte et ne doit pas inventer d'ouverture.
     _miroir("record_event", email, kind, site_code, channel, at=at)
+
+    # Signal positif du client de messagerie : l'adresse expéditrice qui a obtenu ce
+    # geste devient définitive pour ce contact. Un clic compte toujours ; une ouverture
+    # seulement si elle n'est pas un pré-chargement antispam — 57 % des ouvertures
+    # Sweego en sont, et figer une adresse sur un robot n'apprendrait rien.
+    if kind == "click" or not proxy:
+        try:
+            import expediteur
+            expediteur.confirmer(email)
+        except Exception as e:  # noqa: BLE001
+            print(f"[pool] affinité expéditeur non confirmée pour {email} : "
+                  f"{type(e).__name__}: {e}", flush=True)
     return True
 
 

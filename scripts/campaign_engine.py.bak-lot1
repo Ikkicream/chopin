@@ -289,18 +289,9 @@ def journal_envois(site: str, cid: str) -> list[dict]:
     L'identifiant d'un envoi est « {site}-{campagne}-{date} » : un `LIKE` sur le préfixe
     suffit et évite d'avoir à parser la date.
     """
-    # Journaux servis par PostgreSQL (fin du Lot 1). Le comptage y est fait par ENVOI
-    # distinct et non par ligne : le 2026-08-22, une reprise de marquage avait écrit 316
-    # lignes pour 160 envois réels, et cet écran aurait annoncé le double.
-    try:
-        import journal_pg
-        return journal_pg.envois_par_jour(site, cid)
-    except Exception as e:  # noqa: BLE001
-        print(f"[campaign_engine] journal: PostgreSQL indisponible ({type(e).__name__}: {e}) "
-              f"— repli DuckDB", flush=True)
     prefixe = f"{site}-{cid}-%"
     lignes: dict[str, dict] = {}
-    c = _duck()          # repli : journaux d'envoi historiques
+    c = _duck()          # journaux d'envoi : encore dans DuckDB
     try:
         try:
             for jour, n in c.execute(
@@ -474,16 +465,8 @@ def _todays_allowance(camp: dict, today: _date) -> int:
                    if str(s.get("date", "")) <= today.isoformat())
     if today.isoformat() > str(cadence[-1].get("date", "")):
         expected = max(expected, target)  # cadence finie : tout le reliquat
-    # Le plafond du jour est le PALIER DU JOUR, pas le maximum du plan. Sur une cadence
-    # plate les deux se valent ; sur une montée en charge, prendre le maximum autorise
-    # dès le premier jour le volume prévu pour le dernier — ce qui vide la montée de son
-    # sens, et c'est précisément ce qu'elle est là pour éviter. Hors cadence (rattrapage
-    # après la fin du plan), on retombe sur le plus gros palier prévu.
-    du_jour = next((int(s.get("count", 0)) for s in cadence
-                    if str(s.get("date", ""))[:10] == today.isoformat()), None)
-    plafond = du_jour if du_jour is not None else max(
-        int(s.get("count", 0)) for s in cadence)
-    return max(0, min(expected - sent, plafond))
+    daily_cap = max(int(s.get("count", 0)) for s in cadence)
+    return max(0, min(expected - sent, daily_cap))
 
 
 def _drop_recently_emailed(contacts: list[dict],
@@ -514,20 +497,7 @@ def _drop_recently_emailed(contacts: list[dict],
         # Une base repoussoir injoignable ne doit pas faire passer l'envoi en force : on
         # le signale bruyamment, le journal maildoso ci-dessous reste en couverture.
         print(f"[campaign_engine] base repoussoir illisible : {e}")
-    # Deuxième barrière, servie par PostgreSQL : elle y gagne au passage de couvrir TOUS
-    # les canaux. La version DuckDB n'interrogeait que `maildoso_sent`, donc un contact
-    # servi par Sweego ou Emelia passait au travers de ce second rideau.
-    try:
-        import journal_pg
-        blocked |= journal_pg.recemment_servis(emails, days)
-        if not blocked:
-            return contacts, 0
-        kept = [ct for ct in contacts if (ct.get("email") or "").lower() not in blocked]
-        return kept, len(contacts) - len(kept)
-    except Exception as e:  # noqa: BLE001
-        print(f"[campaign_engine] journal des envois illisible dans PostgreSQL "
-              f"({type(e).__name__}: {e}) — repli DuckDB", flush=True)
-    c = _duck()          # repli : journal maildoso historique
+    c = _duck()          # journal maildoso : encore dans DuckDB
     try:
         c.execute("CREATE TEMP TABLE IF NOT EXISTS _batch(email VARCHAR)")
         c.execute("DELETE FROM _batch")
@@ -825,15 +795,6 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
         # Progression persistée email par email : le lot dure des heures et doit
         # survivre à un redémarrage. Le marquage du contact pose son cooldown, ce qui
         # l'exclut de la prochaine pioche — c'est ce qui empêche le renvoi.
-        # Qui a DÉJÀ été marqué. Sans cette trace, le filet de fin de lot re-marquait
-        # tout le monde : `mark_pushed_to_emelia` écrit le journal PostgreSQL à chaque
-        # appel, et le 2026-08-22 cela a produit 316 lignes d'envoi pour 160 emails
-        # réellement partis — 160 posées au fil de l'eau, 156 reposées en quatre minutes
-        # à la fin du lot. Aucun destinataire n'a reçu deux fois le message, mais tout
-        # volume lu dans le journal comptait double, y compris celui qui pilote la montée
-        # en charge des boîtes expéditrices.
-        marques: set[str] = set()
-
         def _on_sent(ct: dict) -> None:
             try:
                 # L'adresse est transmise : elle permet d'écrire le journal PostgreSQL
@@ -841,7 +802,6 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                 # pool est tenu par un scrape.
                 mark_pushed_to_emelia(ct["id"], site, campaign_id, "",
                                       email=ct.get("email"))
-                marques.add((ct.get("email") or "").strip().lower())
             except Exception as e:  # noqa: BLE001
                 print(f"[campaign_engine] marquage contact {ct.get('email')} échoué : {e}")
             _bump_sent(camp["id"], 1)
@@ -850,22 +810,14 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                             site=site, utm_campaign=utm_campaign, on_sent=_on_sent)
         if not res.get("ok"):
             return res
-        # Filet : reprend UNIQUEMENT les contacts dont le marquage a échoué dans le
-        # callback — c'est-à-dire ceux qui portent le vrai risque, un email parti sans
-        # cooldown ni ligne au journal, donc renvoyable demain.
-        ok_emails = {(e or "").strip().lower() for e in res.get("sent_emails", [])}
-        rattrapes = 0
+        # Filet : un contact dont le marquage a échoué dans le callback est repris ici.
+        ok_emails = set(res.get("sent_emails", []))
         for ct in contacts:
-            em = (ct.get("email") or "").strip().lower()
-            if em in ok_emails and em not in marques:
+            if ct.get("email") in ok_emails:
                 try:
                     mark_pushed_to_emelia(ct["id"], site, campaign_id, "")
-                    rattrapes += 1
-                except Exception as e:  # noqa: BLE001
-                    print(f"[campaign_engine] rattrapage du marquage échoué pour {em} : {e}")
-        if rattrapes:
-            print(f"[campaign_engine] {campaign_id} : {rattrapes} marquage(s) rattrapé(s) "
-                  f"en fin de lot")
+                except Exception:
+                    pass
         # Ramp-up : ajuste les caps/jour des boîtes après chaque campagne (idempotent/jour)
         try:
             import maildoso_ramp
@@ -920,24 +872,16 @@ def reconcile_from_sent_log(cid: str, apply: bool = False) -> dict:
     if camp["channel"] != "maildoso":
         return {"ok": False, "error": f"canal {camp['channel']} : pas de log d'envoi par contact"}
     site = camp["site_code"]
-    emails, last_day = None, None
+    c = _duck()          # journal maildoso : encore dans DuckDB
     try:
-        import journal_pg
-        emails, last_day = journal_pg.envois_de_campagne(site, cid)
-    except Exception as e:  # noqa: BLE001
-        print(f"[campaign_engine] rattrapage: PostgreSQL indisponible "
-              f"({type(e).__name__}: {e}) — repli DuckDB", flush=True)
-    if emails is None:
-        c = _duck()          # repli : journal maildoso historique
-        try:
-            emails = [r[0] for r in c.execute(
-                "SELECT DISTINCT to_email FROM maildoso_sent "
-                "WHERE campaign_id LIKE ? AND status = 'sent'", [f"{site}-{cid}-%"]).fetchall() if r[0]]
-            last_day = c.execute(
-                "SELECT max(created_at) FROM maildoso_sent WHERE campaign_id LIKE ? AND status = 'sent'",
-                [f"{site}-{cid}-%"]).fetchone()[0]
-        finally:
-            c.close()
+        emails = [r[0] for r in c.execute(
+            "SELECT DISTINCT to_email FROM maildoso_sent "
+            "WHERE campaign_id LIKE ? AND status = 'sent'", [f"{site}-{cid}-%"]).fetchall() if r[0]]
+        last_day = c.execute(
+            "SELECT max(created_at) FROM maildoso_sent WHERE campaign_id LIKE ? AND status = 'sent'",
+            [f"{site}-{cid}-%"]).fetchone()[0]
+    finally:
+        c.close()
 
     out = {"ok": True, "campaign": cid, "name": camp["name"], "really_sent": len(emails),
            "sent_count_before": camp["sent_count"] or 0, "applied": apply}

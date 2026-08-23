@@ -142,6 +142,15 @@ def diagnostic() -> dict:
     except Exception as e:  # noqa: BLE001
         problemes["services"] = f"🛑 État des services illisible : {e}"
 
+    # Délivrabilité : la configuration du domaine, les listes noires et les taux
+    # d'ouverture, de rebond et de plainte. Rien de tout cela n'apparaît dans les logs de
+    # tâche — une campagne qui n'arrive plus s'affiche « envoyée » jusqu'au bout.
+    try:
+        import sante_envoi
+        problemes.update(sante_envoi.problemes("lcr"))
+    except Exception as e:  # noqa: BLE001
+        problemes["sante_envoi"] = f"📉 La surveillance de délivrabilité est illisible : {e}"
+
     # Collecte : un blocage fournisseur n'écrit rien dans les logs de tâche, il faut le
     # demander au scrapper lui-même.
     try:

@@ -247,17 +247,6 @@ def record_campaign(site, name, campaign_id, subject, sector, message_id,
                     count, transaction_id, by="ui") -> str:
     _ensure_table()
     rid = str(_uuid.uuid4())[:8]
-    # PostgreSQL D'ABORD (fin du Lot 1) : Sweego ne journalise pas par destinataire, cette
-    # ligne est donc la SEULE trace qu'un envoi de masse a eu lieu et vers combien de
-    # personnes. La perdre sur un verrou DuckDB, c'est perdre l'envoi tout entier des
-    # statistiques — même motif que le journal d'envoi, qui a été déplacé pour ça.
-    try:
-        import journal_pg
-        journal_pg.enregistrer_envoi_masse(rid, site, name, campaign_id, subject, sector,
-                                           message_id, count, transaction_id, by)
-    except Exception as e:  # noqa: BLE001
-        print(f"[sweego] envoi de masse non journalisé dans PostgreSQL : "
-              f"{type(e).__name__}: {e}", flush=True)
     c = _conn()
     try:
         c.execute("INSERT INTO mass_campaigns VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -269,12 +258,6 @@ def record_campaign(site, name, campaign_id, subject, sector, message_id,
 
 
 def list_campaigns(site) -> list[dict]:
-    try:
-        import journal_pg
-        return journal_pg.lister_envois_masse(site)
-    except Exception as e:  # noqa: BLE001
-        print(f"[sweego] liste des envois de masse: PostgreSQL indisponible "
-              f"({type(e).__name__}: {e}) — repli DuckDB", flush=True)
     _ensure_table()
     c = _conn()
     try:

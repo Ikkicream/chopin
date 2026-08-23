@@ -100,35 +100,14 @@ def reconcilier(dry_run: bool = False) -> dict:
 
         # L'état de TOUT LE MONDE est réaligné à chaque passage : c'est lui qui pilotera la
         # pioche des campagnes, il ne doit jamais dater.
-        #
-        # **Le verdict Mailnjoy est réaligné ici depuis le 2026-08-23.** Il ne l'était qu'à
-        # l'INSERTION : une adresse vérifiée après sa première entrée dans PostgreSQL y
-        # restait « jamais vérifiée » pour toujours, `mailnjoy_check.py` n'écrivant que dans
-        # le pool. Conséquence mesurée le jour du correctif : 1 077 contacts portaient
-        # `etat = 'ok'` — l'état, lui, était recalculé — mais restaient écartés de toute
-        # campagne par la clause de second rideau `mailnjoy_decision = 'valid'`, et
-        # s'affichaient « À vérifier » dans Acquisition alors que le pool les disait prêts.
-        # `updated_at` n'est délibérément PAS touché : c'est la dernière clé de tri de la
-        # pioche d'envoi, des deux côtés. Le bousculer ici alignait 1 077 contacts sur la
-        # même seconde et faisait diverger l'ordre de départ entre le pool et PostgreSQL —
-        # sans changer qui est éligible, mais en rendant l'ordre non reproductible.
-        maj = []
-        for em, d in contacts.items():
-            mn = _mailnjoy(d)
-            maj.append((d["etat"], d.get("etat_motif"), bool(d.get("global_blacklisted")),
-                        d.get("blacklist_reason"), mn.get("decision"), mn.get("checked_at"),
-                        json.dumps(mn) if mn else None, em))
+        maj = [(d["etat"], d.get("etat_motif"), bool(d.get("global_blacklisted")),
+                d.get("blacklist_reason"), em) for em, d in contacts.items()]
         psycopg2.extras.execute_batch(cur, """
             UPDATE contacts SET etat = %s, etat_motif = %s, etat_at = now(),
-                                global_blacklisted = %s, blacklist_reason = %s,
-                                mailnjoy_decision = %s, mailnjoy_checked_at = %s,
-                                mailnjoy_check = %s
+                                global_blacklisted = %s, blacklist_reason = %s
             WHERE lower(email::text) = %s
-              AND (etat IS DISTINCT FROM %s
-                   OR global_blacklisted IS DISTINCT FROM %s
-                   OR mailnjoy_decision IS DISTINCT FROM %s)
-        """, [(e, m, bl, br, dec, at, chk, em, e, bl, dec)
-              for e, m, bl, br, dec, at, chk, em in maj], page_size=500)
+              AND (etat IS DISTINCT FROM %s OR global_blacklisted IS DISTINCT FROM %s)
+        """, [(e, m, bl, br, em, e, bl) for e, m, bl, br, em in maj], page_size=500)
 
         pg.commit()
 
@@ -178,24 +157,13 @@ def _compter_evenements(cur, emails: list[str]) -> int:
     return int(cur.fetchone()[0] or 0)
 
 
-def _mailnjoy(d: dict) -> dict:
-    """Le verdict Mailnjoy du pool, toujours rendu comme un dict.
-
-    DuckDB rend cette colonne tantôt en JSON sérialisé, tantôt déjà désérialisée selon le
-    chemin de lecture ; la traiter à deux endroits différents garantissait qu'un des deux
-    finirait par se tromper.
-    """
+def _inserer(cur, d: dict) -> None:
     mn = d.get("mailnjoy_check") or {}
     if isinstance(mn, str):
         try:
             mn = json.loads(mn)
         except Exception:
             mn = {}
-    return mn if isinstance(mn, dict) else {}
-
-
-def _inserer(cur, d: dict) -> None:
-    mn = _mailnjoy(d)
     secteurs = d.get("sectors") or []
     if isinstance(secteurs, str):
         try:

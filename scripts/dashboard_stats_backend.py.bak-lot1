@@ -212,29 +212,12 @@ def daily_email_stats(site: str, days: int = 7) -> dict:
     jours, idx = _day_skeleton(days)
     depuis = jours[-1].astimezone(timezone.utc).replace(tzinfo=None)
 
-    # Journaux servis par PostgreSQL depuis la fin du Lot 1. Les tuples gardent la forme
-    # exacte des requêtes DuckDB qu'ils remplacent — découpage par jour, passage à l'heure
-    # de Paris et regroupement par campagne restent inchangés : on remplace la source, pas
-    # la logique. Repli DuckDB si PostgreSQL ne répond pas.
-    _jpg = None
+    c = _god()
     try:
-        import journal_pg as _jpg_mod
-        _jpg = _jpg_mod
-        envois = _jpg.envois_bruts(site, depuis)
-        masse = _jpg.masse_brute(site, depuis)
-        rebonds = _jpg.rebonds_bruts(site, depuis)
-    except Exception as e:  # noqa: BLE001
-        print(f"[dashboard] journaux: PostgreSQL indisponible ({type(e).__name__}: {e}) "
-              f"— repli DuckDB", flush=True)
-        _jpg = None
-
-    c = _god() if _jpg is None else None
-    try:
-        if _jpg is None:
-            envois = c.execute(
-                "SELECT created_at, lower(to_email), campaign_id FROM maildoso_sent "
-                "WHERE site_code = ? AND status = 'sent' AND created_at >= ?",
-                [site, depuis]).fetchall()
+        envois = c.execute(
+            "SELECT created_at, lower(to_email), campaign_id FROM maildoso_sent "
+            "WHERE site_code = ? AND status = 'sent' AND created_at >= ?",
+            [site, depuis]).fetchall()
         _bucket([(t,) for t, _, _ in envois], idx, "envoyes", jours)
 
         # Destinataires DISTINCTS par jour : il faut dédupliquer à l'intérieur de chaque
@@ -248,10 +231,9 @@ def daily_email_stats(site: str, days: int = 7) -> dict:
             if k in idx:
                 vus.setdefault(k, set()).add(em)
 
-        if _jpg is None:
-            masse = c.execute(
-                "SELECT created_at, recipients_count, campaign_id FROM mass_campaigns "
-                "WHERE site_code = ? AND created_at >= ?", [site, depuis]).fetchall()
+        masse = c.execute(
+            "SELECT created_at, recipients_count, campaign_id FROM mass_campaigns "
+            "WHERE site_code = ? AND created_at >= ?", [site, depuis]).fetchall()
         _bucket([(t, n) for t, n, _ in masse], idx, "envoyes", jours, amount_idx=1)
 
         # Le nom et le canal de chaque campagne : la table `campaigns` fait foi. Deviner le
@@ -263,14 +245,12 @@ def daily_email_stats(site: str, days: int = 7) -> dict:
 
         # Échecs : on ne retient que les rebonds d'adresses RÉELLEMENT prospectées. Sans ce
         # filtre, les boîtes de test et de warmup gonflent la colonne.
-        if _jpg is None:
-            rebonds = c.execute(
-                "SELECT received_at, lower(email) FROM sweego_events "
-                "WHERE site_code = ? AND event_type IN ('hard_bounce', 'complaint') "
-                "AND received_at >= ?", [site, depuis]).fetchall()
+        rebonds = c.execute(
+            "SELECT received_at, lower(email) FROM sweego_events "
+            "WHERE site_code = ? AND event_type IN ('hard_bounce', 'complaint') "
+            "AND received_at >= ?", [site, depuis]).fetchall()
     finally:
-        if c is not None:
-            c.close()
+        c.close()
 
     # ── Répartition par canal et par campagne ─────────────────────────────────
     # Une entrée par jour : {canal: volume} et le détail campagne par campagne. Les deux
@@ -410,36 +390,22 @@ def performance_par_canal(site: str) -> dict:
     """
     out: dict[str, dict] = {}
 
-    # Mêmes journaux, même repli que le tableau ci-dessus.
-    _jpg = None
+    c = _god()
     try:
-        import journal_pg as _jpg_mod
-        _jpg = _jpg_mod
-        st = _jpg.stats_canal(site, "maildoso")
-        envoyes_md, erreurs_md = st["sent"], st["errors"]
-        envoyes_sw, depuis_sw = _jpg.totaux_masse(site)
-        evenements = _jpg.evenements_canal(site, "sweego")
-    except Exception as e:  # noqa: BLE001
-        print(f"[dashboard] canaux: PostgreSQL indisponible ({type(e).__name__}: {e}) "
-              f"— repli DuckDB", flush=True)
-        _jpg = None
-    if _jpg is None:
-        c = _god()
-        try:
-            envoyes_md, erreurs_md = c.execute(
-                "SELECT count(*) FILTER (WHERE status = 'sent'), "
-                "       count(*) FILTER (WHERE status = 'error') "
-                "FROM maildoso_sent WHERE site_code = ?", [site]).fetchone()
-            envoyes_sw, depuis_sw = c.execute(
-                "SELECT COALESCE(sum(recipients_count), 0), min(created_at) "
-                "FROM mass_campaigns WHERE site_code = ?", [site]).fetchone()
-            evenements = c.execute(
-                "SELECT event_type, lower(email), received_at FROM sweego_events "
-                "WHERE site_code = ? AND event_type IN "
-                "      ('email_opened', 'email_clicked', 'hard_bounce', 'complaint')",
-                [site]).fetchall()
-        finally:
-            c.close()
+        envoyes_md, erreurs_md = c.execute(
+            "SELECT count(*) FILTER (WHERE status = 'sent'), "
+            "       count(*) FILTER (WHERE status = 'error') "
+            "FROM maildoso_sent WHERE site_code = ?", [site]).fetchone()
+        envoyes_sw, depuis_sw = c.execute(
+            "SELECT COALESCE(sum(recipients_count), 0), min(created_at) "
+            "FROM mass_campaigns WHERE site_code = ?", [site]).fetchone()
+        evenements = c.execute(
+            "SELECT event_type, lower(email), received_at FROM sweego_events "
+            "WHERE site_code = ? AND event_type IN "
+            "      ('email_opened', 'email_clicked', 'hard_bounce', 'complaint')",
+            [site]).fetchall()
+    finally:
+        c.close()
 
     prospects: set = set()
     engagement: dict = {}

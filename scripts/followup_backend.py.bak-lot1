@@ -195,14 +195,8 @@ def _total_pool(site: str) -> int | None:
     try:
         import sys
         sys.path.insert(0, str(BASE_DIR / "scripts"))
-        # PostgreSQL d'abord (étape 5) : cette pastille se rafraîchit à chaque ouverture
-        # d'écran, c'est-à-dire souvent pendant qu'un scrape tient le verrou du pool.
-        try:
-            import pool_pg as _src
-            etats = (_src.stats_for_site(site) or {}).get("by_state") or {}
-        except Exception:
-            import contacts_pool_backend as _duck
-            etats = (_duck.stats_for_site(site) or {}).get("by_state") or {}
+        import contacts_pool_backend as pool
+        etats = (pool.stats_for_site(site) or {}).get("by_state") or {}
         valeur = int(etats.get("lead", 0) or 0) + int(etats.get("prm", 0) or 0)
     except Exception:
         # Pool indisponible (verrou d'écriture) : on ne casse pas la pastille pour autant,

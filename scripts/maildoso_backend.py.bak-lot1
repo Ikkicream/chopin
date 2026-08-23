@@ -195,37 +195,6 @@ def _pick_mailbox(site: str, today: _date) -> dict | None:
             "username": r[4], "password_ref": r[5]}
 
 
-def _toutes_pleines(site: str) -> bool:
-    """Plus aucune boîte n'a de place aujourd'hui ? Alors seulement le lot s'arrête."""
-    try:
-        import expediteur
-        return not any(b["active"] and b["reste"] > 0 for b in expediteur.boites(site))
-    except Exception:  # noqa: BLE001
-        return False
-
-
-def _boite_du_contact(site: str, email_contact: str, today: _date) -> dict | None:
-    """La boîte d'envoi de CE contact — la même à chaque fois (décision du 2026-08-23).
-
-    L'ancienne rotation « la moins chargée, au hasard » changeait d'expéditeur d'un envoi
-    à l'autre. Or un prospect qui a ouvert a fait gagner à cette adresse-là un signal
-    positif dans son client de messagerie : lui réécrire depuis une autre, c'est repartir
-    de zéro auprès de lui. Voir `expediteur`.
-
-    Rend None quand la boîte du contact est pleine : il attend demain plutôt que de
-    changer d'adresse. L'appelant doit le traiter comme un REPORT, pas comme un échec.
-    Repli sur l'ancienne rotation si PostgreSQL ne répond pas — mieux vaut un expéditeur
-    imparfait qu'un lot bloqué.
-    """
-    try:
-        import expediteur
-        return expediteur.choisir(email_contact, site)
-    except Exception as e:  # noqa: BLE001
-        print(f"[maildoso] affinité expéditeur indisponible ({type(e).__name__}: {e}) "
-              f"— rotation par défaut", flush=True)
-        return _pick_mailbox(site, today)
-
-
 def _increment_sent(email: str):
     c = _conn()
     try:
@@ -237,16 +206,6 @@ def _increment_sent(email: str):
 def stats(site: str = SITE_DEFAULT) -> dict:
     """Compteurs d'envoi Maildoso pour un site (table maildoso_sent).
     Maildoso = SMTP : pas de tracking d'ouverture/clic natif → seuls sent/errors sont connus."""
-    # Journal servi par PostgreSQL (fin du Lot 1) : `maildoso_sent` vit dans
-    # `god_mode.duckdb`, le fichier que le dispatch et le scraping se disputent — et dont
-    # le verrou a produit 156 lignes de journal en double le 2026-08-22. Repli DuckDB si
-    # PostgreSQL ne répond pas.
-    try:
-        import journal_pg
-        return journal_pg.stats_canal(site, "maildoso")
-    except Exception as e:  # noqa: BLE001
-        print(f"[maildoso] stats: PostgreSQL indisponible ({type(e).__name__}: {e}) "
-              f"— repli DuckDB", flush=True)
     _ensure_tables()
     c = _conn()
     try:
@@ -278,37 +237,6 @@ def _record_sent(site, campaign_id, mailbox, to_email, subject, rfc_msgid, statu
                    subject, rfc_msgid or "", status, error, datetime.now(timezone.utc)])
     finally:
         c.close()
-    _journaliser_hors_campagne(site, campaign_id, mailbox, to_email, rfc_msgid, status)
-
-
-def _journaliser_hors_campagne(site, campaign_id, mailbox, to_email, rfc_msgid, status):
-    """Journalise dans PostgreSQL les envois qu'aucun autre chemin ne journalise.
-
-    Un envoi de campagne est déjà porté au journal par `mark_pushed_to_emelia`, qui écrit
-    PostgreSQL avant DuckDB. Les BAT et les tests, eux, ne passent pas par ce chemin : ils
-    partaient réellement, consommaient le quota de la boîte, et n'apparaissaient nulle part
-    dans PostgreSQL. Quatre d'entre eux le 2026-08-21 suffisaient à décaler de 4 envois le
-    calcul de montée en charge une fois celui-ci lu dans PostgreSQL.
-
-    La distinction se lit dans l'identifiant : un lot de campagne vaut
-    « {site}-{campagne}-{AAAA}-{MM}-{JJ} », donc six segments. Tout le reste — chaîne vide,
-    « lcr-bat », un nom de gabarit — est un envoi hors campagne.
-
-    Best-effort et volontairement muet en cas d'échec de la campagne : re-journaliser un
-    envoi déjà journalisé créerait le doublon que tout le reste s'emploie à supprimer.
-    """
-    if status != "sent" or not to_email:
-        return
-    if len((campaign_id or "").split("-")) >= 6:
-        return          # lot de campagne : déjà journalisé, ne pas écrire deux fois
-    try:
-        import pg_sync
-        pg_sync.record_event(to_email, "sent", site, "maildoso", mailbox=mailbox,
-                             provider_msg_id=rfc_msgid or None,
-                             meta={"source": "maildoso_bat", "campagne": campaign_id or ""})
-    except Exception as e:  # noqa: BLE001
-        print(f"[maildoso] journal PostgreSQL indisponible pour un envoi hors campagne : "
-              f"{type(e).__name__}: {e}", flush=True)
 
 
 def already_sent_emails(campaign_id: str) -> set[str]:
@@ -321,17 +249,6 @@ def already_sent_emails(campaign_id: str) -> set[str]:
     repioche les contacts déjà contactés et leur renvoie le même email."""
     if not campaign_id:
         return set()
-    # Lue dans PostgreSQL depuis la fin du Lot 1. Cette garde protège du scénario
-    # « le process meurt au milieu d'un lot » — or ce qui le tuait le plus souvent était
-    # précisément le verrou du fichier qu'elle interrogeait. Elle ne pouvait pas être la
-    # dernière à rester dessus. En cas d'indisponibilité PostgreSQL on retombe sur DuckDB :
-    # une garde dégradée vaut mieux qu'aucune garde.
-    try:
-        import journal_pg
-        return journal_pg.deja_servis(campaign_id)
-    except Exception as e:  # noqa: BLE001
-        print(f"[maildoso] garde de reprise: PostgreSQL indisponible "
-              f"({type(e).__name__}: {e}) — repli DuckDB", flush=True)
     c = _conn()
     try:
         rows = c.execute("SELECT DISTINCT to_email FROM maildoso_sent "
@@ -421,10 +338,9 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
         return {"ok": False, "error": "text ou html requis"}
     _ensure_tables()
     today = _date.today()
-    mb = mailbox or _boite_du_contact(site, (contact or {}).get("email") or to_email, today)
+    mb = mailbox or _pick_mailbox(site, today)
     if not mb:
-        return {"ok": False, "reporte": True,
-                "error": "aucune boîte disponible pour ce contact aujourd'hui"}
+        return {"ok": False, "error": "aucune boîte active sous son cap journalier"}
     password = _env().get(mb.get("password_ref") or "MAILDOSO_SMTP_PASSWORD", "")
     if not password:
         return {"ok": False, "error": f"secret {mb.get('password_ref')} absent du .env"}
@@ -434,30 +350,9 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
         text = html_to_text(html)
 
     # Personnalisation par destinataire ({{prenom}}, {{entreprise}}, {{expediteur_*}}, désinscription…)
-    gabarits = [x for x in (subject, text, html) if x]
     subject = _apply_tokens(subject, contact, mb)
     text = _apply_tokens(text, contact, mb)
     html = _apply_tokens(html, contact, mb) if html else html
-
-    # Dernier rideau AVANT le SMTP : un email troué ne se rattrape pas, il se lit.
-    # Le contrôle porte sur le texte RENDU, donc il voit ce que le destinataire verrait —
-    # y compris une variable qu'aucun moteur ne connaît, que `_apply_tokens` laissait
-    # passer telle quelle, et les accolades simples ou crochets qu'il ne regardait même pas.
-    # Le refus est INDIVIDUEL : il écarte ce destinataire, jamais le lot.
-    try:
-        import garde_variables as gvar
-        subject = gvar.nettoyer_ponctuation(subject)
-        text = gvar.nettoyer_ponctuation(text)
-        verdict = gvar.verifier_avant_envoi(subject, text, html, contact, gabarits)
-        if not verdict["ok"]:
-            print(f"[maildoso] envoi REFUSÉ à {to_email} : {'; '.join(verdict['motifs'][:3])}",
-                  flush=True)
-            return {"ok": False, "refuse": True, "error": "message incomplet: "
-                    + "; ".join(verdict["motifs"][:3])}
-    except ImportError:
-        # Le garde-fou absent ne doit pas empêcher d'envoyer, mais il doit s'entendre.
-        print("[maildoso] garde_variables introuvable — envoi SANS contrôle des variables",
-              flush=True)
 
     # Tracking comportemental par destinataire (ouvertures via pixel, clics via
     # redirection) — SMTP n'offre rien nativement, on utilise l'infra de tokens Genesis.
@@ -545,13 +440,6 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
     text = html_to_text(html_str)
 
     sent, sent_emails, errors, exhausted = 0, [], [], False
-    # Trois issues qui ne sont PAS des erreurs, et qu'il faut compter à part sous peine
-    # de les confondre avec une panne :
-    #   - reportés : la boîte attitrée du contact est pleine, il attend demain ;
-    #   - refusés  : le message aurait comporté un trou, on ne l'envoie pas ;
-    #   - ignorés  : déjà servis par ce lot (reprise).
-    reportes: list[str] = []
-    refuses: list[dict] = []
     items = [{"email": r} if isinstance(r, str) else r for r in (recipients or [])]
     items = [it for it in items if it.get("email") and "@" in it["email"]]
     # Garde de reprise : on ne réexpédie jamais à quelqu'un que ce campaign_id a déjà servi.
@@ -576,19 +464,6 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
                     on_sent(it)
                 except Exception as e:  # noqa: BLE001
                     print(f"[maildoso] on_sent({it['email']}) a échoué : {e}")
-        elif res.get("reporte"):
-            # La boîte attitrée de ce contact est pleine. On ne change PAS d'expéditeur
-            # (c'est tout l'intérêt de l'affinité), on passe au suivant. Le lot ne
-            # s'arrête que si plus AUCUNE boîte n'a de place — sinon la première boîte
-            # remplie stopperait l'envoi des trois autres.
-            reportes.append(it["email"])
-            if _toutes_pleines(site):
-                exhausted = True
-                break
-            continue          # rien n'est parti : pas de pause à observer
-        elif res.get("refuse"):
-            refuses.append({"email": it["email"], "motif": res.get("error")})
-            continue          # rien n'est parti : pas de pause à observer
         else:
             errors.append({"email": it["email"], "error": res.get("error")})
             if "aucune boîte active" in (res.get("error") or ""):
@@ -596,14 +471,7 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
                 break
         if i < len(items) - 1:
             time.sleep(random.randint(*pace))
-    if refuses:
-        print(f"[maildoso] {campaign_id} : {len(refuses)} destinataire(s) REFUSÉ(S) — "
-              f"message incomplet. Premier : {refuses[0]}", flush=True)
-    if reportes:
-        print(f"[maildoso] {campaign_id} : {len(reportes)} destinataire(s) reporté(s) — "
-              f"boîte attitrée pleine", flush=True)
     out = {"ok": sent > 0 or not errors, "sent": sent, "sent_emails": sent_emails,
-           "reportes": len(reportes), "refuses": refuses[:20], "nb_refuses": len(refuses),
            "skipped": skipped, "errors": errors[:10]}
     if exhausted:
         out["exhausted"] = True

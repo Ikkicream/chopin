@@ -3597,8 +3597,6 @@ async def api_track_open(t: str = ""):
             if email and "@" in email:
                 _cpb.record_engagement(info.get("site") or "lcr", email, "open",
                                        info.get("channel") or "maildoso")
-                # Pixel maison : c'est notre propre lien, pas un relais Sweego — pas de
-                # drapeau proxy à transmettre, le défaut convient.
         except Exception as _e:
             print(f"[track][open] {_e}")
     return Response(content=_GIF, media_type="image/gif",
@@ -3703,29 +3701,6 @@ async def api_sweego_webhook(request: Request):
         target_state = "blacklisted"
     else:                                           # delivered, sent, soft_bounce, *_proxy…
         target_state = None
-
-    # === Journal PostgreSQL (fin du Lot 1) ===
-    # Écrit AVANT DuckDB, comme tout ce qui porte une règle métier : un rebond dur ou une
-    # plainte doit être enregistré même si `god_mode.duckdb` est verrouillé par un dispatch.
-    # Le drapeau `proxy` est conservé plutôt que filtré : 57 % des ouvertures Sweego sont
-    # des pré-chargements antispam, et « une ouverture proxy compte-t-elle ? » ne se
-    # répond pas pareil selon qu'on mesure la délivrabilité ou l'intérêt d'un prospect.
-    try:
-        sys.path.insert(0, str(BASE_DIR / "scripts"))
-        import pg_sync as _pgs
-        _TYPES_JOURNAL = {"email_opened": "open", "email_clicked": "click",
-                          "hard_bounce": "bounce", "hardbounce": "bounce",
-                          "complaint": "complaint", "list_unsub": "unsub",
-                          "clicked_unsub": "unsub"}
-        _cible = _TYPES_JOURNAL.get(event_type)
-        if _cible:
-            _pgs.record_event(email, _cible, site, "sweego",
-                              url=(data.get("click") or {}).get("url") or None,
-                              provider_msg_id=data.get("transaction_id") or None,
-                              meta={"source": "sweego_webhook", "proxy": bool(is_proxy_open),
-                                    "campagne_sweego": str(campaign_id)})
-    except Exception as _e:
-        print(f"[sweego_webhook] journal PostgreSQL indisponible : {_e}")
 
     # === Audit log des events Sweego (table créée à la volée) ===
     try:
@@ -4449,7 +4424,7 @@ def api_acq_list(
     # d'en demander cinq cents. Voir `garde_lecture`.
     lim = gl.plafonner(role, limit)
     try:
-        contacts = _lecture_pool("list_contacts_for_site")(
+        contacts = pool.list_contacts_for_site(
             site, state=states or None, source=sources or None,
             search_email=search.strip() or None, limit=lim, offset=max(0, offset))
     except Exception as e:  # noqa: BLE001
@@ -4479,8 +4454,9 @@ def api_acq_stats(site: str):
     if site not in ("lcr", "mkd"):
         return {"error": "invalid site"}
     sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import contacts_pool_backend as pool
     try:
-        return _lecture_pool("stats_for_site")(site)
+        return pool.stats_for_site(site)
     except Exception as e:  # noqa: BLE001
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=503, content={"error": f"pool indisponible: {e}"[:200]})
@@ -5063,34 +5039,6 @@ def api_vision(site: str):
     return out
 
 
-def _lecture_pool(nom: str):
-    """La fonction de lecture du pool, servie par PostgreSQL quand il répond.
-
-    Étape 5 de la migration : les écrans lisent PostgreSQL, le pool DuckDB n'est plus que
-    le repli. Ce repli n'est pas décoratif — c'est justement le fichier que le scraping
-    verrouille, donc la raison d'être de la bascule ; mais une page qui affiche des chiffres
-    d'il y a une heure vaut mieux qu'une page qui explique pourquoi elle n'affiche rien.
-
-    Le choix se refait à CHAQUE appel, sans redémarrage : un PostgreSQL redevenu joignable
-    est repris au premier rafraîchissement. L'échec est journalisé — un repli silencieux
-    laisserait croire la bascule faite alors qu'elle ne l'est plus (leçon du 19/08).
-
-    Équivalence des deux sources prouvée chiffre par chiffre : tests/test_pg_acquisition.py.
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import pool_pg
-    import contacts_pool_backend as _duck
-
-    def appeler(*a, **k):
-        try:
-            return getattr(pool_pg, nom)(*a, **k)
-        except Exception as e:  # noqa: BLE001
-            print(f"[pool] {nom}: PostgreSQL indisponible ({type(e).__name__}: {e}) "
-                  f"— repli sur DuckDB", flush=True)
-            return getattr(_duck, nom)(*a, **k)
-    return appeler
-
-
 @app.get("/api/sites/{site}/pool/contacts")
 def api_pool_contacts(site: str, request: Request, state: str = "", sectors_in: str = "",
                       source: str = "", search: str = "", engagement: str = "",
@@ -5098,10 +5046,8 @@ def api_pool_contacts(site: str, request: Request, state: str = "", sectors_in: 
     """Liste les contacts du pool utilisés par ce site (avec filtres + recherche).
     `engagement` : openers | clickers (filtre comportemental)."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from contacts_pool_backend import ETAPES
-    list_contacts_for_site = _lecture_pool("list_contacts_for_site")
-    count_contacts_for_site = _lecture_pool("count_contacts_for_site")
-    compter_par_etape = _lecture_pool("compter_par_etape")
+    from contacts_pool_backend import (list_contacts_for_site, count_contacts_for_site,
+                                       compter_par_etape, ETAPES)
     import garde_lecture as gl
     role, qui = _qui(request)
     etat = gl.verifier(qui, role)
@@ -5142,7 +5088,8 @@ def api_pool_contacts(site: str, request: Request, state: str = "", sectors_in: 
 def api_pool_filter_values(site: str):
     """Valeurs distinctes (secteur, source) + compteurs pour les filtres Acquisition."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    return _lecture_pool("filter_values_for_site")(site)
+    from contacts_pool_backend import filter_values_for_site
+    return filter_values_for_site(site)
 
 
 @app.get("/api/sites/{site}/pool/contacts/{contact_id}")
@@ -5195,7 +5142,8 @@ def api_pool_contact_detail(site: str, contact_id: str):
 def api_pool_stats(site: str):
     """Stats du pool pour ce site."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    return _lecture_pool("stats_for_site")(site)
+    from contacts_pool_backend import stats_for_site
+    return stats_for_site(site)
 
 
 # ── Enrichissement data.gouv (pool mutualisé, cf. scripts/datagouv_enrich.py) ──
@@ -5537,8 +5485,7 @@ async def api_enrichment_run(request: Request):
 def api_pool_depletion(site: str, threshold: int = 10):
     """Alerte secteur épuisé pour ce site."""
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from contacts_pool_backend import pool_sectors
-    check_pool_depletion = _lecture_pool("check_pool_depletion")
+    from contacts_pool_backend import check_pool_depletion, pool_sectors
     from god_mode_backend import SECTORS_GOD_MODE
     sectors = pool_sectors() or SECTORS_GOD_MODE  # secteurs RÉELS du pool, pas la liste scrapable figée
     return {"depleted": check_pool_depletion(site, sectors, threshold=threshold)}

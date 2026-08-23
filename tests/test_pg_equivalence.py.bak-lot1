@@ -167,54 +167,27 @@ def lance():
             b["bloques"] - a["bloques"] <= max(5, a["bloques"] // 100),
             f"(+{b['bloques'] - a['bloques']})")
 
-    print("\n9. PostgreSQL accueille tout le monde — et la PIOCHE, elle, ne prend que du propre")
-    # Écrit à l'envers jusqu'au 2026-08-23 : le test exigeait qu'aucun blacklisté, aucun
-    # non-valid Mailnjoy et aucun non-enrichi ne figure dans `contacts`. C'était la règle
-    # du modèle en entonnoir, abandonné le 2026-08-20 : PostgreSQL accueille désormais TOUS
-    # les contacts, chacun portant un `etat`, précisément pour se souvenir de ceux qu'on a
-    # écartés au lieu de les re-scraper. Le test restait donc rouge en décrivant une règle
-    # qui n'existe plus — et un test durablement rouge ne protège plus rien.
-    #
-    # Ce qui doit être vrai aujourd'hui, et qui est vérifié ici : le filtre s'est déplacé de
-    # la PORTE vers la PIOCHE. Un contact sale a le droit d'exister ; il n'a pas le droit de
-    # recevoir un email.
+    print("\n9. PostgreSQL ne contient QUE du propre")
     import psycopg2
     dsn = [l.split("=", 1)[1].strip() for l in
            open("/home/autoblog/genesis/.env") if l.startswith("PG_DSN=")][0]
     cx = psycopg2.connect(dsn)
     cu = cx.cursor()
-
-    cu.execute("SELECT count(*) FROM contacts WHERE global_blacklisted")
-    n_bl = cu.fetchone()[0]
-    verifie("les blacklistés sont CONSERVÉS, pas effacés", n_bl > 0,
-            f"({n_bl} gardés, marqués)")
-    cu.execute("SELECT count(*) FROM contacts WHERE global_blacklisted AND etat <> 'spam'")
-    verifie("tout blacklisté porte l'état 'spam'", cu.fetchone()[0] == 0)
-    # La cascade de `pg_gate.ETAT_SQL` est ORDONNÉE : blacklisté l'emporte sur Mailnjoy,
-    # qui l'emporte sur l'exclusion data.gouv. Un contact à la fois exclu et invalide sort
-    # donc en 'ko', et c'est la bonne réponse — le verdict le plus dur gagne.
-    cu.execute("SELECT count(*) FROM contacts ct JOIN contact_enrichment e "
-               "ON e.contact_id = ct.id WHERE e.excluded "
-               "AND ct.etat NOT IN ('exclu', 'ko', 'spam')")
-    verifie("tout exclu data.gouv est écarté par son état", cu.fetchone()[0] == 0)
-    cu.execute("SELECT count(*) FROM contacts WHERE mailnjoy_decision IS NOT NULL "
-               "AND mailnjoy_decision <> 'valid' AND etat NOT IN ('ko', 'spam', 'exclu')")
-    verifie("tout verdict Mailnjoy négatif se voit dans l'état", cu.fetchone()[0] == 0)
-
-    # Le verdict Mailnjoy n'était recopié qu'à l'insertion : une adresse vérifiée APRÈS sa
-    # première entrée restait « jamais vérifiée » pour toujours, donc écartée de toute
-    # campagne par la clause de second rideau. 1 077 contacts dans ce cas le 2026-08-23.
-    cu.execute("SELECT count(*) FROM contacts WHERE etat = 'ok' "
-               "AND mailnjoy_decision IS DISTINCT FROM 'valid'")
-    n_incoherents = cu.fetchone()[0]
-    verifie("aucun contact 'ok' sans verdict Mailnjoy valide", n_incoherents == 0,
-            f"({n_incoherents} — le miroir Mailnjoy a re-décroché)")
+    for libelle, req in (
+        ("aucun blacklisté", "SELECT count(*) FROM contacts WHERE global_blacklisted"),
+        ("aucun non-valid Mailnjoy",
+         "SELECT count(*) FROM contacts WHERE mailnjoy_decision IS DISTINCT FROM 'valid'"),
+        ("aucun exclu par l'enrichissement",
+         "SELECT count(*) FROM contacts ct JOIN contact_enrichment e "
+         "ON e.contact_id = ct.id WHERE e.excluded"),
+        ("aucun non enrichi",
+         "SELECT count(*) FROM contacts ct LEFT JOIN contact_enrichment e "
+         "ON e.contact_id = ct.id WHERE e.contact_id IS NULL"),
+    ):
+        cu.execute(req)
+        n = cu.fetchone()[0]
+        verifie(libelle, n == 0, f"({n} trouvé(s))")
     cx.close()
-
-    # Et la pioche, elle, reste propre : c'est la garantie qui compte.
-    lot = pg.pick_for_campaign("lcr", "immobilier", limit=200)
-    verifie("aucun blacklisté dans la pioche",
-            not [x for x in lot if x.get("global_blacklisted")])
 
     print("\n" + "=" * 62)
     if ECHECS:

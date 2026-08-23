@@ -11026,3 +11026,216 @@
   "ok": true,
   "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
 }
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "83 Var",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-23T10:00:04+00:00 start restaurant / dept 83 Var — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1159 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 83",
+    "valid": 56,
+    "current_city": "Toulon"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 83",
+    "valid": 124,
+    "current_city": "La Valette-du-Var"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 83",
+    "valid": 147,
+    "current_city": "Ollioules"
+  }
+}
+[mailnjoy] 51 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 51 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 51 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 52 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 52 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[daily] 2026-08-23T10:48:27+00:00 passe non terminée (status=quota) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "quota",
+  "valid": 147
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1004/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1534/1000 contacts collectés)"
+}

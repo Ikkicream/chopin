@@ -23282,3 +23282,24 @@
 {"ts": "2026-08-23T08:56:13.535207+00:00", "email": "acacias06410@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-23T08:57:06.751139+00:00", "email": "traiteur@lesurcouf-latrinite.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
 {"ts": "2026-08-23T09:03:09.709739+00:00", "email": "events@vita-group.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T10:03:04.991588+00:00", "email": "m.truc@st-endreol.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:08:31.576279+00:00", "email": "commande@lardoisier.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:09:34.975067+00:00", "email": "resa@adonis-sanary.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:09:44.042916+00:00", "email": "ctouillet@1870cvf.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:09:49.158164+00:00", "email": "restaurantle111aupradet@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:15:54.739080+00:00", "email": "larabi1964@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:16:04.494640+00:00", "email": "reservations@siblu.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T10:16:38.285215+00:00", "email": "labaiedelagorguette83110@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:22:29.109182+00:00", "email": "hugop@hugopecego-chefprive.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T10:22:52.039369+00:00", "email": "restaurant@lestourelles.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:23:02.521568+00:00", "email": "prao@praoplage.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:23:55.629780+00:00", "email": "cindy.ruiz281099@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:24:01.663902+00:00", "email": "alimi086@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:24:41.157707+00:00", "email": "lapitchouline83110@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:24:59.502888+00:00", "email": "pokehawaii83110@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:25:02.369511+00:00", "email": "l.arestaurant83110@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:26:06.399726+00:00", "email": "restau369@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:32:05.688667+00:00", "email": "%20lacheesecantine@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T10:33:52.731741+00:00", "email": "info-embiez@paul-ricard.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T10:34:34.119610+00:00", "email": "beauregardkitchen@gmail.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T10:36:07.652634+00:00", "email": "reservations@chateaumentone.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}

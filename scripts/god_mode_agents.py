@@ -14,7 +14,7 @@ import random
 import re
 import time
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 import requests
 
@@ -233,7 +233,13 @@ def _emails_in_text(text: str, max_at: int = 2000) -> list[str]:
         window = text[max(0, i - 64): i + 190]
         m = EMAIL_RE.search(window)
         if m:
-            out.append(m.group(0))
+            # Décode les séquences d'URL (%20 = espace) puis nettoie : un lien
+            # `mailto:%20contact@site.fr` — fréquent quand un webmaster écrit
+            # `mailto: contact@…` — donnait sinon un email `%20contact@…` invalide,
+            # inséré tel quel en base. Constaté le 2026-08-23 (16 contacts corrompus).
+            cand = unquote(m.group(0)).strip()
+            m2 = EMAIL_RE.search(cand)
+            out.append(m2.group(0) if m2 else m.group(0))
         pos = i + 1
     return out
 

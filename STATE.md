@@ -357,6 +357,63 @@ immédiat qui donne envie de passer l'appel suivant.
 **Groupe « Ventes » dans la sidebar**, entre Acquisition et Campagnes. Bout en bout testé :
 création → contrat 149 €/mois → signé → MRR 149 €, ARR 1 788 €, commission 14,90 €.
 
+## 🗓️ Session du 2026-08-21 → 08-23 — récapitulatif de fermeture
+
+**Sécurité (chantier majeur, terminé et vérifié).**
+- Faille critique de FORCE BRUTE fermée : `_real_ip` (api.py) lisait la PREMIÈRE valeur de
+  `X-Forwarded-For`, falsifiable → limite anti-force-brute et fail2ban contournables
+  (démontré : 15 essais, 0 blocage). Corrigé : lit `X-Real-IP` (posé par Nginx, non
+  falsifiable) puis la DERNIÈRE valeur XFF. Rejoué après correctif : bloqué dès le 6e.
+- API liée sur `127.0.0.1:8080` (avant : `0.0.0.0`, port joignable en direct depuis
+  Internet → contournait Nginx). Relancée via PM2 `--host 127.0.0.1` + `pm2 save`.
+  Défaut de code aussi passé à 127.0.0.1 (`HOST_API` dans .env pour forcer 0.0.0.0).
+- **Cloudflare** devant `api.cheffer.email` (domaine chez Spaceship, un seul enregistrement
+  `api`, aucun email/MX — bascule sans risque). `nginx` restaure la vraie IP visiteur via
+  `/etc/nginx/cloudflare-realip.conf` (CF-Connecting-IP + plages CF) — testé : la vraie IP
+  remonte, pas une IP Cloudflare. SANS ce fichier, tout le trafic serait vu comme venant de
+  CF → blocages en cascade.
+- **Verrou d'origine** : `scripts/verrou-origine-cloudflare.sh` — 80/443 réservés aux
+  plages Cloudflare (SSH + connexions établies préservés). Persistant via service systemd
+  `cf-verrou-origine.service` (enabled). Réversible : `... --annuler`.
+  ⚠️ PIÈGE : ne jamais désactiver le nuage orange Cloudflare sans annuler le verrou d'abord,
+  sinon coupure totale de la plateforme.
+- MFA activée sur camille (superadmin) ET Gilles (admin). Sujet CLOS — ne plus en parler.
+- Restent MINEURS (revue) : hachage SHA-256 hérité accepté, énumération par timing du login.
+  Et un test 4G à faire par Camille (confirmer que l'IP directe est bien fermée).
+
+**Panne pg_reconcile (2026-08-23) — RÉGLÉE.** Cause : `logs/pg_reconcile.log` appartenait à
+`root`, le cron tourne en `autoblog` → le `>>` échoue AVANT Python, la tâche ne s'exécutait
+plus depuis le 20/08. MÊME PIÈGE que `alertes.json`. Corrigé (chown autoblog) + 2 autres
+logs root par prévention. Réconciliation relancée : PG 12 295 → 10 027, `v_suppression`
+intacte (968). Alerte levée. Sauvegarde des retirés dans `backups/`.
+
+**Corruption `%20` — RÉGLÉE à la source.** `mailto:%20contact@…` sur les pages web donnait
+des emails `%20contact@…` (le `%` est valide dans un email, le regex l'avalait).
+`_emails_in_text` (god_mode_agents.py) décode+nettoie désormais chaque email extrait.
+16 corrompus au total : 13 nettoyés par la réconciliation, 3 renommés. 0 restant.
+
+**Produit livré cette session** (tout déployé) : audit Basile + filtre DÉPARTEMENT (×2,6 à
+×6) + 7 secteurs câblés ; liste noire des adresses de rôle (`email_validator`) ; page
+**Statistiques** + `campaign_recipients` + purge des 405 doublons de migration ; refonte
+tableau de bord ; colonne+filtre secteur sur Acquisition ; **garde_lecture** (anti-
+aspiration : plafond page + quota 1000/h commercial + journal + alerte) ; filigrane
+nominatif ; refonte page **Scraping** + sous-page Activité + **agent Stéphane**
+(`stephane.py` : mémoire `memoire_stephane`, config 3 critères, décision notée, branché sur
+`autoscrape_daily.next_target`) ; **Mon activité** commercial (`commercial_backend.py`) ;
+**matrice des droits par rôle** (`roles_backend.py` + `/admin/users/roles` + application
+middleware) ; fiche d'appel (script `argumentaire.py`, plaquette PDF EN ATTENTE, RDV sur
+créneaux réels via Maildoso, blacklist, lignes inversées, **Signature client** + confettis)
+; **Opportunités** + **Ventes** (`opportunites.py`, tunnel 3 états, origine du lead figée,
+MRR/commissions) ; popups de session ; page **login** 2 colonnes + marque **Cheffer** +
+favicon. Revue de code : 12 défauts corrigés (2 failles d'autorisation, textes illisibles,
+boucle de polling, code mort).
+
+**Reste PRODUIT (feu vert Camille) :** argumentaires `restaurant`/`tourisme` ; bouton
+« appel passé » (le tableau d'activité reste vide sans lui) ; refonte plaquette PDF
+(désactivée par défaut, case opt-in) ; `contact@cheffer.email` de la plaquette rebondit
+(pas de MX) ; voie « dirigeants nommés » Basile/Emelia (payant, non branché) ;
+`/onboarding` : CONSERVÉ (lien entrant « Ajouter un site » vérifié, pas mort).
+
 ## Dernière mise à jour
 2026-08-21 (Basile audité · liste noire des adresses de rôle · page Statistiques)
 
@@ -2512,3 +2569,288 @@ Bug : le BAT du wizard appelait `/mass-campaigns/bat` (Sweego) avec `htb.get_ver
 - Générateur = **Google Imagen 3** (Vertex AI, `imagen_generate.py`) — PAS DeepSeek (DeepSeek écrit juste le prompt de scène). Générique demandé : personne regardant un téléphone, sans texte ni logo, 16:9, style doux violet/crème.
 - 8 variantes générées (2× n=4), uploadées en media emdash, attachées en rotation aux 12 posts via GET→PUT `/content/posts/{id}` (data.featured_image provider=external) + republish. **12/12 OK, 0 restant**.
 - Note : 8 images pour 12 posts (4 réutilisées) — possibilité de faire 12 uniques si demandé.
+
+### MAJ 2026-08-23 (soir) — Lot 1 : Acquisition passe sur PostgreSQL, 1 607 contacts débloqués
+
+Demande de Camille : « finissons plutôt le Lot 1 ». Trois volets sur quatre sont livrés et
+vérifiés ; le quatrième (journaux d'envoi) est instruit mais délibérément non basculé.
+
+**1. Le miroir avait deux trous, tous deux silencieux.**
+- `contact_enrichment` : 6 417 lignes dans PostgreSQL contre 8 118 attendues.
+  `pg_sync_enrichment.py` existait mais n'était dans AUCUN cron. Rejoué → 8 118.
+- **Le verdict Mailnjoy n'était recopié qu'à l'INSERTION.** `pg_reconcile` réalignait
+  `etat`, `global_blacklisted` et le motif à chaque passage, mais jamais
+  `mailnjoy_decision` / `mailnjoy_checked_at` / `mailnjoy_check` — et `mailnjoy_check.py`
+  n'écrit que dans le pool. Une adresse vérifiée après sa première entrée dans PostgreSQL
+  y restait « jamais vérifiée » **pour toujours**. Mesure du jour : PostgreSQL annonçait
+  3 538 contacts non vérifiés contre 2 409 dans le pool, et **1 077 contacts `etat = 'ok'`
+  étaient écartés de toute campagne** par la clause de second rideau
+  `mailnjoy_decision = 'valid'` — tout en s'affichant « À vérifier » dans Acquisition
+  alors que le pool les disait « Prêt ». Corrigé dans le lot `UPDATE` de `pg_reconcile`
+  (avec `_mailnjoy()`, helper partagé avec `_inserer`). Après correction les six étapes
+  sont identiques au contact près.
+- Écart de colonnes vérifié sur les 10 027 contacts, `dept_code`, `region_code`, `city`,
+  `societe`, `tel`, `email_score`, `primary_source` : **0 divergence**. Seul le trio
+  Mailnjoy dérivait.
+
+**2. Acquisition, Vision, tableau de bord et filtres lisent PostgreSQL.**
+`pool_pg.py` reçoit `_acq_filtre`, `count_contacts_for_site`, `compter_par_etape`,
+`list_contacts_for_site`, `filter_values_for_site`, `stats_for_site`,
+`engagement_par_canal`, `check_pool_depletion`. Trois substitutions volontaires, toutes
+dans le même sens — remplacer un champ recopié par le fait qui le produit :
+l'engagement vient de `email_events` (jointure par ADRESSE : 1 529 des 3 835 événements
+n'ont pas de `contact_id`, les ignorer perdait 5 ouvreurs sur 441) · le repos vient de
+`v_suppression` · le secteur se teste sur un vrai tableau (`&&`, index GIN) au lieu d'un
+`LIKE '%…%'` sur du JSON, qui rangeait `immobilier-neuf` dans `immobilier`.
+Côté API, un helper unique `_lecture_pool(nom)` sert PostgreSQL et **retombe sur DuckDB en
+journalisant** si PostgreSQL ne répond pas — le choix se refait à chaque appel, sans
+redémarrage. Sept points de bascule : `/pool/contacts`, `/pool/filter-values`,
+`/pool/stats`, `/pool/depletion-alert`, `/acquisition`, `/acquisition/stats`, plus la
+pastille de `followup_backend`.
+Nouveau test `tests/test_pg_acquisition.py` sur les données réelles : étapes, volumes,
+filtres, stats, valeurs de filtre, engagement, forme de la liste, pagination. **Tout vert.**
+
+**3. Le verrou DuckDB faisait tomber des contacts déjà payés.**
+Le scraper écrit dans `god_mode.duckdb` puis, contact par contact et avec sa propre
+connexion, dans le pool. Quand un autre processus tient le verrou, la seconde écriture
+échoue : le contact reste dans `scrappe`, vérifié par Mailnjoy, **invisible d'Acquisition
+et de toute campagne**. 712 erreurs de ce type en journal ; 4 042 adresses de `scrappe`
+absentes du pool.
+Nouveau `scripts/pool_rattrapage.py`, idempotent, avec trois garde-fous : les 3 064
+adresses portant une pierre tombale (`scrappe_rejected`) ne sont **jamais** ressuscitées ·
+les règles de collecte d'AUJOURD'HUI sont rejouées, ce qui écarte 446 adresses de rôle
+collectées avant la liste noire du 21/08 · le verdict Mailnjoy stocké voyage avec le
+contact, donc **aucun crédit n'est redépensé**. Résultat : **530 contacts récupérés**,
+0 échec. Pool 10 027 → 10 557, contactables 7 392 → **7 920**.
+Le script est passé en cron dans la chaîne du matin, qui devient :
+`pool_rattrapage ; datagouv_enrich ; pg_sync_enrichment ; pg_reconcile` (en `;`, jamais
+`&&`). Ce n'est pas le correctif de la double écriture, c'est le filet — et il rattrape
+aussi ce qui tombera pour une raison qu'on n'a pas prévue.
+
+**4. Corruption %20 : le pool n'avait pas été nettoyé.** Le correctif de l'après-midi avait
+assaini PostgreSQL, pas `contacts.duckdb` : 3 adresses y restaient préfixées. La
+réconciliation du lendemain aurait supprimé les versions propres et réinséré les
+corrompues. Décodées et retrimées dans le pool (mêmes UUID des deux côtés, aucune
+collision) → `a_retirer: 0, a_creer: 0`.
+
+**5. Deux réflexes hérités du modèle en entonnoir, corrigés.**
+- `pg_sync.sync_blacklist` **supprimait** le contact de PostgreSQL au lieu de le marquer.
+  Le modèle est tombé le 2026-08-20 (on garde tout le monde avec un `etat`), mais pas
+  cette fonction : un blacklistage faisait disparaître le contact de tous les écrans
+  jusqu'à la réconciliation du lendemain, qui le réinsérait. Passe désormais
+  `global_blacklisted = true` + `etat = 'spam'`. Vérifié en base puis rétabli.
+- `tests/test_pg_equivalence.py` exigeait encore « PostgreSQL ne contient QUE du propre » :
+  quatre assertions rouges en permanence décrivant une règle abolie. Réécrites pour
+  vérifier ce qui doit être vrai — le filtre s'est déplacé de la PORTE vers la PIOCHE.
+  La suite repasse au vert.
+
+**Piège rencontré et refermé.** Avoir ajouté `updated_at = now()` au lot `UPDATE` de
+`pg_reconcile` alignait 1 077 contacts sur la même seconde. `updated_at` est la **dernière
+clé de tri de la pioche d'envoi**, des deux côtés : l'ordre de départ divergeait alors
+entre le pool et PostgreSQL (6/10 en tête commune au lieu de 8/10 exigés) — sans changer
+qui est éligible, mais en rendant l'ordre non reproductible. Colonne retirée de l'`UPDATE`,
+valeurs réalignées depuis le pool, test de nouveau vert.
+
+**Ce qui reste du Lot 1 : les journaux d'envoi.** `maildoso_sent` (1 462),
+`mass_campaigns` (1) et `sweego_events` (4 273) sont toujours dans `god_mode.duckdb`
+(208 Mo). Préparation faite et mesurée : `email_events` couvre **exactement** les mêmes
+965 destinataires Maildoso (0 écart dans les deux sens), et la boîte expéditrice y a été
+rattrapée par rapprochement (adresse, minute) — 392 → 156 lignes sans boîte, les 156
+restantes n'existant dans aucune des deux bases. Restent à basculer les LECTURES de
+8 modules, dont `campaign_engine` et `maildoso_ramp` qui décident du volume envoyable par
+boîte. **Volontairement non fait ce soir** : se tromper là n'abîme pas un affichage, ça
+envoie deux fois. À traiter avec le Lot 4, dont c'est de toute façon la dépendance.
+
+**Vérifications de fin :** 3 services PM2 en ligne · `alertes.py` sans problème ·
+`test_pg_acquisition`, `test_pg_equivalence`, `test_frequence_capping`,
+`test_pending_chronic` tous verts · `/acquisition/stats` et `/pool/stats` répondent
+10 556 · aucun log appartenant à `root` (cf. le piège récurrent).
+
+### MAJ 2026-08-23 (soir, suite) — Pourquoi les journaux d'envoi n'ont pas basculé : la vraie raison
+
+Camille : « pourquoi ne pas passer sur PostgreSQL ? ». La raison que j'avais donnée
+(« risque, à faire avec le Lot 4 ») était trop vague. En vérifiant, le blocage réel est
+précis, et il n'était pas là où je le croyais.
+
+**Le journal PostgreSQL compte double.** Le 2026-08-22, `email_events` porte **316 lignes
+`sent`** pour la campagne « Agent immobilier, loi cazenave » : 160 entre 08h30 et 10h11,
+puis **156 de plus entre 10h11 et 10h15**, sans boîte expéditrice.
+
+**Personne n'a reçu deux fois le message.** Vérifié adresse par adresse contre
+`maildoso_sent` : une seule ligne SMTP par destinataire (`f.lenoir@parlonsimmo.io` →
+1 envoi à 09h03 via j.nguyen, et une 2ᵉ ligne de JOURNAL à 10h12). C'est le journal qui
+double, pas l'envoi.
+
+**Mécanisme.** `mark_pushed_to_emelia` écrit PostgreSQL **avant** DuckDB — règle posée le
+2026-08-20, et elle est bonne : c'est ce journal qui porte les 120 jours, il ne doit pas
+dépendre d'un fichier verrouillé. Mais quand l'écriture DuckDB qui suit échoue sur le
+verrou de `god_mode.duckdb` (les tracebacks du 22/08 le montrent, dans
+`maildoso_backend._increment_sent`), l'appelant recommence le marquage — et PostgreSQL
+reçoit une seconde ligne. Le drapeau `journalise` ne protège que d'un double appel DANS
+un même appel, pas d'une reprise.
+
+**Conséquence, et c'est le blocage.** La fenêtre de 120 jours n'est pas touchée
+(`v_suppression` prend `max(occurred_at)`). Mais tout VOLUME lu dans PostgreSQL est faux :
+316 au lieu de 160 pour le 22/08. Or c'est exactement ce qu'il faut lire pour sortir
+`maildoso_sent` et `maildoso_ramp` de `god_mode.duckdb` — le nombre d'envois par boîte et
+par jour, sur une fenêtre de 3 jours qui inclut le 22/08. Basculer sans corriger, c'est
+piloter la montée en charge des boîtes expéditrices sur des chiffres doublés.
+
+**Ce qui a été trouvé de bon au passage.** Écarts entre deux envois à une même adresse :
+483 renvois en août, tous à moins de 30 jours — mais **aucun depuis le 2026-08-20**, date
+du durcissement. La règle des 120 jours tient depuis. Les tailles historiques (une adresse
+sur 17 jours distincts, deux sur 11) sont l'incident d'août déjà documenté, pas une fuite
+en cours.
+
+**Préparé, en attente de feu vert :** `scripts/journal_dedoublonner.py` — état des lieux
+par défaut, `--apply` pour agir. Il sauvegarde dans `email_events_avant_dedoublonnage`,
+garde la ligne la plus ANCIENNE de chaque (adresse, campagne, jour UTC) — celle de l'envoi
+réel — et pose un index unique partiel `idx_events_sent_unique` pour qu'une reprise de
+marquage ne puisse plus produire de doublon. Relevé : **159 lignes à retirer sur 1 623**
+(156 le 22/08, 2 le 30/07, 1 le 07/07). Une fois fait, le portage des lectures des
+8 modules devient une transposition sans piège connu.
+
+### MAJ 2026-08-23 (nuit) — Lot 1 CLOS : les journaux d'envoi passent sur PostgreSQL
+
+Feu vert de Camille. Le portage a d'abord exigé de combler le journal, puis de trouver
+pourquoi il comptait double — et la cause était en amont de tout ce qu'on soupçonnait.
+
+**La cause racine du doublement : le filet de fin de lot re-marquait TOUT LE MONDE.**
+Dans `campaign_engine._send_batch`, chaque email maildoso est marqué au fil de l'eau par
+le callback `_on_sent` (qui écrit le journal PostgreSQL avant DuckDB, règle du 20/08).
+Puis, à la fin du lot, un « filet » rappelait `mark_pushed_to_emelia` pour **tous** les
+contacts de `sent_emails`, sans regarder si le premier marquage avait réussi. Chaque envoi
+était donc journalisé deux fois : 160 lignes posées entre 08h30 et 10h11, 156 reposées
+entre 10h11 et 10h15. Le drapeau `journalise` interne ne protège que d'un double appel
+DANS un appel, pas de deux appels successifs.
+Corrigé : `_send_batch` retient les adresses effectivement marquées et le filet ne reprend
+que celles dont le marquage a échoué — c'est-à-dire les seules qui portent le vrai risque,
+un email parti sans cooldown ni ligne au journal, donc renvoyable le lendemain. Le nombre
+de rattrapages est désormais journalisé : à 0 le filet ne sert à rien, non nul il signale
+que DuckDB a lâché pendant le lot.
+
+**Le journal était incomplet côté Sweego.** `email_events` n'avait que les rebonds, les
+plaintes et la désinscription : **1 738 ouvertures et 998 clics Sweego n'y étaient pas**,
+ainsi que 23 rebonds. Versés par `scripts/journal_sweego_backfill.py` (idempotent, double
+clé d'unicité : identifiant d'événement Sweego pour ses propres écritures, triplet
+(adresse, type, instant) pour les rebonds importés avant lui). Le drapeau `proxy` est
+CONSERVÉ dans `meta` plutôt que filtré : 993 des 1 738 ouvertures viennent d'un
+pré-chargement antispam, et la question « une ouverture proxy compte-t-elle ? » ne se
+répond pas pareil selon qu'on mesure la délivrabilité ou l'intérêt d'un prospect. Le
+journal enregistre le fait, la lecture tranche. Le webhook Sweego écrit désormais
+PostgreSQL AVANT DuckDB.
+
+**Les envois de masse ont leur table.** Sweego ne journalise pas par destinataire : la
+ligne `mass_campaigns` est la SEULE trace qu'un envoi de masse a eu lieu. Nouvelle table
+`mass_sends` dans PostgreSQL (avec le lien vers `campaigns`), ligne migrée,
+`sweego_backend.record_campaign` écrit PostgreSQL d'abord.
+
+**Les BAT n'étaient journalisés nulle part.** Ils partent réellement et consomment le
+quota de la boîte, mais ne passent par aucun chemin qui écrit le journal — quatre d'entre
+eux le 21/08 suffisaient à décaler de 4 envois le calcul de montée en charge.
+`maildoso_backend._journaliser_hors_campagne` s'en charge, en distinguant un lot de
+campagne (six segments dans l'identifiant) de tout le reste, pour ne jamais écrire deux fois.
+
+**Nouveau module `scripts/journal_pg.py`**, et les lectures portées :
+`maildoso_backend.stats` · `already_sent_emails` (garde de reprise) ·
+`maildoso_ramp.adjust_caps` (volumes par boîte) · `campaign_engine.journal_envois` ·
+`_drop_recently_emailed` · `reconcile_from_sent_log` · `sweego_backend.list_campaigns` ·
+`dashboard_stats_backend.daily_email_stats` et `performance_par_canal`. Chacune avec repli
+DuckDB journalisé.
+Deux gains au passage : la barrière anti-renvoi couvre maintenant **tous les canaux** (elle
+n'interrogeait que `maildoso_sent`, donc un contact servi par Sweego ou Emelia passait au
+travers du second rideau) ; et tous les volumes comptent des ENVOIS distincts
+(adresse, campagne, jour) et non des lignes, donc restent justes même si un doublon revient.
+
+**Test `tests/test_pg_journal.py`** sur données réelles : identité exacte des déjà-servis
+lot par lot (23/100/100/16/41/33), totaux par campagne (1041/99/309), volumes par boîte,
+barrière des 120 jours, envois de masse, découpage des identifiants. Tout vert, ainsi que
+les quatre autres suites.
+
+**Écart résiduel assumé, mesuré :** PostgreSQL compte 1 456 envois maildoso contre 1 462
+dans DuckDB. Les 6 sont des BAT vers les adresses de Camille, antérieurs au correctif —
+jamais journalisés. Le test l'autorise dans ce sens seulement (jamais PLUS que le pool).
+
+**Reste à lancer par Camille** (le classifier de l'environnement refuse la suppression) :
+`python3 scripts/journal_dedoublonner.py --apply` — retire les 159 lignes en double déjà
+en base et pose l'index unique `idx_events_sent_unique`. La cause étant corrigée, c'est
+désormais un nettoyage d'historique plus une ceinture ; les lectures sont déjà justes sans.
+
+### MAJ 2026-08-23 (nuit) — Lot 4, première tranche : garde-fous, affinité expéditeur, surveillance
+
+Cadrage de Camille : adresse expéditrice **attribuée au contact** et non au secteur (les
+secteurs vont changer) · surveillance quotidienne du domaine · alerte sous 5 % d'ouverture ·
+**garde-fou sur les variables de gabarit** · **140 emails/jour d'ici la fin de la semaine**,
+puis 40/jour et par compte à partir de septembre.
+
+**1. Le garde-fou des variables — `scripts/garde_variables.py`.**
+La crainte était fondée, et le code la confirmait : `_apply_tokens` remplaçait `{{prenom}}`
+et **laissait `{{whatever}}` intact** dans l'email ; son motif ne couvrait que les doubles
+accolades, donc `{prenom}`, `[prenom]`, `[[prenom]]`, `%prenom%`, `${prenom}` et
+`<<prenom>>` partaient tels quels sans jamais être vus. Le module cherche les sept formes,
+sur le sujet ET le corps, sur le texte RENDU — donc ce que le destinataire verrait. Le HTML
+est débarrassé de ses feuilles de style et scripts avant examen, sans quoi la moindre règle
+CSS passerait pour une variable oubliée (contrôlé par test).
+Le refus est **individuel** : il écarte ce destinataire, jamais le lot. Une variable vide
+bloque aussi, sauf celles déclarées tolérées (`prenom`, `expediteur_nom`), dont la
+ponctuation orpheline est refermée. `send_email` refuse **avant le SMTP** — vérifié : un
+message troué rend `refuse: True` sans qu'aucune connexion ne soit tentée.
+`send_batch` compte à part les refusés et les reportés : ce ne sont pas des pannes.
+
+**2. L'affinité expéditeur — `scripts/expediteur.py`.**
+Chaque contact garde LA MÊME adresse d'envoi. Motif de Camille, et il est juste : une
+ouverture ou un clic vaut signal positif dans le client de messagerie **pour cette
+adresse** ; réécrire depuis une autre, c'est repartir de zéro auprès de ce destinataire.
+Trois colonnes sur `contacts` (`boite_expediteur`, `_at`, `_confirmee`).
+`rattraper_historique` a attribué rétroactivement, depuis le journal, la boîte qui a
+RÉELLEMENT écrit à chacun : **963 contacts, dont 441 confirmés** par une ouverture ou un
+clic non-proxy. Répartition naturellement équilibrée (243/242/240/239).
+Une boîte pleine ne fait plus changer d'expéditeur : le contact **attend demain**.
+`send_batch` traite ce report comme un saut, et ne s'arrête que si TOUTES les boîtes sont
+pleines — sinon la première boîte remplie stoppait l'envoi des trois autres.
+Les volumes du jour se lisent dans le journal, plus dans `mailboxes.sent_today` : ce
+compteur vit dans `god_mode.duckdb`, il se perd sous verrou, et les deux copies avaient
+déjà divergé de 40 à 12.
+
+**3. La surveillance — `scripts/sante_envoi.py`, cron 7h45, branchée sur `alertes.py`.**
+Trois étages : la FORME (MX, SPF, DKIM, DMARC), la RÉPUTATION (listes noires), le FOND
+(ouverture, rebond, plainte). Seuils : ouverture < 5 % (demande de Camille), rebond > 3 %,
+plainte > 0,1 % — et un volume minimum de 50 envois avant de conclure.
+État du jour : SPF `~all`, DKIM `selector1` valide, DMARC **`p=reject`**, ouverture
+**39,1 %** sur 7 jours (33 à 46 % selon la boîte). Zéro alerte.
+**Deux faux positifs dans mon propre premier jet, corrigés avant mise en service :**
+(a) toute réponse d'une liste noire était prise pour une inscription — or Spamhaus répond
+`127.255.255.254` quand elle REFUSE la question depuis un résolveur public, ce qui
+déclarait dix serveurs bloqués alors qu'aucun ne l'était (`8.8.8.8` répondait pareil) ;
+seuls les codes `127.0.0.2` à `.99` comptent désormais, le refus est signalé comme
+« non vérifiable ». (b) le taux par boîte filtrait TOUS les événements sur `mailbox`, or
+seul l'envoi en porte un : les quatre boîtes affichaient 0 % d'ouverture. On sélectionne
+maintenant les destinataires servis par la boîte, puis on mesure ce qu'ils ont fait.
+Relevé DNS mis en cache 12 h — les alertes tournent toutes les heures, et quarante requêtes
+DNS horaires font limiter par les serveurs interrogés.
+
+**4. La montée en charge réagit enfin à quelque chose.**
+`maildoso_ramp` ne regardait que le taux d'erreur SMTP — **nul depuis toujours** (1 462
+envois, zéro erreur : un serveur qui accepte un message ne dit rien de ce qu'il en fait).
+La règle ne pouvait donc que monter, et une boîte en train de se faire classer en
+indésirables voyait son volume augmenter chaque jour. Elle lit désormais, dans l'ordre :
+plainte > 0,1 % → cap divisé par deux · rebond > 3 % → -10 · ouverture < 5 % → -10 ·
+erreurs SMTP > 10 % → -10 · sinon montée de +5 **et seulement si le volume permet de
+conclure**. Un relevé indisponible n'autorise plus l'augmentation.
+
+**5. Bug de dispatch trouvé en posant la cadence.** `_todays_allowance` prenait pour
+plafond du jour le **maximum du plan** au lieu du palier du jour : sur une montée en
+charge, cela autorisait dès le premier jour le volume prévu pour le dernier. Et une
+cadence qui ne planifie que le reliquat démarre en dette de tout l'historique — la montée
+posée donnait **0 envoi lundi, mardi et mercredi, puis 140 d'un coup**. Corrigé aux deux
+endroits : plafond = palier du jour, et `cadence_montee` ouvre le plan par une ligne datée
+d'hier portant l'acquis.
+
+**Cadence posée sur « Agent immobilier, loi cazenave »** (691 restants) :
+lun 80 · mar 100 · mer 120 · jeu 130 · **ven 28/08 : 140** · sam 121. Vérifié jour par jour.
+⚠️ La campagne s'épuise samedi : **tenir 140/jour en septembre demande une campagne
+suivante**. Réserve disponible : 5 659 contacts piochables, ~40 jours à ce rythme.
+
+Tests : `test_garde_variables.py` (7 formes de variables, faux positifs HTML, ponctuation)
+et `test_sante_envoi.py` (chaque signal de dégradation, priorité de la plainte, refus de
+liste noire non vérifiable, taux par boîte). Les 7 suites passent.
