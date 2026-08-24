@@ -2854,3 +2854,232 @@ suivante**. Réserve disponible : 5 659 contacts piochables, ~40 jours à ce ryt
 Tests : `test_garde_variables.py` (7 formes de variables, faux positifs HTML, ponctuation)
 et `test_sante_envoi.py` (chaque signal de dégradation, priorité de la plainte, refus de
 liste noire non vérifiable, taux par boîte). Les 7 suites passent.
+
+### MAJ 2026-08-23 (nuit +1) — Le trou de programmation : `scripts/programmation.py`
+
+Camille : « nous allons scrapper plus de 500 contacts par jour, donc 140 emails/jour ne
+sera pas un problème — sauf s'il n'y a pas de programmation. » C'est le vrai risque du
+Lot 4, et elle a mis le doigt dessus : le vivier ne manque pas (5 659 piochables), c'est la
+CERTITUDE qu'une campagne aura de quoi dispatcher demain qui manque. Le jour où la dernière
+campagne atteint sa cible, plus rien ne part et le tableau de bord affiche « done » — le
+seul arrêt d'envoi qui ne produit aucune erreur nulle part.
+
+**L'automatisation existante ne servait à rien ici.** `auto_campaigns` /
+`auto_campaign_runner` existent mais sont VIDES (0 ligne) et câblés sur **Emelia**, alors
+que Maildoso est le canal qui envoie réellement. Construire dessus aurait été bâtir sur du
+mort.
+
+**La frontière posée**, et elle est délibérée :
+- **prolonger** est mécanique : une campagne en cours dont la cadence s'achève alors que le
+  vivier est plein ne demande aucune décision. Même message, même ciblage, on ajoute des
+  jours. Fait automatiquement (cron 7h50, avant le dispatch de 8h30).
+- **créer** est un choix : message et ciblage ne s'automatisent pas. Quand il n'y a plus
+  rien à prolonger, on ALERTE au lieu d'inventer des envois que personne n'a validés.
+
+**L'objectif quotidien n'est pas une constante** : c'est la somme des plafonds des boîtes
+ACTIVES. Si `maildoso_ramp` abaisse un plafond après une plainte, l'objectif baisse avec
+lui et la programmation cesse de réclamer un volume que la délivrabilité ne permet plus.
+Le plan est en outre borné par le vivier réellement piochable : promettre 140/jour pendant
+une semaine avec 200 contacts en réserve, c'est masquer un problème de COLLECTE derrière un
+problème de cadence.
+
+**Trois défauts trouvés dans mon propre code en le testant**, tous corrigés :
+1. La ligne « acquis » de `cadence_montee` (309, l'historique déjà envoyé) servait de
+   PLAFOND une fois la cadence terminée : le moteur aurait autorisé 309 envois en une
+   journée, l'inverse de ce que la montée en charge protège. Exclue des paliers.
+2. « Jour couvert » valait « atteint la capacité des boîtes » : l'alerte aurait crié contre
+   la montée en charge qu'on venait de poser exprès (80 lundi < 160 de capacité). Un jour
+   est couvert dès qu'il a du volume prévu.
+3. **La projection était optimiste** : chaque jour était calculé sur le `sent_count`
+   d'aujourd'hui, donc une campagne avec 691 restants « couvrait » sept jours à 140 alors
+   qu'elle s'épuise au sixième. L'alerte serait partie le lendemain du jour où plus rien
+   n'était parti. La projection décrémente désormais le reliquat jour après jour.
+
+**Ce que la projection corrigée montre** — et c'est l'information utile :
+
+| 24/08 | 25/08 | 26/08 | 27/08 | 28/08 | 29/08 | **31/08** |
+|---|---|---|---|---|---|---|
+| 80 | 100 | 120 | 130 | 140 | 121 | **0** |
+
+La campagne atteint sa cible samedi. **Lundi 31/08, la file est vide.** Le cron de 7h50 la
+prolongera automatiquement (2 785 contacts immobilier piochables), et l'alerte partira si
+le vivier ne suit plus.
+
+Un comportement utile découvert au passage : une campagne dont la cadence est TERMINÉE ne
+s'arrête pas — elle continue d'envoyer son reliquat au plus gros palier prévu. Le creux ne
+vient donc jamais de la fin d'une cadence, seulement de l'épuisement de la cible.
+
+`tests/test_programmation.py` : file pleine, campagne épuisée, aucune campagne active,
+cadence à mi-horizon, borne du vivier, objectif indexé sur les plafonds, ligne d'acquis.
+Les 8 suites passent.
+
+### MAJ 2026-08-23 (nuit +2) — Lot 4 CLOS : refroidissement, contrôle anti-spam, routage
+
+**Refroidissement — `scripts/refroidissement.py`.** Une plainte n'est pas un incident
+isolé : c'est un signal envoyé au FOURNISSEUR du destinataire, qui l'agrège. Google
+Postmaster bloque vers 0,3 % et ce seuil se franchit en une journée. La boîte qui a écrit
+à l'adresse plaignante se tait donc **48 h** ; un pic de rebonds durs (> 3 % sur 20 envois
+minimum) vaut **24 h**. Deux déclencheurs : le webhook Sweego agit **à la réception de la
+plainte** (attendre le balayage horaire, c'est laisser partir une heure d'envois depuis une
+adresse déjà signalée), et le balayage horaire d'`alertes.py` rattrape le reste **et lève
+les pauses échues** — une pause qu'il faut penser à lever est une pause qu'on oublie.
+`expediteur.boites()` rend une boîte au repos `active = False`, `reste = 0` : elle sort de
+la rotation sans autre changement. **Les contacts qui lui sont attitrés attendent** — ils
+ne sont pas réattribués. Perdre deux jours d'envoi sur un quart du vivier coûte moins cher
+que repartir de zéro sur la réputation de tous ces destinataires.
+
+**Contrôle anti-spam avant le lot — dans `campaign_engine._send_batch`.** `email_qa`
+tournait chaque nuit et posait un badge dans l'écran ; **rien n'empêchait de dispatcher un
+message qu'elle venait de déclarer bloquant**. Le contrôle s'exécute désormais sur le
+message RÉSOLU — celui qui va réellement partir — et arrête le lot. Deux motifs de refus :
+un défaut bloquant au lint (lien mort, désinscription introuvable — ce qui transforme un
+cold email en signalement pour spam), et **toute variable qu'aucun moteur ne sait
+remplacer**, dite une fois avant le lot plutôt que destinataire par destinataire. Les
+défauts non bloquants (contraste, largeur) passent : refuser un envoi pour un dégradé
+violet ferait débrancher le contrôle à la première campagne. Message de la campagne
+active : score 99, non bloquant, aucune variable inconnue.
+
+**Routage — `scripts/routage.py`.** Le piège était dans l'énoncé : router automatiquement,
+c'est basculer un lot d'un canal à l'autre quand le premier sature — or **changer de canal,
+c'est changer d'adresse expéditrice**, exactement ce que l'affinité interdit. Sweego et
+Emelia n'ont pas de boîte par contact ; y envoyer quelqu'un revient toujours à changer son
+expéditeur. La règle posée : **le volume se cherche sur les contacts qui n'ont rien à
+perdre.** `_send_batch` écarte des lots Sweego et Emelia tout contact à l'affinité
+CONFIRMÉE (441 aujourd'hui) et le dit dans les logs ; les 9 592 sans affinité et les 523
+attitrés-non-confirmés restent librement routables. Le module ne bascule rien tout seul :
+il dit ce qui est routable. Le basculement reste une décision de campagne.
+
+Nouveau test `tests/test_lot4_protections.py` : mise au repos, non-raccourcissement d'une
+pause plus longue, reprise automatique, contact attitré qui attend, filtrage par canal
+dans les deux sens, capacité du jour. **Les 9 suites passent.**
+
+**Lot 4 : les six briques.** adresse par secteur → remplacée par l'affinité par contact ·
+moteur de volume par boîte ✅ · contrôle anti-spam ✅ · routage automatique ✅ ·
+refroidissement 48 h ✅ · file qui ne se vide jamais ✅ (ajoutée après le constat de
+Camille sur les 500 contacts/jour).
+
+### MAJ 2026-08-23 (nuit +3) — Review des logiques : ce qui a été corrigé
+
+Passage systématique sur les motifs qui ont produit tous les défauts de la journée : une
+écriture faite deux fois ou pas du tout, un garde-fou qui ne peut pas se déclencher, un
+échec avalé en silence. Quatre corrections, plus un constat sur ce qui va bien.
+
+**1. `pg_sync` ouvrait une connexion PostgreSQL par écriture miroir.** C'est le chemin le
+plus chaud du système : chaque contact scrapé déclenche `promote_contact`, qui déclenche un
+`sync_contact_site` par site — deux à trois écritures, donc deux à trois connexions TCP et
+autant de forks côté serveur. Une passe de collecte de 500 contacts en produisait 1 500.
+Passé sur le pool partagé de `pool_pg`, avec repli sur connexion directe pour rester
+utilisable hors API. Vérifié : chemin miroir fonctionnel, 0 échec, 2 connexions ouvertes.
+
+**2. Trois pools de connexions créés sans verrou** (`campaign_engine`, `segments_backend`,
+`followup_backend`). L'API sert ses requêtes en threads : deux qui arrivent ensemble sur un
+pool encore vide en fabriquent chacune un, et le second écrase le premier — dont les
+connexions ne sont plus rendues à personne. `pool_pg` le faisait déjà correctement, les
+trois autres non.
+
+**3. Les tâches planifiées ajoutées aujourd'hui n'étaient surveillées par rien.** Mon
+propre oubli. `pool_rattrapage`, `pg_sync_enrichment`, `sante_envoi` et `programmation`
+tournent en cron sans figurer dans `_TACHES` : leur arrêt aurait été invisible — c'est
+exactement la panne `pg_reconcile` du 2026-08-20, 74 heures de silence parce qu'un fichier
+de log appartenait à root. Ajoutées, avec `collecte` (3 h) et `statistiques` (3 h) qui
+manquaient aussi. Dix tâches surveillées, toutes fraîches.
+**Règle à tenir : un cron ajouté à la crontab doit entrer dans `_TACHES` dans le même
+mouvement.**
+
+**4. Le garde-fou de la matrice des droits était muet.** `api.py` laisse passer si
+`roles_backend` est illisible — et c'est la bonne règle, couper la plateforme sur une panne
+de base serait un déni de service qu'on s'infligerait. Mais le faire en SILENCE désactive
+toutes les permissions sans que personne ne le sache. On laisse passer, et on le crie
+désormais dans le journal.
+
+**Ce qui va bien, et qui mérite d'être dit.** Le middleware d'authentification est
+sérieusement construit : Bearer obligatoire, préfixes admin, **isolation multi-tenant sur
+n'importe quel segment d'URL** (pas seulement `/api/sites/{site}/…`, ce qui aurait laissé
+fuir `/api/crm/{site}`), et matrice de droits appliquée côté serveur — un utilisateur qui
+réécrit son `localStorage` verra peut-être un menu, jamais les données. 283 endpoints, une
+seule porte.
+
+**Faux positifs de ma propre revue, écartés après vérification** : les « fuites de
+connexion » de `followup_backend` et `segments_backend` n'en sont pas — ce sont des pools
+PostgreSQL correctement rendus en `finally`. Un grep sur `.close()` ne les voyait pas.
+
+**Restant, signalé sans être traité** (ce sont des choix, pas des oublis) : la branche
+« échec d'envoi » de `maildoso_sent` reste morte (0 ligne sur 1 462) ; le tri de la pioche
+se départage encore sur `updated_at`, fragile à toute écriture de masse ; le drain Mailnjoy
+ne crée jamais de copie dans le pool, il n'en supprime que — le filet quotidien
+(`pool_rattrapage`) compense la cause sans la corriger ; `zen.spamhaus.org` refuse les
+consultations depuis le résolveur public de la machine, il faudrait un résolveur récursif
+local pour que le contrôle de liste noire soit réellement actif.
+
+### MAJ 2026-08-24 — Plancher de collecte, et un bug grave sur les plafonds d'envoi
+
+**1. Le plancher de 500 contacts — `scripts/plancher_collecte.py`, cron toutes les 30 min.**
+Demande de Camille : « à minuit, si aucun scrape ne tourne, déclenche un scrape sur
+n'importe quel secteur ; tant que tu n'as pas collecté 500 contacts, tu continues. »
+Le constat qui la motive, mesuré : 2 264 contacts le 20/08, puis **292 le 21**, **313 le
+22**. La machine sait collecter, elle ne garantit pas de le faire — `autoscrape_daily tick`
+décide seul de passer son tour pour six raisons différentes (plafond de cibles, créneau
+réservé, fenêtre, quota, passe mal close, pause), toutes bonnes prises isolément.
+Le module réveille le scraper quand c'est possible, et **explique quand ça ne l'est pas** —
+c'est la moitié qui manquait : une journée à 292 contacts ne produisait aucun signal. Il ne
+piétine aucun garde-fou existant (créneaux réservés, quota Serper, secteurs interdits) :
+un plancher qui force les protections n'est plus un plancher, c'est une fuite. Alerte de
+fin de journée passé 20 h seulement — avant, être sous le plancher est normal.
+
+**2. LE BUG DE LA JOURNÉE : le plafond de 40 envois/jour/boîte n'était appliqué à personne.**
+Les 29 emails du matin sont TOUS partis de `j.bernard`. Cause : `mark_pushed_to_emelia`
+journalise l'envoi sans la boîte expéditrice — elle n'était renseignée dans `email_events`
+que parce que je l'y avais rattrapée hier depuis `maildoso_sent`. Or
+`expediteur.envoyes_aujourdhui` compte par boîte **en filtrant sur `mailbox IS NOT NULL`** :
+il rendait donc **0 pour les quatre boîtes**. Trois conséquences en chaîne :
+  - `reste` valait toujours 40 : le plafond journalier ne pouvait jamais être atteint ;
+  - la répartition choisissait toujours la même boîte, « la moins chargée » étant à égalité
+    parfaite à zéro ;
+  - la montée en charge lisait des volumes faux et pouvait relever le plafond d'une boîte
+    qui venait d'envoyer seule toute la journée.
+Corrigé sur les trois maillons : `send_batch` attache au contact la boîte qui a réellement
+écrit, `mark_pushed_to_emelia` accepte et transmet ce paramètre, `record_send` le porte en
+base. Les 29 envois du jour ont été rattrapés — le compteur affiche à nouveau 29/40 pour
+`j.bernard` et 0 pour les autres. Test de non-régression : `tests/test_boite_journalisee.py`,
+qui vérifie les trois maillons un par un sans envoyer d'email.
+
+**3. `pg_sync_enrichment` est mort sur le verrou du pool à 6h30**, exactement comme
+`pg_reconcile` le 20/08. Il ouvrait la base avec `duck_ouverture.ouvrir` — six essais en un
+quart de seconde, taillé pour une requête d'écran — alors qu'un scrape tenait le fichier.
+Le miroir d'enrichissement a dérivé de **2 650 lignes**, et Acquisition annonçait 361
+contacts « Vérifié » que le pool disait « Prêt ». Passé sur `pg_gate._duck()`, qui attend
+dix minutes.
+
+**4. La surveillance ne voyait pas les tâches qui MEURENT.** On regardait la date du
+journal ; or une tâche qui meurt écrit son traceback, donc son fichier est tout frais et
+elle est déclarée en bonne santé. C'est ce qui a laissé le point 3 invisible.
+`etat_technique._fin_en_erreur` lit désormais la dernière ligne utile du journal et
+reconnaît une exception Python. Premier jet trop large — il criait sur un avertissement
+bénin de `datagouv_enrich` (une société introuvable au milieu d'un passage réussi) ; resserré
+sur la forme exacte d'une ligne d'exception terminale. Une alerte fausse est pire
+qu'aucune alerte : elle apprend à ne plus les lire.
+
+**5. Garde-fou de crédits Emelia : il comptait les RECHERCHES, pas les crédits facturés.**
+Emelia ne facture que lorsqu'elle trouve. La passe du 23/08 s'est arrêtée après 100
+recherches en n'ayant coûté que **11 crédits** : sûr, mais sept fois trop tôt. Corrigé, plus
+une seconde borne sur le rendement (arrêt si le nombre de recherches dépasse vingt fois le
+budget — une passe où rien n'est trouvé ne coûterait rien mais tournerait indéfiniment).
+
+**6. Voie « dirigeants nommés » : lancée, et passée en cron nocturne** (budget 30 crédits
+facturés par nuit, 23 h UTC). Première passe : 100 recherches, 11 crédits, **9 contacts
+nominatifs** — François Beranger chez Square Habitat, Dominique Lepage chez Foncia,
+Nicolas Martinez chez SPI Nantes Immo. Rythme mesuré : ~2,7 recherches/minute, d'où le
+découpage en passes courtes plutôt qu'un marathon qu'un redémarrage tuerait après avoir
+dépensé. Solde : 830 crédits.
+
+**7. Deux tests corrigés parce qu'ils mesuraient l'horloge, pas l'équivalence.**
+`test_pg_acquisition` comparait les 50 premiers contacts pendant qu'une collecte écrit —
+or la liste est triée sur `last_action_at`, dont la valeur diffère des deux côtés (le pool
+la pose à l'écriture, PostgreSQL au passage du miroir). Il compare désormais une
+population STABILISÉE (dernière action de plus de 30 minutes) : **768 contacts, zéro écart
+d'étape**. Et la complétude se contrôle sur les bases entières, plus sur deux fenêtres de
+800 lignes triées différemment — un premier jet annonçait « 8 contacts perdus » alors
+qu'aucun ne manquait.
+
+**État de fin :** 11 suites de tests vertes, 12 tâches surveillées (dont l'échec, pas
+seulement la fraîcheur), 962 contacts collectés aujourd'hui, 0 alerte.

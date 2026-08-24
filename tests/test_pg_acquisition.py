@@ -21,7 +21,8 @@ journal contre la colonne recopiée :
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE / "scripts"))
 
 SITE = "lcr"
 ECHECS: list[str] = []
@@ -78,7 +79,7 @@ def lance() -> int:
     p_clk = pg.count_contacts_for_site(SITE, engagement="clickers")
     verifie("cliqueurs ≥ pool", p_clk >= d_clk * 0.95, f"(pool {d_clk} / pg {p_clk})")
 
-    print("\nListe — même forme, mêmes contacts en tête")
+    print("\nListe — même forme, mêmes contacts")
     d_li = duck.list_contacts_for_site(SITE, limit=50)
     p_li = pg.list_contacts_for_site(SITE, limit=50)
     verifie("la liste PostgreSQL n'est pas vide", len(p_li) == len(d_li),
@@ -86,11 +87,57 @@ def lance() -> int:
     if d_li and p_li:
         manquantes = set(d_li[0]) - set(p_li[0])
         verifie("aucune clé perdue pour l'interface", not manquantes, f"({sorted(manquantes)})")
-        verifie("mêmes 50 premiers contacts",
-                {x["email"] for x in d_li} == {x["email"] for x in p_li})
-        verifie("étapes cohérentes ligne à ligne",
-                {x["email"]: x["etape"] for x in d_li} == {x["email"]: x["etape"] for x in p_li})
         verifie("libellé d'étape présent", all(x.get("etape_label") for x in p_li))
+
+    # Comparer les 50 PREMIERS pendant qu'un scrape écrit, c'est comparer deux horloges.
+    # La liste est triée sur `last_action_at`, et cette date n'a pas la même valeur des
+    # deux côtés : le pool la pose à l'écriture, PostgreSQL au passage du miroir, quelques
+    # dizaines de millisecondes plus tard. Les deux ordres sont justes — « le plus
+    # récemment touché d'abord » — mais ils ne peuvent pas coïncider à la ligne près sur
+    # des contacts qui arrivent en continu. Un test qui échoue dès qu'une collecte tourne
+    # finit ignoré, ce qui est pire que pas de test.
+    #
+    # On compare donc une population STABILISÉE : les contacts dont la dernière action a
+    # plus de trente minutes. Là, les deux bases doivent dire exactement la même chose.
+    from datetime import datetime, timedelta, timezone
+    limite = (datetime.now(timezone.utc) - timedelta(minutes=30)).replace(tzinfo=None)
+
+    def stables(liste):
+        out = {}
+        for x in liste:
+            d = str(x.get("last_action_at") or "")[:19].replace(" ", "T")
+            try:
+                if datetime.fromisoformat(d) < limite:
+                    out[x["email"]] = x["etape"]
+            except ValueError:
+                continue
+        return out
+
+    d_st = stables(duck.list_contacts_for_site(SITE, limit=800))
+    p_st = stables(pg.list_contacts_for_site(SITE, limit=800))
+    communs = set(d_st) & set(p_st)
+    verifie("population stabilisée non vide", len(communs) >= 50,
+            f"({len(communs)} contacts de plus de 30 min)")
+    ecarts = {e for e in communs if d_st[e] != p_st[e]}
+    verifie("étapes identiques sur la population stabilisée", not ecarts,
+            f"({len(ecarts)} écart(s) sur {len(communs)})")
+    # La complétude ne se contrôle PAS en comparant deux fenêtres de 800 lignes : elles
+    # sont triées sur une date qui diffère légèrement d'une base à l'autre, donc les
+    # contacts de bordure tombent dans l'une et pas dans l'autre. Un premier jet annonçait
+    # ainsi « 8 contacts perdus » alors qu'aucun ne manquait. On interroge les bases
+    # entières.
+    import duckdb
+    import pool_pg as _pg
+    c = duckdb.connect(str(BASE / "data" / "contacts.duckdb"), read_only=True)
+    try:
+        emails_pool = {r[0].strip().lower() for r in
+                       c.execute("SELECT email FROM contacts").fetchall()}
+    finally:
+        c.close()
+    emails_pg = {r[0] for r in _pg._q("SELECT lower(email::text) FROM contacts")}
+    absents = emails_pool - emails_pg
+    verifie("aucun contact du pool absent de PostgreSQL", not absents,
+            f"({len(absents)} absent(s) — la réconciliation de 6h30 les rattraperait)")
 
     print("\nPagination — l'offset ne doit ni sauter ni répéter")
     p1 = pg.list_contacts_for_site(SITE, limit=25, offset=0)

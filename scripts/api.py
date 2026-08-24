@@ -243,8 +243,14 @@ async def auth_middleware(request: Request, call_next):
                     "error": "accès refusé",
                     "detail": f"Votre rôle n'a pas accès à « {refus} ».",
                     "page": refus})
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as e:  # noqa: BLE001
+            # Laisser passer sur panne de la matrice reste la bonne règle (couper la
+            # plateforme serait un déni de service qu'on s'infligerait). Mais le faire en
+            # SILENCE, c'est désactiver toutes les permissions sans que personne ne le
+            # sache — le pire des deux mondes. On laisse passer, et on le crie.
+            print(f"[api] MATRICE DES DROITS INOPÉRANTE ({type(e).__name__}: {e}) — "
+                  f"accès laissé passer pour le rôle {sess.get('role')!r} sur {path}",
+                  flush=True)
 
     # Attache la session au request pour les handlers
     request.state.session = sess
@@ -3703,6 +3709,29 @@ async def api_sweego_webhook(request: Request):
         target_state = "blacklisted"
     else:                                           # delivered, sent, soft_bounce, *_proxy…
         target_state = None
+
+    # === Refroidissement immédiat sur plainte ===
+    # Une plainte est le signal le plus coûteux : le fournisseur du destinataire l'agrège
+    # et bloque autour de 0,3 %, seuil qui se franchit en une journée. On ne peut pas
+    # attendre le balayage horaire — la boîte qui a écrit à cette adresse se tait tout de
+    # suite, pour 48 h. Voir `refroidissement`.
+    if "complaint" in event_type or "unsub" in event_type:
+        try:
+            sys.path.insert(0, str(BASE_DIR / "scripts"))
+            import refroidissement as _rf
+            import journal_pg as _jpg
+            boite = _jpg._q("""
+                SELECT ev.mailbox FROM email_events ev
+                WHERE lower(ev.email::text) = %(e)s AND ev.event_type = 'sent'
+                  AND ev.mailbox IS NOT NULL
+                ORDER BY ev.occurred_at DESC LIMIT 1""", {"e": email})
+            if boite and boite[0][0] and "complaint" in event_type:
+                _rf.mettre_au_repos(boite[0][0], _rf.HEURES_PLAINTE,
+                                    f"plainte de {email} ({event_type})")
+                print(f"[sweego_webhook] plainte → {boite[0][0]} au repos "
+                      f"{_rf.HEURES_PLAINTE} h", flush=True)
+        except Exception as _e:
+            print(f"[sweego_webhook] refroidissement non appliqué : {_e}")
 
     # === Journal PostgreSQL (fin du Lot 1) ===
     # Écrit AVANT DuckDB, comme tout ce qui porte une règle métier : un rebond dur ou une

@@ -625,7 +625,8 @@ def suppression_stats() -> dict:
 
 
 def mark_pushed_to_emelia(contact_id: str, site_code: str, campaign_id: str,
-                          emelia_contact_id: str = "", email: str | None = None) -> None:
+                          emelia_contact_id: str = "", email: str | None = None,
+                          mailbox: str | None = None) -> None:
     """Appelé après push réussi : enregistre campaign + last_contacted.
 
     UPSERT et non simple UPDATE. Un contact sans ligne `contact_site_history` pour ce site
@@ -646,8 +647,11 @@ def mark_pushed_to_emelia(contact_id: str, site_code: str, campaign_id: str,
     """
     journalise = False
     if email:
+        # `mailbox` : l'adresse expéditrice. Elle doit voyager jusqu'au journal — c'est
+        # elle qui permet de compter les envois PAR BOÎTE, donc d'appliquer le plafond
+        # journalier et de piloter la montée en charge. Sans elle, tout se compte à zéro.
         _miroir("record_send", _normalize_email(email), site_code,
-                contact_id=contact_id, campaign_id=campaign_id)
+                contact_id=contact_id, campaign_id=campaign_id, mailbox=mailbox)
         journalise = True
     c = _conn()
     try:
@@ -688,7 +692,7 @@ def mark_pushed_to_emelia(contact_id: str, site_code: str, campaign_id: str,
     # fenêtre de 120 jours après la bascule. Le manquer rouvrirait la porte aux renvois.
     if row and row[0] and not journalise:
         _miroir("record_send", _normalize_email(row[0]), site_code,
-                contact_id=contact_id, campaign_id=campaign_id)
+                contact_id=contact_id, campaign_id=campaign_id, mailbox=mailbox)
 
 
 def record_emelia_event(contact_id: str, site_code: str, event_type: str,

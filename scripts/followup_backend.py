@@ -49,6 +49,8 @@ ETATS_OPP = {
 STATUTS = ("a_faire", "en_cours", "a_relancer", "gagne", "perdu", "injoignable")
 STATUTS_OUVERTS = ("a_faire", "en_cours", "a_relancer")
 
+import threading as _threading
+_VERROU_POOL = _threading.Lock()
 _POOL = None
 
 
@@ -62,8 +64,12 @@ def _dsn() -> str:
 def _conn():
     global _POOL
     import psycopg2.pool
-    if _POOL is None:
-        _POOL = psycopg2.pool.ThreadedConnectionPool(1, 8, _dsn())
+    # Verrou à la création : l'API sert ses requêtes en threads, et deux qui arrivent
+    # ensemble sur un pool encore vide en fabriquent chacune un. Le second écrase le
+    # premier, dont les connexions ne sont plus rendues à personne.
+    with _VERROU_POOL:
+        if _POOL is None:
+            _POOL = psycopg2.pool.ThreadedConnectionPool(1, 8, _dsn())
     return _POOL.getconn()
 
 

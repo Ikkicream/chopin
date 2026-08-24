@@ -1,0 +1,48 @@
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 936,
+ "par_source": {
+  "serper": 629,
+  "basile": 241,
+  "serper_places": 66
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (936/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 936,
+ "par_source": {
+  "serper": 629,
+  "basile": 241,
+  "serper_places": 66
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (936/500)"
+ ]
+}

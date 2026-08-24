@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/duck_ouverture.py", line 44, in ouvrir
+    return duckdb.connect(str(chemin), read_only=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_duckdb.IOException: IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/pg_sync_enrichment.py", line 88, in <module>
+    print(json.dumps(synchroniser(), indent=1, ensure_ascii=False))
+                     ^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/pg_sync_enrichment.py", line 39, in synchroniser
+    d = ouvrir(BASE_DIR / "data" / "contacts.duckdb")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/duck_ouverture.py", line 46, in ouvrir
+    raise derniere  # type: ignore[misc]
+    ^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/duck_ouverture.py", line 38, in ouvrir
+    return duckdb.connect(str(chemin))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_duckdb.IOException: IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+ "pool": 10297,
+ "copiees": 9056,
+ "postgresql": 9056,
+ "avec_siret": 4282,
+ "exclus": 206,
+ "ignorees_contact_absent": 1241
+}

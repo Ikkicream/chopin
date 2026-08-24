@@ -75,6 +75,8 @@ def _dsn() -> str:
     raise RuntimeError("PG_DSN absent de .env")
 
 
+import threading as _threading
+_VERROU_POOL = _threading.Lock()
 _POOL_PG = None
 
 
@@ -82,8 +84,12 @@ def _conn():
     """Connexion PostgreSQL, prise dans un pool (les segments sont lus très souvent)."""
     global _POOL_PG
     import psycopg2.pool
-    if _POOL_PG is None:
-        _POOL_PG = psycopg2.pool.ThreadedConnectionPool(1, 6, _dsn())
+    # Verrou à la création : l'API sert ses requêtes en threads, et deux qui arrivent
+    # ensemble sur un pool encore vide en fabriquent chacune un. Le second écrase le
+    # premier, dont les connexions ne sont plus rendues à personne.
+    with _VERROU_POOL:
+        if _POOL_PG is None:
+            _POOL_PG = psycopg2.pool.ThreadedConnectionPool(1, 6, _dsn())
     return _POOL_PG.getconn()
 
 

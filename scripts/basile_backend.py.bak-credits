@@ -478,34 +478,10 @@ def emelia_find_phone(linkedin_url: str):
     return res
 
 
-# Toutes les N recherches d'email, on redemande le solde à Emelia. Le compteur local ne
-# suffit pas : d'autres chemins consomment aussi (recherche de téléphone, vérifications),
-# et un crédit dépensé ailleurs pendant la passe ne se verrait pas.
-CONTROLE_SOLDE_TOUS_LES = 25
-
-
-def _solde_emelia() -> int | None:
-    """Le solde RÉEL chez Emelia, ou None s'il est illisible.
-
-    Le compteur local (`emelia_credits.remaining()`) rend `None` tant que personne n'a
-    saisi de solde de référence — donc un garde-fou fondé sur lui ne se déclencherait
-    jamais. On interroge la source.
-    """
-    try:
-        import emelia_credits
-        live = emelia_credits.fetch_live_balance()
-        if live.get("ok") and live.get("remaining") is not None:
-            return int(live["remaining"])
-    except Exception:  # noqa: BLE001
-        pass
-    return None
-
-
 def run_dirigeant_segment(site: str, companies_filter: dict, *, sector: str | None = None,
                           dept_code: str | None = None, region_code: str | None = None,
                           max_companies: int = PASS_SIZE, delay: float = DEFAULT_DELAY,
                           use_emelia: bool = False, dry_run: bool = True,
-                          budget_credits: int | None = None, plancher_credits: int = 0,
                           progress_cb=None) -> dict:
     """Sociétés (NAF/activity+géo) → dirigeants nommés → (opt) Emelia email nominatif → pool.
 
@@ -521,7 +497,6 @@ def run_dirigeant_segment(site: str, companies_filter: dict, *, sector: str | No
     out = {"site": site, "sector": sector, "dept_code": dept_code, "flow": "dirigeants",
            "companies_total": total, "rule": rule, "companies_scanned": 0,
            "dirigeants_found": 0, "emelia_needed": 0, "emelia_calls": 0,
-           "credits_factures": 0,
            "valid": 0, "rejected": 0, "errors": 0, "dry_run": dry_run, "use_emelia": use_emelia}
     if rule["action"] != "extract":
         out["status"] = rule["action"]
@@ -578,62 +553,9 @@ def run_dirigeant_segment(site: str, companies_filter: dict, *, sector: str | No
         return out
 
     # 3) live : Emelia + validation + double écriture
-    #
-    # ── Le garde-fou de crédits ──────────────────────────────────────────────
-    # La boucle appelait Emelia pour CHAQUE dirigeant, sans jamais regarder le solde.
-    # À court de crédits, elle continuait d'appeler : autant d'échecs, et aucune trace
-    # de la raison. « Quand il n'y a plus de crédit, il n'y a plus de crédit » (Camille,
-    # 2026-08-23) — alors on s'arrête, proprement, et on le dit.
-    #
-    # Le solde est relu chez Emelia : le compteur local rend `None` tant qu'aucun solde
-    # de référence n'a été saisi, donc un garde-fou fondé sur lui ne se déclencherait
-    # jamais. Et s'il est ILLISIBLE, on refuse de partir : dépenser sans pouvoir compter
-    # est le seul cas où mieux vaut ne rien faire.
-    solde = _solde_emelia()
-    out["solde_emelia_avant"] = solde
-    if use_emelia:
-        if solde is None:
-            out["status"] = "solde_emelia_illisible"
-            out["note"] = ("impossible de connaître le solde Emelia — passe annulée "
-                           "plutôt que de dépenser à l'aveugle")
-            return out
-        disponible = max(0, solde - max(0, plancher_credits))
-        plafond = min(disponible, budget_credits) if budget_credits else disponible
-        out["plafond_credits"] = plafond
-        if plafond <= 0:
-            out["status"] = "credits_epuises"
-            out["note"] = f"solde {solde}, plancher {plancher_credits} — rien à dépenser"
-            return out
-    else:
-        plafond = 0
-
     import god_mode_backend as gm
     import contacts_pool_backend as cpb
     for c, dg in pairs:
-        if use_emelia:
-            if out.get("credits_factures", 0) >= plafond:
-                out["status"] = "credits_epuises"
-                out["note"] = (f"plafond de {plafond} crédit(s) atteint — "
-                               f"{len(pairs) - out['emelia_calls']} dirigeant(s) non traité(s)")
-                break
-            # Deuxième borne, sur les RECHERCHES : une passe où Emelia ne trouve jamais
-            # rien ne coûterait rien mais tournerait indéfiniment. Large exprès — elle ne
-            # doit se déclencher que sur un rendement anormal, pas sur un rendement moyen.
-            if out["emelia_calls"] >= plafond * 20:
-                out["status"] = "rendement_trop_faible"
-                out["note"] = (f"{out['emelia_calls']} recherches pour "
-                               f"{out.get('credits_factures', 0)} email(s) trouvé(s) — "
-                               f"passe interrompue, quelque chose ne va pas")
-                break
-            # Contrôle périodique du solde réel : d'autres chemins consomment aussi.
-            if out["emelia_calls"] and out["emelia_calls"] % CONTROLE_SOLDE_TOUS_LES == 0:
-                vu = _solde_emelia()
-                if vu is not None and vu <= plancher_credits:
-                    out["status"] = "credits_epuises"
-                    out["note"] = (f"solde Emelia retombé à {vu} — arrêt, "
-                                   f"{len(pairs) - out['emelia_calls']} dirigeant(s) "
-                                   f"non traité(s)")
-                    break
         try:
             fullname = " ".join(x for x in (dg.get("prenom"), dg.get("nom")) if x)
             email = None
@@ -641,13 +563,6 @@ def run_dirigeant_segment(site: str, companies_filter: dict, *, sector: str | No
                 er = _emelia_find_email(fullname, c["societe"], c["website"])
                 out["emelia_calls"] += 1
                 email = er.get("value") if er.get("status") == "completed" else None
-                # Emelia ne facture QUE lorsqu'elle trouve. Compter les recherches revient
-                # donc à surestimer massivement la dépense : la passe du 2026-08-23 s'est
-                # arrêtée après 100 recherches en n'ayant coûté que 11 crédits. Le
-                # garde-fou était sûr — il ne dépasse jamais — mais il s'arrêtait sept
-                # fois trop tôt. On compte ce qui est facturé.
-                if email:
-                    out["credits_factures"] = out.get("credits_factures", 0) + 1
             if not email:
                 out["rejected"] += 1
                 continue
@@ -691,15 +606,7 @@ def run_dirigeant_segment(site: str, companies_filter: dict, *, sector: str | No
             print(f"  [basile-dirigeant] {e}", file=sys.stderr)
         if progress_cb:
             progress_cb({"valid": out["valid"], "emelia_calls": out["emelia_calls"]})
-    # « done » ne doit pas écraser un motif d'arrêt déjà posé. La boucle sort sur
-    # `credits_epuises` en le disant, et cette ligne le remplaçait par « terminé » — la
-    # passe s'arrêtait à 5 dirigeants sur 40 et le rapport annonçait un succès. Le
-    # compteur `emelia_calls` restait juste, mais plus personne ne savait POURQUOI la
-    # passe était courte, ce qui est le pire des deux mondes.
-    out.setdefault("status", "done")
-    if out["status"] not in ("credits_epuises", "solde_emelia_illisible",
-                            "rendement_trop_faible"):
-        out["status"] = "done"
+    out["status"] = "done"
     return out
 
 

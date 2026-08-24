@@ -37,7 +37,7 @@ tous les canaux au lieu du seul Maildoso. Neuf lectures portées, repli DuckDB p
 en base et pose l'index unique. Les lectures sont déjà justes sans, c'est un nettoyage
 d'historique plus une ceinture.
 
-## Lot 4 — Automatisation des campagnes : première tranche livrée (2026-08-23)
+## Lot 4 — Automatisation des campagnes : CLOS (2026-08-23)
 
 | Brique | État |
 |---|---|
@@ -48,15 +48,20 @@ d'historique plus une ceinture.
 | Montée en charge branchée sur les vrais signaux | ✅ |
 | Cadence 140 emails/jour d'ici vendredi 28/08 | ✅ posée et vérifiée |
 | Une adresse expéditrice par secteur | ⛔ abandonné — remplacé par l'affinité par contact |
-| Routage automatique multi-canal · refroidissement 48 h | ⛔ reste à faire |
+| File d'envoi qui ne se vide jamais (`programmation.py`, cron 7h50) | ✅ |
+| Refroidissement 48 h après plainte (`refroidissement.py`) | ✅ |
+| Contrôle anti-spam bloquant avant le lot | ✅ |
+| Routage multi-canal respectant l'affinité (`routage.py`) | ✅ |
 
 **État du domaine ce soir :** SPF `~all`, DKIM `selector1` valide, DMARC `p=reject`,
 ouverture **39,1 %** sur 7 jours (33 à 46 % selon la boîte), 0 rebond, 0 plainte, 0 alerte.
 
 **Cadence posée** sur « Agent immobilier, loi cazenave » : lun 80 · mar 100 · mer 120 ·
 jeu 130 · **ven 140** · sam 121.
-⚠️ Elle épuise les 691 restants samedi — **tenir 140/jour en septembre demande une
-campagne suivante**. Réserve : 5 659 contacts piochables, ~40 jours de matière.
+La campagne atteint sa cible samedi : **lundi 31/08 la file serait vide**. Le cron de
+7h50 la prolonge désormais tout seul tant que le vivier suit (2 785 contacts immobilier
+piochables), et alerte si le vivier ne suit plus — créer une campagne reste une décision
+humaine (message + ciblage), la machine ne l'invente pas.
 
 ## Fait cette session (21→23/08) — tout déployé
 Sécurité complète (Cloudflare + verrou origine + 127.0.0.1 + force brute), Basile par
@@ -66,12 +71,8 @@ Opportunités + Ventes, Mon activité commercial, refonte Scraping/tableau de bo
 Pannes réglées : pg_reconcile (log root) + corruption %20 (extraction web).
 
 ## Reste — attend le feu vert de Camille
-- Argumentaires `restaurant` et `tourisme` (modèle immobilier prêt).
-- Bouton « appel passé » — SANS lui le tableau Mon activité reste vide.
+- Argumentaires `restaurant` et `tourisme` — **en attente, décision Camille du 23/08** : on reste sur l'immobilier seul pour l'instant.
 - Refonte plaquette PDF (désactivée par défaut, case opt-in en place).
-- `contact@cheffer.email` de la plaquette rebondit (pas de MX) → mettre @leclientroi.com ou MX.
-- Voie « dirigeants nommés » Basile/Emelia (PAYANT, non branché).
-- Test 4G du pare-feu (Camille, confirme que l'IP directe est fermée).
 - Mineurs sécurité : hachage SHA-256 hérité, énumération par timing du login.
 
 ---
@@ -150,19 +151,22 @@ Pannes réglées : pg_reconcile (log root) + corruption %20 (extraction web).
   tableau de bord, les compteurs ET les journaux d'envoi lisent PostgreSQL ; les écritures
   qui portent une règle métier y vont en premier. `god_mode.duckdb` n'est plus lu que par
   le relevé technique. Détail en tête de fichier.
-- **Lot 2 — Page des secteurs (prioritaire / secondaire / interdit)** — ⛔ pas commencé,
-  **attend l'arbitrage de Camille** sur la répartition proposée. Trois colonnes en
-  glisser-déposer, stockage en base, et surtout : le classement pilote réellement la
-  file `autoscrape_targets` (1 504 cibles en attente) et les filtres Basile (NAF ↔ secteur).
-  *C'est le lot qui corrige le déséquilibre 26 Basile / 202 Serper — donc le budget Serper.*
-- **Lot 3 — Autoscrape continu** — 🟡 quasi fait (24 h/24 ouvert le 2026-08-20), sauf le
-  plafond de 3 cibles/nuit décrit en anomalie n°2.
-- **Lot 4 — Automatisation des campagnes** — ⛔ pas commencé. Une adresse expéditrice
-  par secteur · moteur de 8 h qui calcule le volume envoyable par boîte · contrôle
-  anti-spam · routage automatique · refroidissement 48 h en cas de plaintes.
-  *C'est lui qui fait passer de 160 à 1 000 emails/jour : 4 boîtes × 40 plafonnent tout.*
-- **Lot 5 — Alertes** — ⛔ pas commencé. Le relevé technique existe, il manque la
-  sonnerie Telegram quand une tâche n'a pas tourné.
+- **Lot 2 — Page des secteurs** — ✅ CLOS le 2026-08-21. Vérifié en base le 23/08 :
+  `sector_policy` porte 7 prioritaires, 12 secondaires et 9 interdits, sur lcr ET mkd.
+- **Lot 3 — Autoscrape continu** — ✅ CLOS. 24 h/24 depuis le 2026-08-20 et le plafond de
+  cibles est passé de 3/nuit à `SCRAPE_MAX_CIBLES_JOUR=30` (vérifié dans `.env` le 23/08).
+- **Lot 4 — Automatisation des campagnes** — ✅ CLOS le 2026-08-23. Affinité expéditeur
+  par contact (et non par secteur), volume par boîte piloté par la délivrabilité, contrôle
+  anti-spam bloquant, routage respectant l'affinité, refroidissement 48 h après plainte,
+  et file d'envoi qui se prolonge seule. Détail en tête de fichier.
+  *Le plafond de 160/jour reste celui des 4 boîtes : le dépasser demande d'en ouvrir
+  d'autres, pas de changer le code.*
+- **Lot 5 — Alertes** — ✅ CLOS le 2026-08-21. `TELEGRAM_BOT_TOKEN` et `TELEGRAM_CHAT_ID`
+  renseignés, `alertes.py` sonne au CHANGEMENT d'état (un rappel par jour, pas davantage).
+  Dix tâches surveillées depuis le 23/08, contre quatre auparavant.
+
+> **Les six lots sont clos.** Ce qui suit n'est plus un plan, c'est un inventaire de dettes
+> et de décisions.
 
 ## Décisions en attente (Camille)
 
@@ -179,6 +183,21 @@ Pannes réglées : pg_reconcile (log root) + corruption %20 (extraction web).
   requête Serper Places sur les 622 contacts « société sans téléphone ».
 - `/code-review ultra` sur le mini-CRM : déclenchable par Camille uniquement.
 
+## Entrées retirées le 2026-08-23 après vérification
+
+- **« Bouton appel passé »** — l'entrée était FAUSSE. Le chemin d'enregistrement existe
+  déjà (`followup_backend`, ligne ~694 : `est_un_appel` journalise un événement `appel`
+  avec statut, issue, note et date de relance), et `ActionsAppel` porte déjà les gestes de
+  l'appel. Ce qui manque n'est pas un bouton : `followup_events` contient **2 appels
+  consignés en quatre jours** pour un objectif de 10 par commercial et par jour. Personne
+  ne consigne. Et même consigné, le chiffre reste **purement déclaratif** — rien ne compose
+  depuis Cheffer, aucune téléphonie n'est branchée : il mesure ce que quelqu'un a tapé, pas
+  ce qui s'est passé. Ajouter un bouton n'y change rien. Retirée sur remarque de Camille,
+  qui avait raison de la contester.
+- **`contact@cheffer.email`** — corrigé dans `scripts/plaquette.py`. Le domaine
+  `cheffer.email` n'a AUCUN MX (vérifié) et ne sert qu'à l'API. L'adresse de contact est
+  `contact@leclientroi.com`, dont le MX (`smtp.google.com`) reçoit bien.
+
 ## Petites dettes
 
 - Segment « Ile de france 75 » créé avant le correctif du sélecteur géographique :
@@ -189,14 +208,28 @@ Pannes réglées : pg_reconcile (log root) + corruption %20 (extraction web).
 - Refonte UI phases 4-5 : 8 `catch` vides sur Campagnes, 22 `confirm()` natifs,
   11 tableaux sans défilement, 50 largeurs figées.
 - Écrans Articles et Versions : encore un « Chargement… » texte, sans indicateur.
-- `pg_sync.promote_contact` lent en masse (1 connexion PG + 1 DuckDB par contact).
+- `pg_sync.promote_contact` : le volet PostgreSQL est réglé (pool partagé, 2026-08-23),
+  il reste l'ouverture DuckDB par contact.
 - CRM legacy `crm/{site}.duckdb` encore écrite par 5 producteurs, plus lue par aucun écran.
-- 1 573 des 1 996 contacts d'août sans `dept_code` → invisibles au ciblage géo.
+- `dept_code` : 663 contacts récupérés depuis leur ville le 2026-08-23 (2 166 → 1 503).
+  Les 1 503 restants sont l'import Sweego du 20/08, **sans ville ni code postal** : rien à
+  en tirer sans les recollecter. Cause corrigée à la source — `pool_rattrapage` résout
+  désormais le département depuis la ville, comme le fait le scraper ; `god_mode.scrappe`
+  ne le stockait que sur la voie Basile (17 lignes sur 7 971 côté Serper).
 
-## Ordre recommandé
+## Ordre recommandé (mis à jour le 2026-08-23)
 
-1. Les trois anomalies ci-dessus (une demi-journée, elles faussent les chiffres).
-2. **Lot 2** — coûte le moins, débloque le plus (Basile → volume → budget Serper).
-3. **Lot 4** — sans lui, le volume scrapé ne part pas.
-4. Fin de la migration PostgreSQL (Lot 1) — gêne, ne bloque pas.
-5. **Lot 5** — alertes.
+Les six lots étant clos, il ne reste que des décisions et des dettes. Par ordre d'effet :
+
+1. Les dettes techniques ci-dessus, aucune bloquante.
+
+**Clos le 2026-08-24, ne pas rouvrir :**
+- *Test 4G du pare-feu* — inutile : la chaîne `CF_LOCK` est active sur les ports 80 et 443,
+  ce qui se lit directement dans `iptables -L INPUT`. Rien à confirmer par téléphone.
+- *Dédoublonnage du journal* — sans objet depuis que la CAUSE est corrigée (le filet de
+  fin de lot ne re-marque plus tout le monde) et que tous les comptages portent sur des
+  ENVOIS distincts et non sur des lignes. Les 159 lignes historiques sont inertes.
+- *Voie « dirigeants nommés »* — lancée, passée en cron nocturne (30 crédits/nuit).
+
+Décidé le 2026-08-23 : on reste à **4 boîtes** (160 emails/jour de capacité), et les
+argumentaires restaurant/tourisme attendent.

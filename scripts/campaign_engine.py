@@ -64,6 +64,8 @@ def _dsn() -> str:
     raise RuntimeError("PG_DSN absent de .env")
 
 
+import threading as _threading
+_VERROU_POOL = _threading.Lock()
 _POOL_PG = None
 
 
@@ -71,8 +73,12 @@ def _conn():
     """Connexion PostgreSQL (campagnes)."""
     global _POOL_PG
     import psycopg2.pool
-    if _POOL_PG is None:
-        _POOL_PG = psycopg2.pool.ThreadedConnectionPool(1, 6, _dsn())
+    # Verrou à la création : l'API sert ses requêtes en threads, et deux qui arrivent
+    # ensemble sur un pool encore vide en fabriquent chacune un. Le second écrase le
+    # premier, dont les connexions ne sont plus rendues à personne.
+    with _VERROU_POOL:
+        if _POOL_PG is None:
+            _POOL_PG = psycopg2.pool.ThreadedConnectionPool(1, 6, _dsn())
     return _POOL_PG.getconn()
 
 
@@ -479,10 +485,15 @@ def _todays_allowance(camp: dict, today: _date) -> int:
     # dès le premier jour le volume prévu pour le dernier — ce qui vide la montée de son
     # sens, et c'est précisément ce qu'elle est là pour éviter. Hors cadence (rattrapage
     # après la fin du plan), on retombe sur le plus gros palier prévu.
+    # La ligne « acquis » (posée par `cadence_montee` pour absorber ce qui est déjà parti)
+    # n'est pas un palier : elle vaut le cumul historique. La compter dans le maximum
+    # autoriserait, une fois la cadence terminée, un rattrapage de plusieurs centaines
+    # d'envois en une journée — l'inverse de ce que la montée en charge protège.
+    paliers = [int(s.get("count", 0)) for s in cadence if not s.get("acquis")]
     du_jour = next((int(s.get("count", 0)) for s in cadence
-                    if str(s.get("date", ""))[:10] == today.isoformat()), None)
-    plafond = du_jour if du_jour is not None else max(
-        int(s.get("count", 0)) for s in cadence)
+                    if str(s.get("date", ""))[:10] == today.isoformat()
+                    and not s.get("acquis")), None)
+    plafond = du_jour if du_jour is not None else (max(paliers) if paliers else 0)
     return max(0, min(expected - sent, plafond))
 
 
@@ -723,8 +734,66 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
     msg = htb.resolve_campaign_message(site, camp["message_id"])
     if not msg or not msg.get("html"):
         return {"ok": False, "error": "message introuvable"}
+
+    # ── Contrôle anti-spam AVANT le premier envoi (Lot 4) ────────────────────────
+    # La recette `email_qa` tournait toutes les nuits et posait un badge dans l'écran ;
+    # rien n'empêchait de dispatcher un message qu'elle venait de déclarer bloquant. Ce
+    # contrôle-ci s'exécute sur le message RÉSOLU, celui qui va réellement partir, et
+    # arrête le lot. Un défaut bloquant, c'est un lien mort ou une désinscription
+    # introuvable — ce qui transforme un cold email en signalement pour spam.
+    # Les défauts non bloquants (contraste, largeur) passent : refuser un envoi pour un
+    # dégradé violet ferait débrancher le contrôle à la première campagne.
+    try:
+        import email_lint_backend as lint
+        verdict = lint.run_lint(msg["html"])
+        if verdict.get("blocking"):
+            fautes = [f"{i.get('rule') or i.get('category')}: {i.get('message')}"
+                      for i in (verdict.get("issues") or [])
+                      if i.get("severity") == "error"][:3]
+            return {"ok": False, "error": "message bloquant au contrôle anti-spam — "
+                    + " | ".join(fautes)}
+        # Les variables : même garde qu'à l'envoi, mais posée AVANT le lot. Une variable
+        # qu'aucun moteur ne connaît ferait refuser chaque destinataire un par un ; autant
+        # le dire une fois, avant de commencer.
+        import garde_variables as gvar
+        inconnues = (gvar.variables_inconnues(msg["html"])
+                     | gvar.variables_inconnues(camp.get("subject") or ""))
+        if inconnues:
+            return {"ok": False, "error": "variables inconnues dans le message : "
+                    + ", ".join(sorted(inconnues))
+                    + " — aucun moteur ne sait les remplacer, elles partiraient telles quelles"}
+    except ImportError:
+        print("[campaign_engine] contrôle anti-spam indisponible — lot envoyé sans",
+              flush=True)
+    except Exception as e:  # noqa: BLE001
+        # Un contrôle en panne ne doit pas bloquer les envois, mais il doit s'entendre.
+        print(f"[campaign_engine] contrôle anti-spam impossible ({type(e).__name__}: {e}) "
+              f"— lot envoyé sans", flush=True)
     # utm_campaign unique de la campagne (attribution GA4)
     utm_campaign = (camp.get("params") or {}).get("utm_campaign") or camp["id"]
+
+    # ── Le routage ne trahit jamais l'affinité (Lot 4) ───────────────────────────
+    # Sweego et Emelia n'ont pas de boîte expéditrice par contact : y envoyer quelqu'un,
+    # c'est forcément changer son expéditeur. Pour un contact qui a déjà ouvert ou cliqué
+    # depuis une adresse Maildoso, cela détruit le signal positif acquis dans son client
+    # de messagerie — exactement ce que l'affinité protège. On les écarte du lot ; ils
+    # partiront par leur canal, plus tard. Voir `routage`.
+    if channel != "maildoso":
+        try:
+            import routage
+            contacts, verrouilles = routage.filtrer_pour_canal(contacts, channel)
+            if verrouilles:
+                print(f"[campaign_engine] {len(verrouilles)} contact(s) écarté(s) du canal "
+                      f"{channel} : affinité expéditeur confirmée, ils restent sur "
+                      f"{routage.CANAL_AFFINITE}", flush=True)
+                emails = [ct["email"] for ct in contacts if ct.get("email")]
+                if not emails:
+                    return {"ok": True, "sent": 0,
+                            "note": f"tous les contacts du lot sont verrouillés sur "
+                                    f"{routage.CANAL_AFFINITE}"}
+        except Exception as e:  # noqa: BLE001
+            print(f"[campaign_engine] filtre de routage indisponible "
+                  f"({type(e).__name__}: {e}) — lot envoyé sans", flush=True)
 
     if channel == "sweego":
         import sweego_backend as sw
@@ -840,7 +909,8 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                 # (la barrière des 120 jours) avant d'ouvrir DuckDB, donc même si le
                 # pool est tenu par un scrape.
                 mark_pushed_to_emelia(ct["id"], site, campaign_id, "",
-                                      email=ct.get("email"))
+                                      email=ct.get("email"),
+                                      mailbox=ct.get("_mailbox"))
                 marques.add((ct.get("email") or "").strip().lower())
             except Exception as e:  # noqa: BLE001
                 print(f"[campaign_engine] marquage contact {ct.get('email')} échoué : {e}")

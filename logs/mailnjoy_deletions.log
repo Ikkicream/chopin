@@ -23303,3 +23303,266 @@
 {"ts": "2026-08-23T10:33:52.731741+00:00", "email": "info-embiez@paul-ricard.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-23T10:34:34.119610+00:00", "email": "beauregardkitchen@gmail.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
 {"ts": "2026-08-23T10:36:07.652634+00:00", "email": "reservations@chateaumentone.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:12:29.102177+00:00", "email": "vrony6183@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:18:13.998356+00:00", "email": "limprevu-restaurant@orange.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:18:36.481132+00:00", "email": "pastabasta83140@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:23:42.979808+00:00", "email": "piazza.pizza83150@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:24:17.056692+00:00", "email": "francois.beranger@squarehabitat.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:25:02.433137+00:00", "email": "dav.83@hotmail.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:25:52.953539+00:00", "email": "lejardinprovencal83250@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:30:58.313590+00:00", "email": "publication@intecmedia.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:31:30.261188+00:00", "email": "kasbaaabdel@gmail.com", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:31:45.201011+00:00", "email": "hotpizza07@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:32:45.878738+00:00", "email": "franck1208@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:33:28.172249+00:00", "email": "aupatio83300@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:33:54.332370+00:00", "email": "loupitchoun@saveurs-delices.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:39:36.497458+00:00", "email": "pizzafamilysxm@hotmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:39:41.825580+00:00", "email": "miacasa83520@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:40:09.222208+00:00", "email": "hapellierf@yahoo.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:40:14.944685+00:00", "email": "reservationcheznous83520@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:43:40.837293+00:00", "email": "syske2023@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:52:40.573653+00:00", "email": "reservation@st-endreol.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:53:03.547061+00:00", "email": "gdrrestauration83@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:54:19.256602+00:00", "email": "pizza@order.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:54:26.499374+00:00", "email": "florian@easybeer.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:54:32.093243+00:00", "email": "brasseriedessources83860@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:55:10.470159+00:00", "email": "jane@framer.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:55:16.389215+00:00", "email": "sushinagori@hotmail.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:55:39.108134+00:00", "email": "leprado83400@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:55:44.707595+00:00", "email": "guillery.melanie@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T22:55:46.325835+00:00", "email": "reservation@provencalhotel.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:56:11.546072+00:00", "email": "pjd1963@yahoo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T22:56:40.480348+00:00", "email": "jardindesebastine@orange.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:25:12.590784+00:00", "email": "cuvelier@9business.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:25:48.859001+00:00", "email": "babouchkabijoux@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:32:07.868857+00:00", "email": "schettino_giuseppe@libero.it", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:32:23.662638+00:00", "email": "laguinguetteorange84100@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:32:28.160904+00:00", "email": "lepigalle.shop@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:32:35.439765+00:00", "email": "rasserie@lexix.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:32:46.957959+00:00", "email": "leriadorange@gmail.com", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:34:07.439195+00:00", "email": "benoit.morin0017@orange.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:34:49.688622+00:00", "email": "leforum.shop@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:35:33.823951+00:00", "email": "dpdp@radiofrance.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:40:51.602806+00:00", "email": "mika842000@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:42:32.114708+00:00", "email": "geodiaz@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:46:40.324130+00:00", "email": "alexandreicart@elasador.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:46:45.653896+00:00", "email": "imperialbusdiner@gmail.com", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:46:56.837334+00:00", "email": "lanouvelleforge84130@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:47:01.623689+00:00", "email": "saveursetpapilles84400@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:47:37.890621+00:00", "email": "entrepote84@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:52:49.097289+00:00", "email": "lmcsorgues@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:52:53.629607+00:00", "email": "nathaly84490@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:53:13.231349+00:00", "email": "pizzajeanpierre@sfr.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:53:37.979138+00:00", "email": "cyrilmars@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:53:46.519498+00:00", "email": "latruitedecarlet@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:54:05.119322+00:00", "email": "soniakddr@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:54:14.198245+00:00", "email": "ruizsamuel84400@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-23T23:54:19.935153+00:00", "email": "lebarafruits@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:56:17.552905+00:00", "email": "r.rodo@sfr.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-23T23:57:48.653794+00:00", "email": "sillymj@yahoo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T00:22:18.700364+00:00", "email": "aubergedesecrins05260@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T00:24:02.478028+00:00", "email": "thiffany.buffaumene@yschools.eu", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T00:27:30.717293+00:00", "email": "65info@werocket.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T00:27:35.496861+00:00", "email": "medical@clinic.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T00:50:06.934279+00:00", "email": "miam@brunchaila.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T00:50:17.739119+00:00", "email": "tilou@international-giens.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T00:50:28.359323+00:00", "email": "colman@zeme.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T00:51:26.408204+00:00", "email": "reservations@le-segustero.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T00:56:56.227218+00:00", "email": "pizzamore04130@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T00:56:58.165743+00:00", "email": "pizzamore04130@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T00:57:09.895716+00:00", "email": "thelost04100@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T00:57:10.288810+00:00", "email": "thelost04100@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:19:53.220612+00:00", "email": "lesfedeslyon@lesfedeslyon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:20:12.361799+00:00", "email": "reservation@argenson.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:20:30.436050+00:00", "email": "c.ciociola@antonioemarco.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T01:21:53.432931+00:00", "email": "grandcafelyonnais@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T01:21:58.405196+00:00", "email": "abbaye@bocuse.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:27:34.118506+00:00", "email": "lasb92240@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:27:57.022099+00:00", "email": "lafeuillee@restojm2c.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:28:42.743616+00:00", "email": "70contact@lecaveauduchateau.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:28:47.277944+00:00", "email": "yoki75014@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:32:14.278401+00:00", "email": "delpozo.miguel@orange.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T01:33:23.045945+00:00", "email": "manager@laforetnoire.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:38:41.014684+00:00", "email": "resapimousse2024@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:39:02.069452+00:00", "email": "laluz64.lyon1@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:39:10.079209+00:00", "email": "developer@jellywp.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T01:40:02.975194+00:00", "email": "smjaune@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:40:35.635990+00:00", "email": "lerelaisdemoifond@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T01:40:58.276832+00:00", "email": "restaurant@lepaindesucre.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T01:41:03.712294+00:00", "email": "maharaj2300@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T01:41:24.924064+00:00", "email": "ccc-cordeliers@copaincommecanard.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:53:00.018035+00:00", "email": "restaurant@valentina-lyon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:53:35.907608+00:00", "email": "negociants@lesnegociants.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T01:53:57.642755+00:00", "email": "56lemerciere@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:06:48.892633+00:00", "email": "villeurbanne@sassoun.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:07:12.641049+00:00", "email": "ritchi773@hotmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:07:30.757043+00:00", "email": "eric.petrotto@lafabuleusecantine.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:07:43.053284+00:00", "email": "amigopizza69007@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:08:20.823411+00:00", "email": "contact-lechevreul@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:08:24.165302+00:00", "email": "33ruedubeguin@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:08:35.373052+00:00", "email": "trattoria-delicioza-lyon@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:09:26.285072+00:00", "email": "reservation@casa-raphaela.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:09:39.607664+00:00", "email": "camille@email.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:11:05.374357+00:00", "email": "alipod@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:11:11.391706+00:00", "email": "wow33@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:11:32.148981+00:00", "email": "info.lyon@radissoncollection.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:11:39.107700+00:00", "email": "mailtocontact@restaurant-leboeufdargent.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:11:56.642598+00:00", "email": "franchise@ta5ty.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:12:22.232388+00:00", "email": "crequi@danieletdenise.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:13:01.525511+00:00", "email": "reservation@bocuse.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:31:59.811164+00:00", "email": "u003e@lespetitescantines.org", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:37:03.059099+00:00", "email": "miftahyouness438@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:40:18.817662+00:00", "email": "croixrousse@groupedaddy.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:40:25.386228+00:00", "email": "reservation@dlsj.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:40:42.875510+00:00", "email": "restaupro69100@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:41:07.790773+00:00", "email": "alexanian.alexan1995@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:41:49.618962+00:00", "email": "reservation@lefilanthrope.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:42:20.509157+00:00", "email": "l2cmontdor@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T02:42:25.309946+00:00", "email": "gergoryvesque@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T02:42:49.040434+00:00", "email": "veyssetdidier6791@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:00:17.709171+00:00", "email": "sascondor69680@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:01:00.436809+00:00", "email": "le213givors@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:04:47.085201+00:00", "email": "cocon.restaurant@doubletree-lyon.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:05:46.149351+00:00", "email": "rdial786@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:05:59.657485+00:00", "email": "louisrodriguez1968@outlook.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:06:52.927587+00:00", "email": "wynwoodpub@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:10:32.499970+00:00", "email": "malik.adnan085@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:11:03.084541+00:00", "email": "doncamillo69009@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:11:06.726553+00:00", "email": "regine-pizzeria@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T03:11:20.727134+00:00", "email": "survey@seagroup.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T03:11:41.390136+00:00", "email": "mboylu@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:11:44.853746+00:00", "email": "directionletoane@toanerestaurant.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T03:11:49.079116+00:00", "email": "khokha0111@hotmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:12:32.819044+00:00", "email": "aziz020887@hotmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:12:45.493140+00:00", "email": "lacaveapizza69290@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:13:10.411610+00:00", "email": "margaux@zestycompagnie.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:13:17.957362+00:00", "email": "sobrasseurs.brignais@groupe-uni.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:13:36.909743+00:00", "email": "leaudouce2019@outlook.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:14:39.302476+00:00", "email": "djstab69@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:14:56.504175+00:00", "email": "production2@pere-anselme.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:15:00.657344+00:00", "email": "mthorez69200@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:15:15.082983+00:00", "email": "cafedesarts69200@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T03:15:30.508162+00:00", "email": "bonnie245@icloud.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:15:57.773627+00:00", "email": "yana69150@gmail.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T03:16:12.496643+00:00", "email": "pan.fei69720@hotmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:17:16.194737+00:00", "email": "soleviarestaurant@gmail.co", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T03:17:56.867613+00:00", "email": "laspizza697@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:18:00.220478+00:00", "email": "bozkurt6671gs@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:18:10.022984+00:00", "email": "levalentin740@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T03:18:20.129238+00:00", "email": "lyonwybe.frcontact@wybe.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T03:19:54.452370+00:00", "email": "balarest@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T03:24:29.544866+00:00", "email": "events@castelplage.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-08-24T03:24:43.122776+00:00", "email": "amsterdam@pesca.restaurant", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "acquisition import"}
+{"ts": "2026-08-24T03:25:15.898508+00:00", "email": "villa@la-source-doree.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:00:05.094840+00:00", "email": "lovelyduggall757@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:00:33.335039+00:00", "email": "cs@richroyal.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:00:55.445363+00:00", "email": "brasserieles3a@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:01:18.190743+00:00", "email": "envoldessaveurs@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:01:54.949852+00:00", "email": "evenementiel@chapeau-cornu.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:05:25.282929+00:00", "email": "eag@cafedejules.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:09:25.732510+00:00", "email": "reservation@maisonaribert.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:17:51.824408+00:00", "email": "marie@curie.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:17:54.811597+00:00", "email": "137936b592d0cd0b2fba712f87f87c1e731d110003dd24338ed3b47ef60fefb0@group.calendar.google.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:18:41.797003+00:00", "email": "lrdp38300@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:18:47.278843+00:00", "email": "jerome.laforge128@orange.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:20:47.319068+00:00", "email": "vegaskitchen2019@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:21:02.487322+00:00", "email": "abdus38@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:22:37.372386+00:00", "email": "lafelicita3438@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:22:41.889556+00:00", "email": "mahesan24@ymail.com", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:25:05.919778+00:00", "email": "08a16ebc-0ad5-45af-8459-5052190a04e1@hipcom.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:25:16.833643+00:00", "email": "77lavilla@lhrgroupe.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:25:25.906593+00:00", "email": "99saveurs@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:31:58.398793+00:00", "email": "barbulle@orange.fr", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:33:48.477434+00:00", "email": "restaurant.thai38200@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:36:32.660333+00:00", "email": "ce.0380035g@ac-grenoble.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:36:48.014388+00:00", "email": "0675482277.wil@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:37:24.929593+00:00", "email": "gaillard.traiteur@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:38:10.394412+00:00", "email": "nelsrbbq@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:38:20.501386+00:00", "email": "lascuderiarossa38@gmail.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:38:23.610078+00:00", "email": "hotel@pomo.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:38:28.941757+00:00", "email": "christophe.descaillot@orange.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:38:36.263449+00:00", "email": "carolinechan0610@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:39:09.456701+00:00", "email": "s.chautemps@la-toque-viennoise.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:42:15.936314+00:00", "email": "traiteur@lefumoirfrancais.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:50:04.606357+00:00", "email": "thomas921@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:50:37.114443+00:00", "email": "ocampus2024@icloud.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:51:00.145886+00:00", "email": "tonysass@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T04:52:42.902193+00:00", "email": "catalano.titopizza38640@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T04:53:25.994983+00:00", "email": "aufeudebois@yahoo.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T05:24:15.631757+00:00", "email": "cheztotor@orange.fr", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T05:25:02.139995+00:00", "email": "umairtahir786@yahoo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:25:38.876915+00:00", "email": "ref@restaurant-laferme-des3ours.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T05:26:09.583597+00:00", "email": "herve.helstroffer@geometre-expert.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:26:55.990597+00:00", "email": "chanove@refugedesgourmets.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:33:50.167278+00:00", "email": "tornieux@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:34:13.575013+00:00", "email": "paola74200@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:34:52.676417+00:00", "email": "noeljc95@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:40:09.514813+00:00", "email": "xinchen8874@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:40:23.168506+00:00", "email": "calabraise.palmi@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T05:40:37.656908+00:00", "email": "hb442@accor.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:40:43.668757+00:00", "email": "info.313cafe@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:41:07.895107+00:00", "email": "ridha1066@yahoo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:42:43.315743+00:00", "email": "maggic74000@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:48:39.165522+00:00", "email": "nchrispizz74@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T05:48:53.248635+00:00", "email": "huseyin7432@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:49:08.318285+00:00", "email": "lesamis414@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:50:00.725363+00:00", "email": "nicolas@blue-strat.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:50:05.339724+00:00", "email": "solanabonneville@gmail.com", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T05:50:15.882367+00:00", "email": "marc.gevaux777@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:50:22.872934+00:00", "email": "paul@bzzcommunication.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:50:44.762484+00:00", "email": "remisoulier@traiteurdesgourmets.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T05:51:25.767185+00:00", "email": "jerome@macuisine.info", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:56:56.036454+00:00", "email": "reservation@leremous.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:57:09.147969+00:00", "email": "elfnafood@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:58:09.358303+00:00", "email": "skill42160@hotmail.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T05:59:52.726763+00:00", "email": "xlaura2000x@yahoo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:00:04.829391+00:00", "email": "dalbarita1901@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:06:24.956704+00:00", "email": "ladolcevita74700@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:06:47.859508+00:00", "email": "pizzabella74950@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:19:43.182800+00:00", "email": "complexe1810@yahoo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:25:05.240570+00:00", "email": "autableau@orange.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T06:25:19.073564+00:00", "email": "yakup42300@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:28:46.816418+00:00", "email": "lerestaurant@afterfly.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T06:28:56.194621+00:00", "email": "sas.le1615@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:29:25.735433+00:00", "email": "restaurant@aujardingourmand.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:34:48.495403+00:00", "email": "smashfactory42160@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:36:18.139063+00:00", "email": "pizzeriacefalu42000@yahoo.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:36:25.237121+00:00", "email": "pizzeria500degres@gmail.fr", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T06:36:42.413110+00:00", "email": "balicafe2go@gmail.com", "decision": "invalid", "status": "FULL", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T06:36:55.432714+00:00", "email": "henribesson42000@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:46:51.092272+00:00", "email": "boloko@carredeslys.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:47:08.039478+00:00", "email": "lecactus.texmex@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T06:47:59.751257+00:00", "email": "volk-42@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T06:49:54.761942+00:00", "email": "solemio1416@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T06:50:04.839614+00:00", "email": "yanfengfan0105@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:34:22.112486+00:00", "email": "aloha@islandpoke.co.uk", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:34:41.775773+00:00", "email": "christophe.daudou@nordnet.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T07:40:27.972238+00:00", "email": "ledomaineduvaldauzon@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T07:40:41.793715+00:00", "email": "abhedia3220@hotmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:41:09.456942+00:00", "email": "lechapeaurouge63500@orange.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:41:43.246739+00:00", "email": "jpg@traiteur-stmartindesplains.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T07:41:59.030022+00:00", "email": "agastache63500@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:42:04.303104+00:00", "email": "aux3gourmands63@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:50:58.038736+00:00", "email": "hotelermitage83630@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:51:04.440185+00:00", "email": "chamburger63400@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:51:27.302838+00:00", "email": "500diables@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:51:39.428441+00:00", "email": "franchise@moonbo.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:57:13.817131+00:00", "email": "sixtrois@lacoope.org", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T07:57:30.744520+00:00", "email": "exemple.exemple@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:57:41.053111+00:00", "email": "h1175-sb@accor.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T07:58:11.061159+00:00", "email": "restaurant-exseption@hotmail.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T07:59:55.364779+00:00", "email": "dric.bancos@sfr.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T08:08:14.258796+00:00", "email": "audreyvarenne@outlook.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T08:09:50.510362+00:00", "email": "lemarquisderoyat@jeremydaurat.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T08:10:07.500309+00:00", "email": "lecarioca63400@orange.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T08:10:12.105025+00:00", "email": "resto.la.table.de.fred@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T08:10:19.521898+00:00", "email": "majorinedarcangelo059@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T08:10:44.824570+00:00", "email": "gaulfiermathilde@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T08:12:54.817084+00:00", "email": "lacroixdefer.restau@free.fr", "decision": "invalid", "status": "SUSPECT", "category": "RISKY", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T08:13:32.771382+00:00", "email": "laure.audouardteunga@gmail.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T08:14:00.619945+00:00", "email": "leoboumelita@hotmail.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T08:14:12.407137+00:00", "email": "acerola63500@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T08:14:21.494381+00:00", "email": "meizu63500@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T08:14:30.677650+00:00", "email": "le2022.restaurant@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T08:48:52.060092+00:00", "email": "hermann@vendremaboite.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T08:53:59.556901+00:00", "email": "louise.lanet@o2.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}

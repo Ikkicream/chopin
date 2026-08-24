@@ -190,6 +190,19 @@ _TACHES = {
     # tous les jours. Un indicateur faux est pire que pas d'indicateur — il use la confiance.
     "dispatch campagnes": "memory/shared/campaign-dispatch.log",
     "sauvegarde": "backups/backup.log",
+    # Ajoutées le 2026-08-23 avec les tâches correspondantes. Une tâche planifiée non
+    # surveillée est une panne qui dure jusqu'à ce que quelqu'un la remarque : le
+    # 2026-08-20, `pg_reconcile` s'est tu 74 heures parce qu'un fichier de log
+    # appartenait à root, et rien ne l'a signalé. Chaque cron ajouté doit entrer ici en
+    # même temps que dans la crontab.
+    "rattrapage du pool": "logs/pool_rattrapage.log",
+    "miroir enrichissement": "logs/pg_sync_enrichment.log",
+    "délivrabilité": "logs/sante_envoi.log",
+    "programmation des envois": "logs/programmation.log",
+    "collecte": "logs/autoscrape_daily.log",
+    "statistiques": "logs/stats.log",
+    "plancher de collecte": "logs/plancher_collecte.log",
+    "dirigeants nommés": "logs/dirigeants.log",
 }
 
 
@@ -206,8 +219,47 @@ def _taches() -> dict:
         out[nom] = {"present": True,
                     "dernier": modifie.isoformat(timespec="seconds"),
                     "heures": round((maintenant - modifie).total_seconds() / 3600, 1),
-                    "octets": p.stat().st_size}
+                    "octets": p.stat().st_size,
+                    "echec": _fin_en_erreur(p)}
     return out
+
+
+# Un passage qui meurt laisse sa dernière ligne sur l'exception qui l'a tué. On cherche
+# CETTE forme, et rien d'autre : chercher un mot comme « error » dans la fin du journal
+# faisait crier `datagouv_enrich` pour un avertissement sur une société introuvable — un
+# avertissement légitime, au milieu d'un passage qui s'est parfaitement terminé. Une
+# alerte fausse est pire qu'aucune alerte : elle apprend à ne plus les lire.
+import re as _re
+
+_LIGNE_EXCEPTION = _re.compile(
+    r"^\s*(?:[A-Za-z_][\w.]*\.)?[A-Za-z_]\w*"
+    r"(?:Error|Exception|Interrupt|Exit|Timeout|Failure)\b\s*:")
+
+
+def _fin_en_erreur(chemin, octets: int = 4000) -> str | None:
+    """La dernière exécution s'est-elle terminée sur une exception ?
+
+    La fraîcheur d'un journal ne dit rien de son contenu : une tâche qui meurt écrit son
+    traceback, donc son fichier est tout frais et la surveillance de fraîcheur la déclare
+    en forme. C'est ce qui a laissé `pg_sync_enrichment` mort pendant des heures le
+    2026-08-24, avec un miroir dérivé de 2 650 lignes et aucune alerte.
+
+    On ne regarde que la DERNIÈRE ligne utile : un passage réussi écrit après l'échec du
+    précédent, et seul le dernier mot compte.
+    """
+    try:
+        with open(chemin, "rb") as f:
+            f.seek(max(0, chemin.stat().st_size - octets))
+            fin = f.read().decode(errors="replace")
+    except Exception:  # noqa: BLE001
+        return None
+    lignes = [l for l in fin.splitlines() if l.strip()]
+    if not lignes:
+        return None
+    derniere = lignes[-1]
+    if _LIGNE_EXCEPTION.match(derniere) or derniere.startswith("Traceback"):
+        return derniere.strip()[:200]
+    return None
 
 
 def _services() -> dict:

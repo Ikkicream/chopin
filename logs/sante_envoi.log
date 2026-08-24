@@ -1,0 +1,17 @@
+
+■ leclient-roi.com
+   MX     : _dc-mx.b6894f8ec272.leclient-roi.com
+   SPF    : v=spf1 include:_spf.pinkproof.net ~all
+   DKIM   : {'selecteur': 'selector1', 'cle_presente': True}
+   DMARC  : v=DMARC1; p=reject; pct=100;
+
+■ smtp.maildoso.com (159.69.10.94, 159.69.23.134, 159.69.27.245, 159.69.28.123, 159.69.9.85, 178.105.161.216, 188.245.41.45, 46.225.183.5, 49.12.224.81, 49.13.170.255) : non vérifiable : zen.spamhaus.org
+
+■ Fenêtre 7 jours — 325 envois
+   ouverture 40.3 %  ·  clic 9.8 %  ·  rebond 0.0 %  ·  plainte 0.0 %
+   j.bernard@leclient-roi.com         0/ 40 aujourd'hui · ouverture 37.0 % sur 81 envois
+   j.durand@leclient-roi.com          0/ 40 aujourd'hui · ouverture 36.6 % sur 82 envois
+   j.juste@leclient-roi.com           0/ 40 aujourd'hui · ouverture 46.3 % sur 82 envois
+   j.nguyen@leclient-roi.com          0/ 40 aujourd'hui · ouverture 42.7 % sur 82 envois
+
+■ Alertes : 0

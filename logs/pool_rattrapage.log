@@ -1,0 +1,35 @@
+{
+  "scrappe": 11017,
+  "absents_du_pool": 4805,
+  "tombstones_respectes": 4238,
+  "refuses_par_les_regles_actuelles": 448,
+  "motifs_de_refus": {
+    "role_based": 446,
+    "honeypot": 1,
+    "role_based_num": 1
+  },
+  "recuperables": 119,
+  "dry_run": false,
+  "crees": 119,
+  "echecs": 0,
+  "postgresql": {
+    "pool": 10517,
+    "presents_avant": 11899,
+    "a_retirer": 1382,
+    "a_creer": 0,
+    "dry_run": false,
+    "evenements_conserves": 0,
+    "presents_apres": 10520,
+    "par_etat": {
+      "ok": 8251,
+      "spam": 1482,
+      "a_verifier": 544,
+      "exclu": 170,
+      "ko": 73
+    },
+    "attributions_auto": {
+      "lcr": 0,
+      "mkd": 0
+    }
+  }
+}

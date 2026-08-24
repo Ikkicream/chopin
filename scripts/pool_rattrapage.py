@@ -67,6 +67,28 @@ def _refuse_aujourdhui(email: str) -> str | None:
     return None
 
 
+def _geo_depuis_ville(ville: str | None, dept: str | None, region: str | None):
+    """Complète le département et la région à partir de la ville quand ils manquent.
+
+    `god_mode.scrappe` ne stocke le département que sur la voie Basile : 17 lignes sur
+    7 971 côté Serper. La double écriture du scraper, elle, le résout au vol via
+    `resolve_city_geo` — mais elle ne laisse rien dans `scrappe`. Un rattrapage qui recopie
+    la colonne telle quelle réinjecte donc des contacts sans département, **invisibles au
+    ciblage géographique** alors que la ville est là. On refait le même travail que le
+    scraper plutôt que de propager son trou.
+    """
+    if (dept or "").strip():
+        return dept, region
+    if not (ville or "").strip():
+        return dept, region
+    try:
+        from workflow_geo import resolve_city_geo
+        g = resolve_city_geo(ville) or {}
+        return (g.get("dept") or dept), (g.get("region") or region)
+    except Exception:  # noqa: BLE001
+        return dept, region
+
+
 def _maybe(v):
     if v is None or isinstance(v, (dict, list)):
         return v
@@ -147,6 +169,7 @@ def rattraper(depuis: str | None = None, dry_run: bool = False, limite: int = 0)
         for r in lignes:
             (_sid, em, site, societe, tel, site_web, secteur, ville, cp,
              dept, region, score, raisons, mn, source, _cree) = r
+            dept, region = _geo_depuis_ville(ville, dept, region)
             try:
                 cid = pool.create_in_pool({
                     "email": em,

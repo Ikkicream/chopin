@@ -1,13 +1,2 @@
-  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 511483) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
 
-=== [veilleur 2026-08-19 21:00:02 UTC] reprise automatique après arrêt anormal ===
-  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 4036959) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
-  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 566081) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
-  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in python3 (PID 578069) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
-  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 566081) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
-  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 4036959) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
-  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 566081) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
-{"ok": true, "resumed": true, "region": null, "dept": "06", "status": "done"}
-
-=== [veilleur 2026-08-23 09:00:02 UTC] reprise automatique après arrêt anormal ===
-{"ok": true, "resumed": true, "region": null, "dept": "06", "status": "done"}
+=== [veilleur 2026-08-24 10:00:02 UTC] reprise automatique après arrêt anormal ===

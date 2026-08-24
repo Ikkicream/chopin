@@ -55,8 +55,31 @@ def actif() -> bool:
 
 
 def _conn():
-    import psycopg2
-    return psycopg2.connect(_DSN)
+    """Connexion prise dans le pool partagé de `pool_pg`, jamais ouverte à neuf.
+
+    Ce module est sur le chemin le plus chaud du système : chaque contact scrapé déclenche
+    `promote_contact`, qui déclenche à son tour un `sync_contact_site` par site — soit deux
+    à trois écritures. Ouvrir une connexion pour chacune, c'est autant d'allers-retours TCP
+    et de forks côté serveur ; une passe de collecte de 500 contacts en produisait 1 500.
+    Le pool ramène ça à quelques connexions réutilisées.
+
+    Repli sur une connexion directe si `pool_pg` est indisponible : ce module doit rester
+    utilisable seul, y compris depuis un script lancé hors de l'API.
+    """
+    try:
+        import pool_pg
+        return pool_pg._conn(), True
+    except Exception:  # noqa: BLE001
+        import psycopg2
+        return psycopg2.connect(_DSN), False
+
+
+def _rendre(c, pooled: bool) -> None:
+    if pooled:
+        import pool_pg
+        pool_pg._rendre(c)
+    else:
+        c.close()
 
 
 def _echec(operation: str, e: Exception, detail: dict) -> None:
@@ -73,13 +96,13 @@ def _executer(operation: str, sql: str, params: tuple, detail: dict) -> bool:
     if not actif():
         return False
     try:
-        c = _conn()
+        c, pooled = _conn()
         try:
             with c:
                 with c.cursor() as cur:
                     cur.execute(sql, params)
         finally:
-            c.close()
+            _rendre(c, pooled)
         with _LOCK:
             _COMPTEURS["ok"] += 1
         return True

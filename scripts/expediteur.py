@@ -69,22 +69,32 @@ def boites(site: str) -> list[dict]:
     """Les boîtes du site avec leur plafond, leur consommation du jour et leur reste."""
     faits = envoyes_aujourdhui(site)
     out = []
-    for (email, nom, cap, statut, domaine, hote, port, ident, secret) in _q("""
+    for (email, nom, cap, statut, domaine, hote, port, ident, secret,
+         pause, motif_pause) in _q("""
             SELECT email::text, sender_name, daily_cap, status, domain,
-                   smtp_host, smtp_port, username, password_ref
+                   smtp_host, smtp_port, username, password_ref,
+                   pause_jusqu_a, pause_motif
             FROM mailboxes
             WHERE site_code = %(site)s AND provider = 'maildoso' ORDER BY email""",
             {"site": site}):
         envoyes = faits.get(email, 0)
+        # Une boîte au repos (plainte, pic de rebonds) est inutilisable, exactement comme
+        # une boîte désactivée. Voir `refroidissement` : la pause se lève toute seule à
+        # l'échéance, et les contacts qui lui sont attitrés attendent plutôt que de
+        # changer d'expéditeur.
+        au_repos = pause is not None
         # Les clés SMTP portent les noms attendus par `maildoso_backend.send_email` :
         # la boîte rendue ici doit pouvoir lui être passée telle quelle.
         out.append({"email": email, "sender_name": nom, "daily_cap": int(cap or 0),
-                    "status": statut, "domaine": domaine or email.split("@")[-1],
+                    "status": "au_repos" if au_repos else statut,
+                    "domaine": domaine or email.split("@")[-1],
                     "smtp_host": hote, "smtp_port": port, "username": ident,
                     "password_ref": secret,
                     "envoyes_aujourdhui": envoyes,
-                    "reste": max(0, int(cap or 0) - envoyes),
-                    "active": statut == "active"})
+                    "reste": 0 if au_repos else max(0, int(cap or 0) - envoyes),
+                    "au_repos_jusqu_a": str(pause) if pause else None,
+                    "au_repos_motif": motif_pause,
+                    "active": statut == "active" and not au_repos})
     return out
 
 

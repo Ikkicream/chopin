@@ -571,6 +571,13 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
         if res.get("ok"):
             sent += 1
             sent_emails.append(it["email"])
+            # La boîte qui a RÉELLEMENT écrit, transmise au callback par le contact.
+            # Sans elle, le journal PostgreSQL enregistre l'envoi sans expéditeur — et
+            # `expediteur.envoyes_aujourdhui`, qui compte par boîte, rend 0 pour tout le
+            # monde. Conséquence vécue le 2026-08-24 : le plafond de 40/jour/boîte n'était
+            # PAS appliqué, et les 29 envois du matin sont tous partis de la même adresse
+            # au lieu d'être répartis sur quatre.
+            it["_mailbox"] = res.get("mailbox")
             if on_sent:
                 try:
                     on_sent(it)

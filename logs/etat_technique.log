@@ -267,3 +267,132 @@
   "genesis-mailnjoy-drain": true
  }
 }
+{
+ "at": "2026-08-24T06:45:01+00:00",
+ "jour": "2026-08-23",
+ "bases": {
+  "fichiers": {
+   "contacts.duckdb": 1213214720,
+   "god_mode.duckdb": 217067520,
+   "auth.duckdb": 5517312,
+   "postgresql": 41122839
+  },
+  "tables": {
+   "pool.contacts": 10565,
+   "pool.contact_site_history": 13340,
+   "pool.contact_enrichment": 10244,
+   "pool.email_suppression": 967,
+   "god_mode.scrappe": 11044,
+   "god_mode.scrappe_pending": 103,
+   "god_mode.scrappe_rejected": 11620,
+   "god_mode.maildoso_sent": 1463,
+   "god_mode.mass_campaigns": 1,
+   "god_mode.sweego_events": 4273,
+   "god_mode.god_mode_serper_calls": 90608,
+   "god_mode.autoscrape_targets": 2162,
+   "pg.contact_sites": 10565,
+   "pg.contacts": 10565,
+   "pg.contact_enrichment": 7647,
+   "pg.email_events": 6598,
+   "pg.campaign_recipients": 1623,
+   "pg.memoire_stephane": 393,
+   "pg.followup_events": 114,
+   "pg.contact_followup": 106,
+   "pg.sector_policy": 56,
+   "pg.stats_secteur_jour": 34,
+   "pg.mailbox_ramp_log": 32,
+   "pg.campaigns": 8,
+   "pg.etat_technique_journalier": 4,
+   "pg.mailboxes": 4,
+   "pg.segments": 1,
+   "pg.config_stephane": 1,
+   "pg.opportunites": 1,
+   "pg.mass_sends": 1,
+   "pg.role_pages": 0,
+   "pg.lecture_contacts": 0
+  }
+ },
+ "flux_hier": {
+  "scrape_serper": 152,
+  "scrape_basile": 111,
+  "mailnjoy_verifies": 374,
+  "mailnjoy_rejetes": 1425,
+  "datagouv_enrichis": 765,
+  "emails_envoyes": 0,
+  "contacts_crees": 747,
+  "en_attente_mailnjoy": 103
+ },
+ "crm": {
+  "a_rappeler": 106,
+  "attribues": 106,
+  "appels_7j": 2,
+  "rdv_a_traiter": 0
+ },
+ "taches": {
+  "enrichissement data.gouv": {
+   "present": true,
+   "dernier": "2026-08-24T06:38:15+00:00",
+   "heures": 0.1,
+   "octets": 23782
+  },
+  "réconciliation PostgreSQL": {
+   "present": true,
+   "dernier": "2026-08-24T06:39:17+00:00",
+   "heures": 0.1,
+   "octets": 970
+  },
+  "dispatch campagnes": {
+   "present": true,
+   "dernier": "2026-08-23T08:30:01+00:00",
+   "heures": 22.3,
+   "octets": 27566
+  },
+  "sauvegarde": {
+   "present": true,
+   "dernier": "2026-08-23T21:00:28+00:00",
+   "heures": 9.7,
+   "octets": 185028
+  },
+  "rattrapage du pool": {
+   "present": true,
+   "dernier": "2026-08-24T06:30:53+00:00",
+   "heures": 0.2,
+   "octets": 674
+  },
+  "miroir enrichissement": {
+   "present": true,
+   "dernier": "2026-08-24T06:38:16+00:00",
+   "heures": 0.1,
+   "octets": 1496
+  },
+  "délivrabilité": {
+   "present": true,
+   "dernier": "2026-08-23T19:55:51+00:00",
+   "heures": 10.8,
+   "octets": 0
+  },
+  "programmation des envois": {
+   "present": true,
+   "dernier": "2026-08-23T21:11:32+00:00",
+   "heures": 9.6,
+   "octets": 0
+  },
+  "collecte": {
+   "present": true,
+   "dernier": "2026-08-24T06:45:01+00:00",
+   "heures": 0.0,
+   "octets": 360988
+  },
+  "statistiques": {
+   "present": true,
+   "dernier": "2026-08-24T05:50:03+00:00",
+   "heures": 0.9,
+   "octets": 9453
+  }
+ },
+ "services": {
+  "genesis-dashboard": true,
+  "genesis-ui": true,
+  "genesis-mailnjoy-drain": true
+ }
+}

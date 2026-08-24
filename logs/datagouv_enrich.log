@@ -105,3 +105,59 @@ ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'
 2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Paisa Papa Marignane", "denomination": "PAISA PAPA", "siret": "90228856200017", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "MARIGNANE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "PRONTO BURGER", "denomination": "LE KING", "siret": "84814668400016", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "MARIGNANE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Roche Belle", "denomination": "ROCHE BELLE", "siret": "51107560800014", "code_naf": "68.20B", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "LA CIOTAT", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-24 06:30:53,625 [INFO] 1359 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-24 06:30:53,626 [INFO] Durée estimée minimale : ~340s (1359 × 4 req/s)
+2026-08-24 06:31:07,376 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:31:10,301 [INFO]   ...50/1359 (25 enrichis, 2 exclus, API=55 cache=0)
+2026-08-24 06:31:24,032 [INFO]   ...100/1359 (66 enrichis, 2 exclus, API=106 cache=0)
+2026-08-24 06:31:36,983 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1459164) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:31:38,492 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:31:41,124 [INFO]   ...150/1359 (96 enrichis, 5 exclus, API=158 cache=0)
+2026-08-24 06:31:56,347 [INFO]   ...200/1359 (119 enrichis, 5 exclus, API=215 cache=0)
+2026-08-24 06:32:11,407 [INFO]   ...250/1359 (131 enrichis, 6 exclus, API=271 cache=0)
+2026-08-24 06:32:25,414 [INFO]   ...300/1359 (163 enrichis, 6 exclus, API=323 cache=0)
+2026-08-24 06:32:38,958 [INFO]   ...350/1359 (210 enrichis, 6 exclus, API=373 cache=0)
+2026-08-24 06:32:52,594 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:32:55,321 [INFO]   ...400/1359 (227 enrichis, 7 exclus, API=428 cache=0)
+2026-08-24 06:33:08,958 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:33:10,469 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:33:13,093 [INFO]   ...450/1359 (241 enrichis, 9 exclus, API=483 cache=0)
+2026-08-24 06:33:27,074 [INFO]   ...500/1359 (271 enrichis, 10 exclus, API=535 cache=0)
+2026-08-24 06:33:39,581 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:33:42,218 [INFO]   ...550/1359 (304 enrichis, 10 exclus, API=585 cache=2)
+2026-08-24 06:33:56,384 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:33:57,892 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1459164) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:34:00,551 [INFO]   ...600/1359 (328 enrichis, 10 exclus, API=642 cache=2)
+2026-08-24 06:34:14,828 [INFO]   ...650/1359 (355 enrichis, 12 exclus, API=695 cache=2)
+2026-08-24 06:34:29,439 [INFO]   ...700/1359 (373 enrichis, 14 exclus, API=749 cache=2)
+2026-08-24 06:34:44,837 [INFO]   ...750/1359 (383 enrichis, 15 exclus, API=805 cache=2)
+2026-08-24 06:34:59,738 [INFO]   ...800/1359 (396 enrichis, 17 exclus, API=860 cache=2)
+2026-08-24 06:35:14,808 [INFO]   ...850/1359 (408 enrichis, 18 exclus, API=916 cache=2)
+2026-08-24 06:35:29,849 [INFO]   ...900/1359 (426 enrichis, 19 exclus, API=972 cache=2)
+2026-08-24 06:35:44,883 [INFO]   ...950/1359 (440 enrichis, 19 exclus, API=1028 cache=2)
+2026-08-24 06:35:59,953 [INFO]   ...1000/1359 (463 enrichis, 21 exclus, API=1084 cache=4)
+2026-08-24 06:36:17,510 [INFO]   ...1050/1359 (479 enrichis, 22 exclus, API=1150 cache=4)
+2026-08-24 06:36:33,755 [INFO]   ...1100/1359 (492 enrichis, 23 exclus, API=1211 cache=4)
+2026-08-24 06:36:49,908 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:36:51,419 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1459164) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:36:52,926 [WARNING] DuckDB occupé (flush), retry 3 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:36:55,547 [INFO]   ...1150/1359 (507 enrichis, 25 exclus, API=1276 cache=4)
+2026-08-24 06:37:11,537 [INFO]   ...1200/1359 (524 enrichis, 26 exclus, API=1336 cache=4)
+2026-08-24 06:37:26,135 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1459164) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:37:28,755 [INFO]   ...1250/1359 (548 enrichis, 27 exclus, API=1395 cache=4)
+2026-08-24 06:37:43,145 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:37:44,650 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:37:47,330 [INFO]   ...1300/1359 (568 enrichis, 28 exclus, API=1453 cache=4)
+2026-08-24 06:38:00,477 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:38:03,264 [INFO]   ...1350/1359 (584 enrichis, 30 exclus, API=1506 cache=4)
+2026-08-24 06:38:14,447 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-24 06:38:15,358 [INFO] ============================================================
+2026-08-24 06:38:15,358 [INFO] Total: 1359 | Enrichis: 589 | Non-vérifiés(contactables): 739 | Exclus durs: 30 | Transitoires(non écrits): 1 | API: 1518 | Cache: 4 | 429: 0 | 441.7s
+2026-08-24 06:38:15,359 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 30}
+2026-08-24 06:38:15,359 [INFO] Non-vérifiés par motif (restent contactables): {"non_trouve": 652, "match_ambigu": 87}
+2026-08-24 06:38:15,359 [INFO] Échantillon enrichis:
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "Pizzeria 500", "denomination": "BILADI TACOS", "siret": "83458848500013", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "SAINT-ETIENNE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "Cafe de L'opera", "denomination": "CAFE DE L'OPERA", "siret": "93062656900014", "code_naf": "56.30Z", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "SAINT-ETIENNE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "La crêpe au carré", "denomination": "LA CREPERIE", "siret": "83496210200036", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "10-19", "commune": "PARIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "Boucherie SOZERI Villefontaine", "denomination": "BOUCHERIE SOZERI", "siret": "98323902100022", "code_naf": "47.22Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "VILLEFONTAINE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "La Brasserie Dauphinoise", "denomination": "LA BRASSERIE DAUPHINOISE", "siret": "82919811800012", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "SAINT-EGREVE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}

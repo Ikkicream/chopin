@@ -34,9 +34,15 @@ def synchroniser() -> dict:
     import psycopg2
     import psycopg2.extras
     sys.path.insert(0, str(BASE_DIR / "scripts"))
-    from duck_ouverture import ouvrir
+    # Ouverture PATIENTE, pas celle de l'API. `duck_ouverture.ouvrir` réessaie six fois en
+    # un quart de seconde : taillé pour une requête d'écran, inutile ici. Le 2026-08-24 à
+    # 6 h 30, un scrape tenait le pool et ce script est mort en 1,5 seconde — le miroir
+    # d'enrichissement a dérivé de 2 650 lignes, et l'écran Acquisition annonçait 361
+    # contacts « Vérifié » que le pool disait « Prêt ». `pg_gate._duck()` attend dix
+    # minutes, ce qui couvre le passage d'un scrape entre deux villes.
+    import pg_gate
 
-    d = ouvrir(BASE_DIR / "data" / "contacts.duckdb")
+    d = pg_gate._duck()
     try:
         # Les contacts connus de PostgreSQL font foi : on ne recopie pas l'enrichissement
         # d'un contact qui n'y est pas (la clé étrangère le refuserait de toute façon).

@@ -97,7 +97,11 @@ def construire(secteur: str, societe: str = "") -> bytes:
     pdf.multi_cell(174, 5.5, _txt(
         "Sans engagement : vous arrêtez quand vous voulez. Désinscription en un clic sur "
         "chaque message, base nettoyée et conforme.\n"
-        "contact@cheffer.email  -  https://cheffer.email"))
+        # `contact@cheffer.email` figurait ici alors que le domaine n'a AUCUN MX : tout ce
+        # qu'on écrivait à cette adresse rebondissait. Adresse de contact confirmée par
+        # Camille le 2026-08-23. Le domaine cheffer.email ne sert qu'à l'API
+        # (api.cheffer.email) ; il ne reçoit pas d'email.
+        "contact@leclientroi.com  -  https://leclientroi.com"))
     return bytes(pdf.output())
 
 

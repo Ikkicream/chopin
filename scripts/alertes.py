@@ -46,11 +46,22 @@ if _envf.exists():
 
 # Âge maximal admis pour chaque tâche, en heures. Une tâche quotidienne a droit à 26 h :
 # deux heures de marge sur son créneau, pour qu'un décalage de cron ne sonne pas.
+# Âge maximum toléré entre deux passages, par tâche. Une tâche quotidienne vaut 26 h
+# (24 h plus la marge d'un décalage d'exécution) ; une tâche fréquente vaut quelques
+# heures — assez pour ne pas crier sur un passage sauté, assez peu pour voir un arrêt.
 AGE_MAX_H = {
     "enrichissement data.gouv": 26,
     "réconciliation PostgreSQL": 26,
     "dispatch campagnes": 26,
     "sauvegarde": 26,
+    "rattrapage du pool": 26,
+    "miroir enrichissement": 26,
+    "délivrabilité": 26,
+    "programmation des envois": 26,
+    "collecte": 3,            # toutes les 15 min
+    "statistiques": 3,        # toutes les heures
+    "plancher de collecte": 2,   # toutes les 30 min
+    "dirigeants nommés": 26,     # une passe par nuit
 }
 
 # Un rappel par jour pour un problème qui dure, et pas davantage.
@@ -134,6 +145,17 @@ def diagnostic() -> dict:
             problemes[f"tache:{nom}"] = (
                 f"⏰ *{nom}* : dernier passage il y a {info['heures']} h "
                 f"(limite {limite} h).")
+        elif info.get("echec"):
+            # Une tâche qui MEURT écrit sa trace d'erreur dans son log : le fichier est
+            # donc tout frais, et la surveillance de fraîcheur la déclare en bonne santé.
+            # Le 2026-08-24, `pg_sync_enrichment` est mort sur le verrou du pool à 6 h 30 ;
+            # le miroir a dérivé de 2 650 lignes et aucune alerte n'est partie, parce que
+            # son journal venait d'être écrit — avec le traceback dedans. On regarde donc
+            # aussi CE QUE dit le journal, pas seulement quand il a été touché.
+            problemes[f"tache:{nom}:echec"] = (
+                f"💥 *{nom}* : dernier passage TERMINÉ EN ERREUR "
+                f"(il y a {info.get('heures')} h).\n"
+                f"   {info['echec']}")
 
     try:
         for nom, en_ligne in (et._services() or {}).items():
@@ -150,6 +172,34 @@ def diagnostic() -> dict:
         problemes.update(sante_envoi.problemes("lcr"))
     except Exception as e:  # noqa: BLE001
         problemes["sante_envoi"] = f"📉 La surveillance de délivrabilité est illisible : {e}"
+
+    # Boîtes au repos : une capacité d'envoi qui chute sans explication visible se lit
+    # comme une panne. Le balayage lève au passage les pauses arrivées à échéance — une
+    # pause qu'il faut penser à lever est une pause qu'on oublie de lever.
+    try:
+        import refroidissement
+        refroidissement.controler("lcr", appliquer=True)
+        problemes.update(refroidissement.problemes("lcr"))
+    except Exception as e:  # noqa: BLE001
+        problemes["refroidissement"] = f"🧊 L'état des mises au repos est illisible : {e}"
+
+    # Collecte : une journée qui se termine sous le plancher de 500 contacts ne produit
+    # aucune erreur — le scraper a « décidé de passer son tour », six fois de suite et pour
+    # six bonnes raisons. C'est la somme qui pose problème, et elle ne se voit nulle part.
+    try:
+        import plancher_collecte
+        problemes.update(plancher_collecte.problemes("lcr"))
+    except Exception as e:  # noqa: BLE001
+        problemes["plancher"] = f"🕷 L'état du plancher de collecte est illisible : {e}"
+
+    # Programmation : le jour où la dernière campagne atteint sa cible, plus rien ne part
+    # et le tableau de bord affiche « done » — ce qui ressemble à un succès. C'est le seul
+    # arrêt d'envoi qui ne produit aucune erreur nulle part.
+    try:
+        import programmation
+        problemes.update(programmation.problemes("lcr"))
+    except Exception as e:  # noqa: BLE001
+        problemes["programmation"] = f"📭 La programmation des envois est illisible : {e}"
 
     # Collecte : un blocage fournisseur n'écrit rien dans les logs de tâche, il faut le
     # demander au scrapper lui-même.
