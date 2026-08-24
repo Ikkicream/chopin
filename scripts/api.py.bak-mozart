@@ -215,29 +215,6 @@ async def auth_middleware(request: Request, call_next):
             return JSONResponse(status_code=403,
                 content={"error": f"access denied for site '{forbidden[0]}'"})
 
-    # ── Bêtas fermées : réservées à des comptes nommés ────────────────────────
-    # Contrôlé sur le COMPTE et non sur le rôle, et AVANT la matrice : « réservé à mes
-    # tests » ne veut rien dire si tous les superadmins y ont accès. Le superadmin est
-    # exempté de la matrice de rôles ; il ne l'est pas d'une bêta.
-    try:
-        _chemin_scripts = str(BASE_DIR / "scripts")
-        if _chemin_scripts not in sys.path:
-            sys.path.insert(0, _chemin_scripts)
-        import roles_backend as rbk_beta
-        refus_beta = rbk_beta.beta_interdite(path, sess.get("username") or "",
-                                             next((seg for seg in path.split("/")
-                                                   if seg in _known_site_codes()), None))
-        if refus_beta:
-            from fastapi.responses import JSONResponse
-            return JSONResponse(status_code=403, content={
-                "error": "fonctionnalité en test",
-                "detail": f"« {refus_beta} » est en bêta fermée, réservée aux comptes de "
-                          f"test. Elle sera ouverte quand elle sera prête.",
-                "page": refus_beta, "beta": True})
-    except Exception as e:  # noqa: BLE001
-        print(f"[api] contrôle des bêtas inopérant ({type(e).__name__}: {e}) — "
-              f"accès laissé passer sur {path}", flush=True)
-
     # ── Droits par rôle : la matrice page → routes ────────────────────────────
     # C'est ICI que se joue l'interdiction, pas dans le menu. Le rôle vient de la SESSION
     # vérifiée côté serveur ; ce que le navigateur raconte de son rôle n'a aucun effet.
@@ -881,56 +858,29 @@ def _ping_connector(name: str, env: dict) -> dict:
     import time as _t
     now = _t.time()
 
-    def _http(url, method="GET", headers=None, json_body=None, timeout=8.0, essais=2):
-        """Un appel, avec une seconde chance sur incident réseau.
-
-        Le délai était à 3 s : la toute première requête paie la poignée de main TLS
-        (mesuré ~950 ms sur Ahrefs, 200 ms ensuite) et un pic chez le fournisseur
-        suffisait à afficher une panne. Un dépassement de délai ne dit RIEN de la clé,
-        donc on réessaie une fois avant de crier.
-        """
-        dernier = None
-        for _ in range(max(1, essais)):
-            t0 = _t.time()
-            try:
-                if method == "POST":
-                    r = requests.post(url, headers=headers or {}, json=json_body, timeout=timeout)
-                else:
-                    r = requests.get(url, headers=headers or {}, timeout=timeout)
-                return r.status_code, int((_t.time() - t0) * 1000), None
-            except (requests.Timeout, requests.ConnectionError) as e:
-                dernier = (0, int((_t.time() - t0) * 1000), str(e)[:200])
-            except Exception as e:
-                return 0, int((_t.time() - t0) * 1000), str(e)[:200]
-        return dernier
-
-    def _verdict(code, ms, err, kind="external", note=None):
-        """Traduit un ping en statut ET en cause.
-
-        Une clé refusée et un réseau qui traîne n'appellent pas la même action : sans
-        cette distinction l'écran envoyait vérifier une clé parfaitement valide.
-        """
-        if code == 200:
-            out = {"status": "ok", "latency_ms": ms, "kind": kind}
-        else:
-            out = {"status": "error", "latency_ms": ms, "kind": kind,
-                   "raison": "cle" if code in (401, 403) else "service" if code else "reseau",
-                   "error": err or f"HTTP {code}"}
-        if note:
-            out["note"] = note
-        return out
+    def _http(url, method="GET", headers=None, json_body=None, timeout=3.0):
+        t0 = _t.time()
+        try:
+            if method == "POST":
+                r = requests.post(url, headers=headers or {}, json=json_body, timeout=timeout)
+            else:
+                r = requests.get(url, headers=headers or {}, timeout=timeout)
+            ms = int((_t.time() - t0) * 1000)
+            return r.status_code, ms, None
+        except Exception as e:
+            return 0, int((_t.time() - t0) * 1000), str(e)[:200]
 
     if name == "deepseek":
         key = env.get("DEEPSEEK_API_KEY", "")
         if not key: return {"status": "missing_key", "kind": "external"}
         code, ms, err = _http("https://api.deepseek.com/user/balance", headers={"Authorization": f"Bearer {key}"})
-        return _verdict(code, ms, err)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
 
     if name == "ahrefs":
         key = env.get("AHREFS_API_KEY", "")
         if not key: return {"status": "missing_key", "kind": "external"}
         code, ms, err = _http("https://api.ahrefs.com/v3/subscription-info/limits-and-usage", headers={"Authorization": f"Bearer {key}"})
-        return _verdict(code, ms, err)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
 
     if name == "emelia":
         # On utilise la clé globale pour le check générique (sinon serait par site)
@@ -944,20 +894,20 @@ def _ping_connector(name: str, env: dict) -> dict:
         code, ms, err = _http("https://api.emelia.io/graphql", method="POST",
                               headers={"Authorization": key, "Content-Type": "application/json"},
                               json_body={"query": "{ campaigns { _id } }"})
-        return _verdict(code, ms, err)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
 
     if name == "telegram":
         token = env.get("TELEGRAM_BOT_TOKEN", "")
         if not token: return {"status": "missing_key", "kind": "external"}
         code, ms, err = _http(f"https://api.telegram.org/bot{token}/getMe", timeout=4.0)
-        return _verdict(code, ms, err)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
 
     if name == "emdash":
         token = env.get("EMDASH_API_TOKEN", "")
         if not token: return {"status": "missing_key", "kind": "external"}
         url = env.get("EMDASH_API_URL", "http://localhost:4321/_emdash/api").rstrip("/")
         code, ms, err = _http(f"{url}/content/posts?limit=1", headers={"Authorization": f"Bearer {token}"}, timeout=2.0)
-        return _verdict(code, ms, err)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
 
     if name == "wordpress":
         wp_url = env.get("WP_SITE_URL", "")
@@ -967,7 +917,7 @@ def _ping_connector(name: str, env: dict) -> dict:
         import base64
         creds = base64.b64encode(f"{wp_user}:{wp_pass}".encode()).decode()
         code, ms, err = _http(f"{wp_url}/wp-json/wp/v2/posts?per_page=1", headers={"Authorization": f"Basic {creds}"}, timeout=4.0)
-        return _verdict(code, ms, err)
+        return {"status": "ok" if code == 200 else "error", "latency_ms": ms, "kind": "external", "error": err if code != 200 else None}
 
     if name == "serper":
         # Pas de ping live (chaque appel = 1 crédit payant)
@@ -1024,18 +974,12 @@ def api_connectors_health(request: Request, force: bool = False):
     # Ping tout
     env = load_env()
     connectors = ["deepseek", "ahrefs", "emelia", "telegram", "emdash", "wordpress", "serper", "unsplash", "crm_interne", "acquisition_db"]
-    # De front, pas en file indienne : 10 connecteurs × (8 s × 2 essais) en séquence
-    # feraient attendre l'écran deux minutes. En parallèle, le tout coûte le plus lent.
-    from concurrent.futures import ThreadPoolExecutor
-
-    def _sonder(name: str) -> tuple[str, dict]:
+    results = {}
+    for name in connectors:
         try:
-            return name, _ping_connector(name, env)
+            results[name] = _ping_connector(name, env)
         except Exception as e:
-            return name, {"status": "error", "kind": "external", "error": str(e)[:200]}
-
-    with ThreadPoolExecutor(max_workers=len(connectors)) as pool:
-        results = dict(pool.map(_sonder, connectors))
+            results[name] = {"status": "error", "kind": "external", "error": str(e)[:200]}
 
     payload = {
         "checked_at": datetime.now(timezone.utc).isoformat(),
@@ -4933,197 +4877,6 @@ async def api_env_keys_update(site: str, request: Request):
     return {"ok": True, "updated": updated}
 
 
-# ── Onoff Business — téléphonie ───────────────────────────────────────────────
-# Le connecteur est en lecture seule côté Onoff (l'API n'expose ni la composition d'un
-# appel, ni l'envoi de SMS, ni le solde — voir l'en-tête de scripts/onoff.py). Les journaux
-# arrivent par WEBHOOK, qui fonctionne quel que soit l'abonnement, et l'API sert
-# d'enrichissement quand le plan Max est actif.
-
-def _onoff():
-    _scripts_dans_le_chemin()
-    import onoff
-    return onoff
-
-
-@app.get("/api/sites/{site}/onoff/etat")
-def api_onoff_etat(site: str):
-    """Ce que la page ON/OFF affiche en haut : configuration, sonde vivante, volumes."""
-    o = _onoff()
-    out = {"configure": o.configure(site), "resume": o.resume(site),
-           "url_webhook": o.url_webhook(site),
-           # Dit à l'écran ce qui est possible, pour qu'il n'affiche pas un bouton mort.
-           "capacites": {"appeler": False, "envoyer_sms": False, "credit": False,
-                         "lire_journaux": True, "messagerie": True}}
-    out["verification"] = o.verifier(site) if out["configure"] else {"status": "missing_key"}
-    return out
-
-
-@app.get("/api/sites/{site}/onoff/membres")
-def api_onoff_membres(site: str):
-    return _onoff().membres(site)
-
-
-@app.get("/api/sites/{site}/onoff/numeros")
-def api_onoff_numeros(site: str):
-    return _onoff().numeros(site)
-
-
-@app.get("/api/sites/{site}/onoff/appels")
-def api_onoff_appels(site: str, limite: int = 100, numero: str = ""):
-    return _onoff().appels(site, limite=limite, numero=numero)
-
-
-@app.get("/api/sites/{site}/onoff/messagerie")
-def api_onoff_messagerie(site: str, non_lus: bool = False, limite: int = 100):
-    return _onoff().messagerie(site, seulement_non_lus=non_lus, limite=limite)
-
-
-@app.post("/api/sites/{site}/onoff/messagerie/{ident}/lu")
-async def api_onoff_messagerie_lu(site: str, ident: str, request: Request):
-    """Marque une messagerie écoutée — ou la remet en non lu (`{"lu": false}`)."""
-    try:
-        d = await request.json()
-    except Exception:  # noqa: BLE001
-        d = {}
-    r = _onoff().marquer_lu(site, ident, lu=bool(d.get("lu", True)))
-    if not r.get("ok"):
-        return _introuvable("message vocal")
-    return r
-
-
-@app.get("/api/sites/{site}/onoff/messagerie/{ident}/audio")
-def api_onoff_messagerie_audio(site: str, ident: str):
-    """URL audio signée. Onoff ne sert pas le fichier directement, il faut la demander."""
-    o = _onoff()
-    # D'abord ce que le webhook a déjà livré : aucun appel réseau si l'URL est connue.
-    for m in o.messagerie(site).get("messages", []):
-        if m.get("id") == ident and m.get("url_audio"):
-            return {"ok": True, "url": m["url_audio"], "source": "webhook"}
-    r = o.url_messagerie(site, ident)
-    r["source"] = "api"
-    return r
-
-
-@app.get("/api/sites/{site}/onoff/sms")
-def api_onoff_sms(site: str, numero: str = "", limite: int = 200):
-    return _onoff().fils_sms(site, numero=numero, limite=limite)
-
-
-@app.post("/api/sites/{site}/onoff/sms")
-async def api_onoff_sms_envoyer(site: str, request: Request):
-    """Envoi d'un SMS 1 à 1.
-
-    L'API Onoff n'ouvre pas encore cet endpoint (annoncé « à venir » par l'éditeur). La
-    tentative est faite quand même : le jour où il ouvre, l'envoi marchera sans
-    modification. En attendant on rend 501 avec la marche à suivre — pas 500, parce que
-    ce n'est pas une panne.
-    """
-    d = await request.json()
-    r = _onoff().envoyer_sms(site, d.get("depuis", ""), d.get("vers", ""), d.get("texte", ""))
-    if r.get("ok"):
-        return r
-    from fastapi.responses import JSONResponse
-    code = {"indisponible": 501, "vide": 400, "trop_long": 400, "numero": 400}.get(
-        r.get("raison"), 502)
-    return JSONResponse(status_code=code, content=r)
-
-
-@app.get("/api/sites/{site}/onoff/statistiques")
-def api_onoff_statistiques(site: str, depuis: str = "", jusqu_a: str = ""):
-    return _onoff().statistiques(site, depuis=depuis, jusqu_a=jusqu_a)
-
-
-@app.get("/api/sites/{site}/onoff/config")
-def api_onoff_config(site: str):
-    """État de la configuration, SANS jamais renvoyer la clé."""
-    o = _onoff()
-    return {"configure": o.configure(site),
-            "variable": f"ONOFF_API_KEY_{site.upper()}",
-            "url_webhook": o.url_webhook(site),
-            "jeton_webhook_present": bool(o.jeton_webhook()),
-            "console": "https://admin.onoffbusiness.com/integrations/api-keys",
-            "verification": o.verifier(site) if o.configure(site) else {"status": "missing_key"}}
-
-
-@app.patch("/api/sites/{site}/onoff/config")
-async def api_onoff_config_maj(site: str, request: Request):
-    """Enregistre (ou efface) la clé API du site. Valeur vide = suppression."""
-    d = await request.json()
-    valeur = (d.get("cle") or "").strip() or None
-    _write_env_var(f"ONOFF_API_KEY_{site.upper()}", valeur)
-    o = _onoff()
-    return {"ok": True, "configure": o.configure(site),
-            "verification": o.verifier(site) if valeur else {"status": "missing_key"}}
-
-
-@app.post("/api/sites/{site}/onoff/appel")
-async def api_onoff_appel(site: str, request: Request):
-    """Prépare un appel depuis l'interface, et le consigne dans le suivi.
-
-    L'API Onoff ne sait PAS composer un numéro : c'est l'application Onoff (ou son
-    extension Chrome) qui le fait. Cette route rend donc l'URI `tel:` que l'écran ouvrira,
-    et enregistre l'intention côté CRM. La preuve que l'appel a bien eu lieu viendra du
-    journal Onoff par webhook — un fait, et non une case cochée à la main.
-    """
-    o = _onoff()
-    d = await request.json()
-    numero = o.e164(d.get("numero") or "")
-    if not numero:
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=400, content={"ok": False, "error": "numéro absent ou invalide"})
-
-    role, user = _qui(request)
-    consigne = {}
-    email = (d.get("email") or "").strip()
-    if email:
-        _scripts_dans_le_chemin()
-        import followup_backend as fb
-        consigne = fb.enregistrer_appel(
-            site, email, role, user,
-            outcome=d.get("outcome") or "appel_lance",
-            note=d.get("note") or f"Appel lancé depuis Cheffer vers {o.lisible(numero)}",
-            statut=d.get("statut") or None,
-            next_action_at=d.get("next_action_at"),
-            est_un_appel=True,
-        )
-    return {"ok": True, "tel": f"tel:{numero}", "numero": numero,
-            "numero_lisible": o.lisible(numero), "suivi": consigne}
-
-
-@app.post("/api/webhook/onoff/{site}")
-async def api_webhook_onoff(site: str, request: Request):
-    """Réception des journaux Onoff (appels, SMS, messagerie).
-
-    Le jeton passe en `?token=` — c'est le mécanisme déjà en place pour les autres
-    webhooks, vérifié par le middleware avant d'arriver ici. On répond 200 même sur une
-    charge inattendue : un fournisseur qui reçoit une erreur réessaie en boucle, et un log
-    mal formé ne justifie pas de faire tomber le flux entier.
-    """
-    try:
-        charge = await request.json()
-    except Exception:  # noqa: BLE001
-        return {"ok": False, "ignore": "corps illisible"}
-    if site not in _known_site_codes():
-        return {"ok": False, "ignore": "site inconnu"}
-
-    o = _onoff()
-    o.assurer_schema()
-    lots = charge if isinstance(charge, list) else [charge]
-    recus, erreurs = 0, []
-    for c in lots:
-        if not isinstance(c, dict):
-            continue
-        try:
-            r = o.enregistrer_evenement(site, c)
-            if r.get("ok"):
-                recus += 1
-            else:
-                erreurs.append(r.get("error"))
-        except Exception as e:  # noqa: BLE001
-            erreurs.append(str(e)[:200])
-    return {"ok": True, "recus": recus, "erreurs": erreurs[:5]}
-
-
 # ── Modules toggle + mini-RAG par site ────────────────────────────────────────
 
 @app.get("/api/sites/{site}/modules")
@@ -5687,34 +5440,10 @@ def api_mes_pages(request: Request):
     sess = getattr(request.state, "session", None) or {}
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import roles_backend as rbk
-    # L'URL de chaque page voyage AVEC la clé. La sidebar tenait sa propre table clé → URL,
-    # qu'il fallait penser à compléter en même temps que le catalogue serveur : une page
-    # ajoutée d'un seul côté s'affichait au chargement puis DISPARAISSAIT dès la réponse,
-    # faute de correspondance. C'est arrivé à Mozart le 2026-08-24. Une seule source de
-    # vérité supprime la classe de bug entière.
-    # Tout ce bloc est DANS le try : c'est la route qui alimente la sidebar entière, elle
-    # doit répondre même si le catalogue des droits est en panne — sinon une erreur de
-    # configuration vide le menu de tout le monde.
-    urls: dict = {}
-    beta: list = []
-    beta_ok = False
     try:
-        urls = {p["cle"]: p["url"] for p in rbk.PAGES}
-        beta = sorted(rbk.pages_beta())
-        beta_ok = (sess.get("username") or "").strip().lower() in rbk.beta_testeurs()
-    except Exception as e:  # noqa: BLE001
-        print(f"[api] catalogue des pages illisible ({type(e).__name__}: {e})", flush=True)
-    # La sidebar a besoin de savoir DEUX choses de plus : quelles pages sont en bêta, et
-    # si ce compte y a droit. Elle les affiche grisées et étiquetées plutôt que de les
-    # cacher — une fonctionnalité qui apparaît un jour sans prévenir surprend.
-    try:
-        return {"role": sess.get("role") or "",
-                "pages": rbk.pages_autorisees(sess.get("role") or ""), "urls": urls,
-                "beta": beta, "beta_autorise": beta_ok}
+        return {"role": sess.get("role") or "", "pages": rbk.pages_autorisees(sess.get("role") or "")}
     except Exception:  # noqa: BLE001
-        return {"role": sess.get("role") or "",
-                "pages": [p["cle"] for p in rbk.PAGES], "urls": urls,
-                "beta": beta, "beta_autorise": beta_ok}
+        return {"role": sess.get("role") or "", "pages": [p["cle"] for p in rbk.PAGES]}
 
 
 @app.get("/api/admin/secteurs")
@@ -6883,256 +6612,6 @@ async def api_campaign_target_count(site: str, request: Request):
         seen_total += n
     return {"by_sector": per, "total": seen_total, "cleaned_within_days": days,
             "engagement": engagement}
-
-
-# ── Mozart : scénarios d'automatisation ────────────────────────────────────────
-# Le graphe est stocké et rendu TEL QUEL, dans la forme de l'éditeur (nodes/edges de
-# React Flow). Aucune traduction entre l'écran et la base : c'est ce qui garantit que ce
-# qu'on voit est ce qui s'exécute.
-
-@app.get("/api/sites/{site}/mozart")
-def api_mozart_liste(site: str):
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    scs = mozart.scenarios(site)
-    # Les compteurs sont joints ici plutôt que demandés un par un : la liste en affiche
-    # dix, ce serait dix allers-retours pour trois nombres.
-    for sc in scs:
-        try:
-            st = mozart.stats(sc["id"])
-            sc["inscrits"] = st["total_inscrits"]
-            sc["par_statut"] = st["inscriptions"]
-            sc["resume"] = mozart.resume(sc["id"], site)
-        except Exception:  # noqa: BLE001
-            # Forme CONSTANTE même en cas d'échec : une ligne sans `resume` obligerait
-            # l'écran à distinguer « zéro » de « absent » à chaque champ.
-            sc["inscrits"] = None
-            sc["par_statut"] = {}
-            sc["resume"] = None
-    ouverte, pourquoi = mozart.fenetre_ouverte()
-    return {"scenarios": scs,
-            "fenetre": {"ouverte": ouverte, "motif": pourquoi,
-                        "debut": mozart.FENETRE_DEBUT, "fin": mozart.FENETRE_FIN,
-                        "fuseau": mozart.FUSEAU,
-                        # ISO plutôt qu'un libellé : le serveur tourne en locale anglaise
-                        # et rendrait « Monday 24 August ». La mise en forme française
-                        # appartient à l'écran, qui connaît la langue de qui regarde.
-                        "maintenant": mozart.maintenant_paris().isoformat(timespec="minutes")}}
-
-
-@app.post("/api/sites/{site}/mozart")
-async def api_mozart_creer(site: str, request: Request):
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    import pool_pg
-    d = await request.json()
-    role, qui = _qui(request)
-    graphe = d.get("graphe") or {"nodes": [], "edges": []}
-    c = pool_pg._conn()
-    try:
-        with c.cursor() as cur:
-            cur.execute("""INSERT INTO mozart_scenarios (site_code, nom, description,
-                                                         graphe, cree_par)
-                           VALUES (%s, %s, %s, %s::jsonb, %s) RETURNING id""",
-                        (site, (d.get("nom") or "Nouveau scénario")[:120],
-                         d.get("description"), json.dumps(graphe), qui))
-            sid = str(cur.fetchone()[0])
-        c.commit()
-    finally:
-        pool_pg._rendre(c)
-    return {"ok": True, "scenario": mozart.scenario(sid)}
-
-
-def _scripts_dans_le_chemin() -> None:
-    """Ajoute `scripts/` à `sys.path` — une seule fois.
-
-    Les routes le faisaient sans garde : chaque requête allongeait `sys.path` d'une entrée
-    pour toujours, et tout `import` ultérieur paie ce parcours.
-    """
-    chemin = str(BASE_DIR / "scripts")
-    if chemin not in sys.path:
-        sys.path.insert(0, chemin)
-
-
-def _mozart_du_site(site: str, sid: str):
-    """Le scénario, s'il existe ET s'il appartient à ce site. Sinon None.
-
-    Ce contrôle était recopié dans huit routes — et OUBLIÉ dans la neuvième, celle qui
-    écrit : un compte n'ayant accès qu'à `mkd` pouvait réécrire un scénario `lcr`. Un
-    garde recopié à la main est un garde qu'on peut oublier ; celui-ci ne se recopie plus.
-    """
-    _scripts_dans_le_chemin()
-    import mozart
-    sc = mozart.scenario(sid)
-    return sc if sc and sc["site_code"] == site else None
-
-
-def _introuvable():
-    from fastapi.responses import JSONResponse
-    return JSONResponse(status_code=404, content={"error": "scénario introuvable"})
-
-
-@app.get("/api/sites/{site}/mozart-expediteurs")
-def api_mozart_expediteurs(site: str):
-    """Les canaux d'envoi et leurs expéditeurs réels, pour le nœud « email ».
-
-    Déclaré AVANT `/mozart/{sid}` serait inutile ici — le chemin ne peut pas être confondu
-    avec un identifiant puisqu'il ne vit pas sous `/mozart/`. C'est délibéré : une route
-    `/mozart/expediteurs` aurait été capturée par `{sid}` un jour ou l'autre.
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    return {"canaux": mozart.expediteurs(site)}
-
-
-@app.get("/api/sites/{site}/mozart/{sid}")
-def api_mozart_lire(site: str, sid: str):
-    _scripts_dans_le_chemin()
-    import mozart
-    sc = _mozart_du_site(site, sid)
-    if not sc:
-        return _introuvable()
-    sc["stats"] = mozart.stats(sid)
-    sc["resume"] = mozart.resume(sid, site)
-    sc["problemes"] = mozart.verifier(sc["graphe"] or {})
-    ouverte, pourquoi = mozart.fenetre_ouverte()
-    sc["fenetre"] = {"ouverte": ouverte, "motif": pourquoi,
-                     "debut": mozart.FENETRE_DEBUT, "fin": mozart.FENETRE_FIN}
-    return sc
-
-
-@app.put("/api/sites/{site}/mozart/{sid}")
-async def api_mozart_enregistrer(site: str, sid: str, request: Request):
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    d = await request.json()
-    sc0 = _mozart_du_site(site, sid)
-    # Le seul point d'écriture Mozart qui ne vérifiait NI l'existence NI le site. Le
-    # middleware ne contrôle que le code de site présent dans le CHEMIN : un compte n'ayant
-    # que `mkd` pouvait écrire `PUT /api/sites/mkd/mozart/<id-d-un-scénario-lcr>` et
-    # réécrire le graphe d'un autre client. Et un identifiant inconnu faisait un UPDATE à
-    # zéro ligne, puis un 500 sur `sc["graphe"]`.
-    if not sc0:
-        return _introuvable()
-    if sc0.get("verrouille"):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=409, content={
-            "error": "scénario verrouillé",
-            "detail": "C'est un modèle : on ne le modifie pas, on le duplique. "
-                      "Le bouton « Dupliquer » en fait une copie modifiable.",
-            "verrouille": True})
-    champs, vals = [], []
-    if "nom" in d:
-        champs.append("nom = %s"); vals.append((d["nom"] or "")[:120])
-    if "description" in d:
-        champs.append("description = %s"); vals.append(d["description"])
-    if "graphe" in d:
-        champs.append("graphe = %s::jsonb"); vals.append(json.dumps(d["graphe"]))
-    if not champs:
-        return {"ok": True, "inchange": True}
-    champs.append("modifie_le = now()")
-    mozart._ecrire(f"UPDATE mozart_scenarios SET {', '.join(champs)} WHERE id = %s",
-                   tuple(vals) + (sid,))
-    sc = mozart.scenario(sid)
-    return {"ok": True, "scenario": sc, "problemes": mozart.verifier(sc["graphe"] or {})}
-
-
-@app.post("/api/sites/{site}/mozart/{sid}/statut")
-async def api_mozart_statut(site: str, sid: str, request: Request):
-    """Activer, mettre en pause, archiver.
-
-    L'ACTIVATION contrôle le graphe et refuse s'il est incomplet. Un scénario qui
-    s'arrêterait au premier contact faute de message est découvert bien trop tard —
-    quand les gens sont déjà dedans.
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    d = await request.json()
-    statut = (d.get("statut") or "").strip()
-    if statut not in ("brouillon", "actif", "pause", "archive"):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=400, content={"error": f"statut inconnu: {statut}"})
-    sc = _mozart_du_site(site, sid)
-    if not sc:
-        return _introuvable()
-    if statut == "actif":
-        pbs = mozart.verifier(sc["graphe"] or {})
-        if pbs:
-            from fastapi.responses import JSONResponse
-            return JSONResponse(status_code=400, content={
-                "error": "scénario incomplet", "problemes": pbs})
-    mozart._ecrire("UPDATE mozart_scenarios SET statut = %s, modifie_le = now() "
-                   "WHERE id = %s", (statut, sid))
-    return {"ok": True, "statut": statut}
-
-
-@app.post("/api/sites/{site}/mozart/{sid}/dupliquer")
-async def api_mozart_dupliquer(site: str, sid: str, request: Request):
-    """Copie un scénario dans un nouveau brouillon. La seule porte de sortie d'un modèle."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    role, qui = _qui(request)
-    try:
-        d = await request.json()
-    except Exception:  # noqa: BLE001
-        d = {}
-    if not _mozart_du_site(site, sid):
-        return _introuvable()
-    neuf = mozart.dupliquer(sid, d.get("nom"), par=qui)
-    return {"ok": True, "scenario": neuf}
-
-
-@app.post("/api/sites/{site}/mozart/{sid}/verrou")
-async def api_mozart_verrou(site: str, sid: str, request: Request):
-    """Pose ou retire le cadenas. Marque aussi le scénario comme modèle quand on verrouille.
-
-    Verrouiller ET marquer modèle vont ensemble : un scénario qu'on protège de la
-    modification, c'est un point de départ qu'on veut retrouver intact. Les séparer
-    obligerait à penser à deux réglages pour une seule intention.
-    """
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    d = await request.json()
-    verrou = bool(d.get("verrouille"))
-    sc = _mozart_du_site(site, sid)
-    if not sc:
-        return _introuvable()
-    mozart._ecrire("UPDATE mozart_scenarios SET verrouille = %s, est_modele = %s, "
-                   "modifie_le = now() WHERE id = %s", (verrou, verrou, sid))
-    return {"ok": True, "verrouille": verrou, "est_modele": verrou}
-
-
-@app.post("/api/sites/{site}/mozart/{sid}/simuler")
-def api_mozart_simuler(site: str, sid: str):
-    """Ce que le prochain passage ferait — sans écrire ni envoyer quoi que ce soit."""
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    sc = _mozart_du_site(site, sid)
-    if not sc:
-        return _introuvable()
-    return {"inscription": mozart.inscrire(sc, dry_run=True),
-            "avancement": mozart.avancer(sc, dry_run=True),
-            "problemes": mozart.verifier(sc["graphe"] or {})}
-
-
-@app.delete("/api/sites/{site}/mozart/{sid}")
-def api_mozart_supprimer(site: str, sid: str):
-    sys.path.insert(0, str(BASE_DIR / "scripts"))
-    import mozart
-    sc = _mozart_du_site(site, sid)
-    if not sc:
-        return _introuvable()
-    if sc["statut"] == "actif":
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=400, content={
-            "error": "mettre le scénario en pause avant de le supprimer — "
-                     "des contacts sont peut-être en cours de parcours"})
-    if sc.get("verrouille"):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=409, content={
-            "error": "scénario verrouillé — retirer le cadenas avant de le supprimer"})
-    mozart._ecrire("DELETE FROM mozart_scenarios WHERE id = %s", (sid,))
-    return {"ok": True}
 
 
 @app.get("/api/sites/{site}/campaigns/messages")

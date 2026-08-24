@@ -1,6 +1,7 @@
 # RESTE À FAIRE — Genesis / Cheffer
 
-> Mis à jour le 2026-08-23 (soir, après le Lot 1). Détail complet dans STATE.md.
+> Mis à jour le **2026-08-24** (fin de session). Détail complet dans STATE.md,
+> qui porte 13 blocs pour cette seule journée.
 
 ## Lot 1 — Pool dans PostgreSQL : CLOS (2026-08-23)
 
@@ -62,6 +63,58 @@ La campagne atteint sa cible samedi : **lundi 31/08 la file serait vide**. Le cr
 7h50 la prolonge désormais tout seul tant que le vivier suit (2 785 contacts immobilier
 piochables), et alerte si le vivier ne suit plus — créer une campagne reste une décision
 humaine (message + ciblage), la machine ne l'invente pas.
+
+## À reprendre à froid — écarté le 2026-08-24, sciemment
+
+Deux chantiers justes, identifiés par la revue de simplification, **volontairement non
+faits** parce qu'ils touchent le chemin d'envoi des campagnes un jour où il tournait :
+
+1. **Unifier les trois fenêtres horaires.** `deliverability_agent.within_send_window()`
+   (campagnes, 08:01–17:59), `mozart.fenetre_ouverte()` (scénarios, 09:01–18:30) et
+   `maildoso_backend._cadence()` écrivent trois fois la même mécanique. Une seule fonction
+   paramétrée par profil, appelée depuis `send_email`, fermerait la porte : aujourd'hui,
+   **ni `send_email` ni `send_batch` ne contrôlent l'heure** — ce sont les appelants qui le
+   font, donc un nouveau chemin d'appel enverrait à 3 h du matin.
+   ⚠️ Décision en attente de Camille au passage : faut-il **aligner** les deux fenêtres ?
+   Elles diffèrent d'une heure de chaque côté.
+
+2. **Sortir la cadence par boîte de la mémoire du process.** `_DERNIER_ENVOI` est un
+   dictionnaire en RAM : l'écart de 4 minutes tient à l'intérieur d'un lot, jamais ENTRE le
+   dispatch des campagnes et le tick Mozart, qui ne tournent pas dans le même process.
+   L'horodatage devrait se lire dans `email_events`, comme le compteur du jour.
+
+## Décision de Camille en attente — les plafonds d'envoi
+
+Les 4 boîtes ont été créées le 2026-07-07 et portent **40/jour depuis l'origine** : la
+montée en charge n'a jamais rien fait monter, elle a seulement confirmé un plafond déjà au
+maximum. Depuis le 24/08 un **plafond de progression** (+50 % de la moyenne des 7 derniers
+jours actifs) limite le saut d'un jour sur l'autre — plafonds effectifs à 22-24 aujourd'hui.
+Reste à trancher : redescendre les plafonds pour une vraie chauffe, ou assumer 40 sur des
+boîtes de sept semaines. Santé actuelle : **46 % d'ouverture sur 30 jours, 0 plainte,
+0 rebond récent** — le profil est sain, le risque était le RYTHME, pas le volume.
+
+## Mozart — scénarios d'automatisation (2026-08-24)
+
+Éditeur visuel sur React Flow, menu Campagnes → **Mozart**. Quatre types de nœuds :
+déclencheur, délai, email, condition (ouvert / cliqué). Le graphe affiché est celui qui
+s'exécute. Contrôle à l'activation, simulation à sec, statistiques sur les nœuds, édition
+du message sans quitter le scénario.
+
+**Canaux : Maildoso et Sweego uniquement** (décision Camille du 24/08). Emelia travaille
+par campagne entière, pas contact par contact — incompatible avec un scénario. Sur un nœud
+email : le canal, puis l'expéditeur si le canal en propose plusieurs (Maildoso a 4 boîtes,
+Sweego une adresse unique). **L'affinité l'emporte toujours** : un contact qui a ouvert ou
+cliqué garde son adresse, quel que soit le réglage du nœud.
+
+Le moteur n'a **aucun privilège** : chaque email passe par les protections des campagnes
+(120 jours, variables, affinité d'expéditeur, plafonds, boîtes au repos). Cron horaire.
+
+⚠️ **En BÊTA FERMÉE : réservé au compte `camille`.** L'entrée s'affiche pour tout le monde
+dans la sidebar, étiquetée « bêta » et grisée ; seul le compte autorisé peut l'ouvrir, et
+la barrière est côté serveur. Pour ouvrir à quelqu'un d'autre : ajouter son identifiant à
+`PAGES_BETA_TESTEURS` dans `.env`. Pour sortir de la bêta : retirer `beta: True` de la page
+`mozart` dans `roles_backend.PAGES`.
+Un scénario d'exemple attend en brouillon : *relance immobilier J+1 / J+4*.
 
 ## Fait cette session (21→23/08) — tout déployé
 Sécurité complète (Cloudflare + verrou origine + 127.0.0.1 + force brute), Basile par

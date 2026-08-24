@@ -62,6 +62,7 @@ AGE_MAX_H = {
     "statistiques": 3,        # toutes les heures
     "plancher de collecte": 2,   # toutes les 30 min
     "dirigeants nommés": 26,     # une passe par nuit
+    "scénarios Mozart": 3,       # toutes les heures
 }
 
 # Un rappel par jour pour un problème qui dure, et pas davantage.

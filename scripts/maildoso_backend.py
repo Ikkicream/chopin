@@ -270,6 +270,32 @@ def remaining_quota_today(site: str = SITE_DEFAULT) -> int:
     return int(r[0] or 0)
 
 
+def _comptabiliser(site, campaign_id, mailbox, to_email, subject, rfc_msgid,
+                   status, error=None):
+    """Écrit la trace DuckDB d'un envoi — sans jamais pouvoir faire échouer l'envoi.
+
+    Un email déjà transmis ne se rattrape pas ; l'échec d'une écriture qui le CONSTATE ne
+    doit donc rien interrompre. Chaque écriture est isolée : un verrou sur `god_mode` ne
+    doit pas non plus empêcher la seconde de réussir.
+
+    L'échec est CRIÉ, jamais avalé : un lot où la comptabilité DuckDB tombe silencieusement
+    laisserait `maildoso_sent` incomplet sans que personne ne s'en aperçoive.
+    """
+    try:
+        _record_sent(site, campaign_id, mailbox, to_email, subject, rfc_msgid, status, error)
+    except Exception as e:  # noqa: BLE001
+        print(f"[maildoso] journal DuckDB indisponible pour {to_email} "
+              f"({type(e).__name__}: {str(e)[:120]}) — l'email est parti, "
+              f"le journal PostgreSQL fait foi", flush=True)
+    if status == "sent":
+        try:
+            _increment_sent(mailbox)
+        except Exception as e:  # noqa: BLE001
+            print(f"[maildoso] compteur de {mailbox} non incrémenté "
+                  f"({type(e).__name__}: {str(e)[:120]}) — sans conséquence, le quota du "
+                  f"jour se compte dans le journal", flush=True)
+
+
 def _record_sent(site, campaign_id, mailbox, to_email, subject, rfc_msgid, status, error=None):
     c = _conn()
     try:
@@ -425,6 +451,44 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
     if not mb:
         return {"ok": False, "reporte": True,
                 "error": "aucune boîte disponible pour ce contact aujourd'hui"}
+    # ── La fenêtre de 120 jours, au point de passage ────────────────────────────
+    # Elle était appliquée par chaque APPELANT : `campaign_engine._drop_recently_emailed`
+    # croisait deux sources (base repoussoir + journal), `mozart._envoyer` n'en consultait
+    # qu'une. Deux copies d'une même règle divergent toujours, et c'est la plus coûteuse de
+    # la plateforme — un renvoi trop tôt se paie en réputation. Elle vit donc ici, dans le
+    # seul endroit par lequel TOUT envoi passe. Les appelants gardent leur filtre en amont :
+    # il évite de composer un message pour quelqu'un qui sera refusé, mais il n'est plus la
+    # garantie.
+    #
+    # Les BAT et les tests en sont exemptés : ils partent vers nos propres adresses, à
+    # notre demande. La distinction est celle qui sert déjà au journal — un lot de campagne
+    # porte six segments (« {site}-{campagne}-{AAAA}-{MM}-{JJ} »), tout le reste n'en est pas.
+    if len((campaign_id or "").split("-")) >= 6:
+        try:
+            import journal_pg
+            if journal_pg.recemment_servis([to_email], SUPPRESSION_JOURS):
+                return {"ok": False, "refuse": True,
+                        "error": f"contacté il y a moins de {SUPPRESSION_JOURS} jours"}
+        except Exception as e:  # noqa: BLE001
+            # Une barrière illisible ne doit pas laisser passer en silence : on le crie,
+            # et on s'en remet au filtre amont de l'appelant.
+            print(f"[maildoso] fenêtre des {SUPPRESSION_JOURS} jours illisible "
+                  f"({type(e).__name__}: {e}) — envoi laissé au filtre de l'appelant",
+                  flush=True)
+
+    # Écart minimum depuis le DERNIER envoi de CETTE boîte. Contrôlé ici, avant toute
+    # écriture SMTP, parce que c'est le seul endroit qui connaît la boîte retenue. Le
+    # refus est un REPORT : l'appelant passe au contact suivant, qui partira d'une autre
+    # adresse — c'est ainsi que la rotation et la cadence se renforcent au lieu de se gêner.
+    dernier = _DERNIER_ENVOI.get(mb["email"])
+    if dernier is not None:
+        reste = ECART_MIN_BOITE - (time.time() - dernier)
+        if reste > 0:
+            return {"ok": False, "reporte": True,
+                    "error": f"cadence — {mb['email'].split('@')[0]} a écrit il y a "
+                             f"{int(ECART_MIN_BOITE - reste)} s, minimum {ECART_MIN_BOITE} s",
+                    "mailbox": mb["email"]}
+
     password = _env().get(mb.get("password_ref") or "MAILDOSO_SMTP_PASSWORD", "")
     if not password:
         return {"ok": False, "error": f"secret {mb.get('password_ref')} absent du .env"}
@@ -508,11 +572,24 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
             s.login(mb.get("username", mb["email"]), password)
             s.send_message(msg)
     except Exception as e:  # noqa: BLE001
-        _record_sent(site, campaign_id, mb["email"], to_email, subject, rfc_msgid, "error", str(e))
+        _comptabiliser(site, campaign_id, mb["email"], to_email, subject, rfc_msgid,
+                       "error", str(e))
         return {"ok": False, "error": f"smtp: {e}", "mailbox": mb["email"]}
 
-    _increment_sent(mb["email"])
-    _record_sent(site, campaign_id, mb["email"], to_email, subject, rfc_msgid, "sent")
+    # ── Comptabilité : APRÈS l'envoi, donc jamais bloquante ──────────────────────
+    # L'email est PARTI. Ce qui suit ne fait que l'écrire quelque part, et ce quelque part
+    # est `god_mode.duckdb` — un fichier à écrivain unique que le scraping et le dispatch
+    # se disputent. Le 2026-08-24, un verrou sur ce fichier a levé ici, l'exception est
+    # remontée jusqu'à `send_batch`, et le lot du matin s'est arrêté à 29 emails sur 80.
+    # Les 29 étaient partis ; les 51 autres ne sont jamais partis, pour une écriture de
+    # comptabilité.
+    #
+    # Ces deux écritures sont en outre REDONDANTES depuis la fin du Lot 1 : le journal
+    # `email_events` porte l'envoi, et le compteur du jour se lit dans ce journal
+    # (`expediteur.envoyes_aujourdhui`), plus dans `mailboxes.sent_today`. Elles ne
+    # méritaient donc en aucun cas de coûter un lot.
+    _DERNIER_ENVOI[mb["email"]] = time.time()
+    _comptabiliser(site, campaign_id, mb["email"], to_email, subject, rfc_msgid, "sent")
     # Ce qui a RÉELLEMENT été transmis. Une pièce jointe qui n'arrive pas est invisible
     # côté serveur : sans cette liste, on en est réduit à croire le destinataire sur parole.
     parties = [f"{p.get_content_type()}"
@@ -521,9 +598,74 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
     return {"ok": True, "mailbox": mb["email"], "rfc_msgid": rfc_msgid, "parties": parties}
 
 
+# ── La cadence d'envoi ────────────────────────────────────────────────────────
+# Un fournisseur ne regarde pas seulement COMBIEN on envoie, mais À QUEL RYTHME. Une
+# adresse jeune qui crache trente messages en vingt minutes se signale toute seule : c'est
+# la signature d'un robot, pas d'une personne qui écrit.
+#
+# Le 2026-08-24 au matin, la rotation entre boîtes était cassée (le compteur par boîte
+# rendait zéro pour tout le monde) : les 29 emails du lot sont partis de la MÊME adresse
+# en 18 minutes, soit ~97 par heure. La pause de 15-60 s était respectée — elle s'applique
+# au LOT, pas à la boîte. Une pause par lot ne protège rien dès qu'une seule boîte encaisse
+# tout.
+#
+# D'où deux règles, et la plus contraignante des deux gagne :
+#   1. **par BOÎTE** : jamais moins de `ECART_MIN_BOITE` entre deux envois d'une même
+#      adresse. C'est celle qui protège la réputation.
+#   2. **étalement** : le lot se répartit sur ce qui reste de la fenêtre d'envoi, plutôt
+#      que de se vider d'un coup au début. Un envoi régulier toute la journée ressemble à
+#      quelqu'un qui travaille ; une rafale à 8h30 ressemble à une machine.
+#
+# Maildoso n'a AUCUNE file d'attente de son côté : c'est du SMTP direct (`smtplib`), le
+# message part à la seconde où on le remet. La régulation nous appartient entièrement —
+# vérifié le 2026-08-24 à la demande de Camille.
+# La fenêtre de non-recontact. Lue depuis `contacts_pool_backend`, qui la porte pour toute
+# la plateforme : trois constantes valant 120 dans trois modules finiraient par diverger.
+try:
+    from contacts_pool_backend import SUPPRESSION_DAYS as SUPPRESSION_JOURS
+except Exception:  # noqa: BLE001
+    SUPPRESSION_JOURS = 120
+
+ECART_MIN_BOITE = 240        # secondes entre deux envois d'une même boîte (4 min)
+ECART_MIN_LOT = 20           # plancher absolu entre deux envois, toutes boîtes confondues
+ECART_MAX_LOT = 900          # au-delà, un lot ne finirait jamais (15 min)
+
+# Quand chaque boîte a envoyé pour la dernière fois, dans CE process. Volontairement en
+# mémoire : la contrainte protège d'une rafale à l'intérieur d'un lot, pas d'un envoi
+# légitime après un redémarrage.
+_DERNIER_ENVOI: dict[str, float] = {}
+
+
+def _cadence(restants: int) -> tuple[int, int]:
+    """L'écart à observer entre deux envois, en secondes : (min, max) pour le tirage.
+
+    On étale ce qui reste sur le temps qui reste. À 14h avec 36 emails et une fenêtre qui
+    ferme à 17h59, cela donne un envoi toutes les 6-7 minutes — un rythme d'humain.
+
+    La borne de fin est demandée à `deliverability_agent`, qui la porte pour toute la
+    plateforme : la reparser ici avec un repli numérique en dur en faisait une TROISIÈME
+    écriture, qui aurait cessé de suivre au premier changement d'horaire.
+    """
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo
+    import deliverability_agent as da
+
+    maintenant = _dt.now(ZoneInfo(da.SEND_TZ))
+    h, m = (int(x) for x in da.SEND_END.split(":"))
+    fin_fenetre = maintenant.replace(hour=h, minute=m, second=0, microsecond=0)
+    secondes = max(0, (fin_fenetre - maintenant).total_seconds())
+    if restants <= 1 or secondes <= 0:
+        return (ECART_MIN_LOT, ECART_MIN_LOT * 2)
+    ideal = int(secondes / restants)
+    base = max(ECART_MIN_LOT, min(ECART_MAX_LOT, ideal))
+    # Un intervalle tiré au hasard autour de la cible : un envoi TOUTES LES 380 secondes,
+    # à la seconde près, est aussi reconnaissable qu'une rafale.
+    return (max(ECART_MIN_LOT, int(base * 0.7)), int(base * 1.3))
+
+
 def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[dict | str],
                site: str = SITE_DEFAULT, utm_campaign: str | None = None,
-               pace: tuple[int, int] = (15, 60),
+               pace: tuple[int, int] | None = None,
                on_sent: Callable[[dict], None] | None = None) -> dict:
     """Lot de cold emails avec rotation des boîtes + pause aléatoire entre envois.
 
@@ -565,9 +707,23 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
     else:
         skipped = 0
     for i, it in enumerate(items):
-        res = send_email(it["email"], subject, text=text, html=html_str, site=site,
-                         campaign_id=campaign_id, contact=it,
-                         to_name=f"{it.get('prenom', '')} {it.get('nom', '')}".strip() or None)
+        # Second rideau : un destinataire ne doit JAMAIS emporter le lot. `send_email` rend
+        # normalement un dictionnaire, mais une panne imprévue (verrou, réseau, gabarit
+        # tordu) y lèverait — et le 2026-08-24 c'est exactement ce qui a arrêté l'envoi du
+        # matin à 29 emails sur 80. On isole donc chaque contact.
+        # L'écart par boîte se vérifie AVANT d'écrire, jamais après. Posé après l'envoi,
+        # il ne retardait que le SUIVANT : deux messages pouvaient partir de la même
+        # adresse à vingt secondes d'intervalle, puis attendre — exactement la rafale
+        # qu'il devait interdire. C'est `send_email` qui applique la règle maintenant,
+        # parce que c'est lui qui sait quelle boîte va servir.
+        try:
+            res = send_email(it["email"], subject, text=text, html=html_str, site=site,
+                             campaign_id=campaign_id, contact=it,
+                             to_name=f"{it.get('prenom', '')} {it.get('nom', '')}".strip() or None)
+        except Exception as e:  # noqa: BLE001
+            print(f"[maildoso] {it['email']} : envoi interrompu "
+                  f"({type(e).__name__}: {str(e)[:140]}) — on passe au suivant", flush=True)
+            res = {"ok": False, "error": f"{type(e).__name__}: {e}"[:200]}
         if res.get("ok"):
             sent += 1
             sent_emails.append(it["email"])
@@ -602,7 +758,10 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
                 exhausted = True
                 break
         if i < len(items) - 1:
-            time.sleep(random.randint(*pace))
+            # L'écart est recalculé à CHAQUE tour : la fenêtre se referme pendant le lot,
+            # et un intervalle figé au départ finirait par déborder l'heure de fermeture.
+            bas, haut = pace or _cadence(len(items) - i - 1)
+            time.sleep(max(1, random.randint(bas, max(bas, haut))))
     if refuses:
         print(f"[maildoso] {campaign_id} : {len(refuses)} destinataire(s) REFUSÉ(S) — "
               f"message incomplet. Premier : {refuses[0]}", flush=True)

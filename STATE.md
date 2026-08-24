@@ -3083,3 +3083,658 @@ qu'aucun ne manquait.
 
 **État de fin :** 11 suites de tests vertes, 12 tâches surveillées (dont l'échec, pas
 seulement la fraîcheur), 962 contacts collectés aujourd'hui, 0 alerte.
+
+### MAJ 2026-08-24 — Mozart : les scénarios d'automatisation d'emails
+
+Demande de Camille : un éditeur visuel de scénarios sur React Flow, dans le menu Campagnes,
+« simple sans trop d'options ». Le scénario type qu'elle décrit : une cible d'événement
+(les nouveaux arrivants) → un délai → un message → selon qu'il a ouvert, cliqué ou rien →
+un nouveau délai → un autre email, avec des statistiques. Et pouvoir **éditer le message**
+sans quitter le scénario.
+
+**Le principe qui commande tout le reste : le graphe affiché EST celui qui s'exécute.**
+Il est stocké dans la forme de React Flow (`nodes` / `edges`) et le moteur le lit tel quel.
+Aucune traduction entre l'écran et la base, donc aucune occasion de désynchroniser ce
+qu'on voit de ce qui part.
+
+**Quatre types de nœuds, volontairement quatre** : déclencheur, délai, email, condition
+(plus « fin »). Un éditeur qui propose trente briques produit des scénarios que plus
+personne ne relit — or un scénario doit se lire d'un coup d'œil, comme une phrase.
+
+**Le moteur n'a AUCUN privilège**, et c'est le point le plus important. Tout email qu'il
+envoie emprunte le chemin des campagnes : fenêtre de 120 jours, garde-fou des variables,
+affinité d'expéditeur, plafond journalier par boîte, boîtes au repos. Un scénario capable
+d'écrire à quelqu'un qu'une campagne s'interdit d'écrire serait une porte dérobée dans la
+règle la plus coûteuse de la plateforme. Vérifié par test : un contact servi il y a moins
+de 120 jours est refusé, un nœud sans message est refusé, le mode à sec ne touche à rien.
+
+**Deux garanties d'exécution**, contre les deux façons de boucler :
+- **un contact n'entre qu'une fois** dans un scénario donné — contrainte d'unicité EN BASE,
+  pas en Python : un déclencheur réévalué toutes les heures le réinscrirait sinon à chaque
+  passage et lui enverrait la séquence en boucle ;
+- **un plafond de 20 pas par passage** : un graphe mal fait (un délai de zéro qui boucle)
+  tournerait à l'infini en envoyant un email à chaque tour. Le délai à zéro est d'ailleurs
+  refusé à l'activation.
+
+**Le contrôle se fait à l'ACTIVATION, pas à l'exécution** : message manquant, branche de
+condition non reliée, nœud qui ne mène nulle part, délai nul. Un scénario qui s'arrêterait
+au premier contact est découvert bien trop tard — quand les gens sont déjà dedans.
+
+**Les statistiques viennent d'un journal en ajout seul** (`mozart_passages`), comme
+`email_events` : un compteur qu'on incrémente se perd, un journal se relit. Elles
+s'affichent SUR les nœuds — un scénario actif ne doit jamais être une boîte noire.
+
+**Édition du message sur place** : choisir un message ouvre son aperçu, et le bouton
+Éditer permet de le corriger sans quitter le scénario. Les cold emails par secteur
+s'enregistrent directement ; pour les autres sources (structures, versions), l'écran le
+dit au lieu de faire semblant d'enregistrer.
+
+**Fichiers** : `scripts/mozart.py` (moteur), trois tables PostgreSQL
+(`mozart_scenarios`, `mozart_inscriptions`, `mozart_passages`), sept points d'API,
+`src/components/mozart/noeuds.tsx` + `panneau.tsx`, `src/app/site/[code]/mozart/` (liste +
+éditeur). Menu Campagnes → Mozart. Inscrit dans la matrice des droits (`roles_backend`) :
+sans cela, la page serait invisible du réglage par rôle et impossible à retirer à
+quelqu'un. Cron horaire (`15 * * * *`), sous surveillance comme les autres tâches.
+
+Un scénario d'exemple est en base, en brouillon : *Exemple — relance immobilier J+1 / J+4*.
+À activer ou à supprimer.
+
+**État :** 12 suites de tests vertes, 13 tâches surveillées, 3 services en ligne, 0 alerte.
+
+### MAJ 2026-08-24 — Mozart clignotait dans la sidebar : deux listes à tenir en phase
+
+Symptôme signalé par Camille : l'entrée Mozart s'affiche au chargement puis disparaît.
+
+**Cause.** La sidebar affiche TOUT tant que `/api/mes-pages` n'a pas répondu — choix
+délibéré, « un menu qui clignote à chaque chargement est pire qu'un menu large ». Puis elle
+filtre en rapprochant chaque entrée d'une page autorisée, via une table clé → URL qu'elle
+tenait **de son côté** (`URLS_PAGES`). J'avais déclaré Mozart dans `roles_backend.PAGES`
+(serveur) mais pas dans cette copie : aucune correspondance, donc l'entrée était retirée
+dès l'arrivée de la réponse. Le symptôme ressemble à un défaut d'affichage ; la cause est
+un oubli de synchronisation entre deux listes qu'il fallait penser à modifier ensemble.
+
+**Correction, à la racine plutôt qu'au symptôme.** `/api/mes-pages` renvoie désormais
+l'URL de chaque page **avec** sa clé : le serveur fait autorité, la table locale n'est plus
+qu'un repli pour une API plus ancienne. Une page ajoutée au catalogue serveur apparaît
+maintenant sans qu'on touche au client — la classe de bug entière disparaît.
+
+**Contrôle ajouté** — `tests/test_menu_et_droits.py` : chaque entrée de menu doit exister
+dans le catalogue des droits, et réciproquement. Une entrée orpheline n'est pas seulement
+invisible, elle est **impossible à retirer à un rôle** : elle n'existe pas pour la matrice.
+Vérifié sur les 21 entrées actuelles, aucune orpheline.
+
+### MAJ 2026-08-24 — Mozart : canal et expéditeur par nœud
+
+Demande de Camille : sur un nœud email, choisir le **canal** puis l'**expéditeur** s'il y
+en a plusieurs.
+
+**Les trois canaux n'ont pas la même réalité, et l'écran le dit** au lieu de présenter
+trois listes identiques :
+- **Maildoso** : quatre boîtes nommées. Le seul canal où « choisir l'expéditeur » veut dire
+  quelque chose, et le seul qui porte l'affinité par contact.
+- **Sweego** : une adresse unique dérivée du domaine configuré (`info@leclientroi.com`).
+  Rien à choisir ; elle est affichée pour qu'on sache ce qui partira.
+- **Emelia** : RETIRÉ (décision de Camille, 2026-08-24 : « Mozart ne doit fonctionner
+  qu'avec Sweego ou Maildoso »). La raison n'est pas un goût : Emelia fonctionne **par
+  campagne entière** — on lui remet une liste et il l'étale lui-même sur les jours
+  suivants — alors qu'un scénario décide contact par contact, à l'instant où celui-ci
+  atteint le nœud. Les deux modèles ne se rejoignent pas.
+  `mozart.CANAUX_AUTORISES = ("maildoso", "sweego")` porte la décision en un seul endroit,
+  et **trois barrières** l'appliquent : le canal n'est plus proposé à l'écran, l'activation
+  refuse un graphe qui en porterait un autre, et l'envoi refuse au moment de partir. Les
+  deux dernières comptent : un scénario enregistré avant la décision, ou modifié à la main,
+  ne doit pas passer au travers.
+
+**La règle qui commande le reste : l'affinité l'emporte sur le réglage du nœud.** Un
+contact qui a ouvert ou cliqué depuis une adresse précise garde CETTE adresse, même si le
+nœud en désigne une autre — c'est la décision du 2026-08-23, et un réglage d'écran ne peut
+pas la défaire sans détruire la réputation acquise auprès de ce destinataire. Deux
+conséquences :
+- sur Maildoso, une boîte explicitement choisie ne s'applique qu'aux contacts **sans**
+  affinité confirmée ;
+- sur un autre canal, un contact à l'affinité confirmée est **refusé** avec la raison —
+  jamais silencieusement redirigé. Même comportement que `routage.filtrer_pour_canal` dans
+  le dispatch des campagnes.
+
+Le contrôle d'affinité est posé **avant** la lecture de la fiche contact : il n'en dépend
+pas, et le placer après faisait échouer la vérification pour la mauvaise raison — le test
+l'a montré.
+
+Le canal et l'expéditeur s'affichent **sur le nœud**, pas seulement dans le panneau : ce
+sont eux qui décident de quelle adresse part le message, donc de la réputation engagée.
+Les cacher obligerait à cliquer chaque nœud pour relire un scénario.
+
+Nouveau point d'API `/api/sites/{site}/mozart-expediteurs` — hors de `/mozart/` à dessein :
+une route `/mozart/expediteurs` aurait fini capturée par `{sid}`.
+Tests étendus : les trois canaux décrits, Sweego sans choix, Emelia refusé à l'activation,
+et un contact verrouillé qui ne part pas par un autre canal.
+
+### MAJ 2026-08-24 — Mozart en bêta fermée : étiquette, grisé, réservé à Camille
+
+Demande : une étiquette « bêta » dans la sidebar, et l'entrée grisée pour tout le monde
+sauf son compte, le temps de ses tests.
+
+**Le piège évité : fonder ce contrôle sur le RÔLE.** Camille est superadmin, et le
+superadmin est justement exempté de la matrice des droits — la bêta aurait donc été
+ouverte à tous les superadmins présents et futurs, ce qui vide « réservé à mes tests » de
+son sens. Le contrôle porte sur le **compte**, et il est posé **avant** la matrice dans le
+middleware. Un test vérifie cet ordre : le déplacer rouvrirait la porte sans que rien ne
+le signale.
+
+**Mécanisme réutilisable plutôt que cas particulier.** Une page de `roles_backend.PAGES`
+porte `beta: True` ; la liste des comptes autorisés vit dans `.env`
+(`PAGES_BETA_TESTEURS=camille`), pour qu'ouvrir une bêta à quelqu'un ne demande ni de
+toucher au code ni de redéployer.
+
+**Visible et grisée, pas cachée.** Une fonctionnalité qui apparaît un jour sans prévenir
+surprend ; une équipe qui la voit arriver pose ses questions avant, pas après. L'entrée
+s'affiche donc pour tous avec son étiquette, non cliquable pour qui n'y a pas droit, et
+une infobulle qui dit « en test, réservé pour l'instant ».
+
+**La barrière est côté serveur** — 403 avec un message qui explique, pas une erreur sèche.
+Le grisé n'est que la politesse de le dire avant le clic : un menu grisé n'a jamais empêché
+personne de taper l'URL.
+
+`tests/test_beta_fermee.py` : les comptes qui peuvent et ceux qui ne peuvent pas, la casse
+et les espaces qui ne doivent pas ouvrir de porte, les **trois** routes de la bêta (dont
+`/mozart-expediteurs`, facile à oublier), le reste de la plateforme intact, et l'ordre du
+contrôle dans le middleware.
+
+Pour ouvrir Mozart à quelqu'un d'autre : ajouter son identifiant à `PAGES_BETA_TESTEURS`
+dans `.env`. Pour sortir de la bêta : retirer `beta: True` de la page dans `roles_backend`.
+
+### MAJ 2026-08-24 — Mozart : fenêtre d'envoi, chiffres et lecture de la liste
+
+**1. La fenêtre d'envoi des scénarios — 09:01 à 18:30, du lundi au samedi, heure de Paris.**
+Demande de Camille. Elle est PLUS ÉTROITE que celle des campagnes (08:01–17:59) et c'est
+délibéré : un scénario part tout seul, à l'heure où un contact atteint son nœud, sans que
+personne ne le regarde. Mieux vaut qu'il vise le cœur de la journée de bureau que ses bords.
+L'heure est toujours calculée en `Europe/Paris`, jamais en heure serveur — le serveur vit
+en UTC et un envoi « à 18h00 » y partirait à 20h00 chez le destinataire.
+
+Le contrôle est posé au moment de JOUER le pas, pas à l'inscription : entre les deux il
+peut s'écouler des jours. Et un refus horaire vise la **réouverture** et non « dans deux
+heures » : sans cela, un contact bloqué à 18h31 serait réessayé onze fois pendant la nuit,
+pour rien, et la vraie tentative du matin serait noyée dans le journal. Vérifié :
+lundi soir → mardi 09:01, dimanche → lundi, samedi soir → lundi.
+
+⚠️ Les campagnes gardent leur fenêtre 08:01–17:59. Les deux diffèrent d'une heure de part
+et d'autre ; si Camille veut les aligner, c'est une ligne à changer dans
+`deliverability_agent`.
+
+**2. Les chiffres.** `mozart.resume()` rend, par scénario : emails partis aujourd'hui
+(minuit heure de Paris) et depuis le début, destinataires distincts, ouvreurs, cliqueurs,
+taux, et la date de début — le premier envoi s'il y en a eu un, sinon la première
+inscription. C'est la question qu'on se pose devant un scénario : « depuis quand
+tourne-t-il ? ». Les taux sont rapportés aux **destinataires distincts** et non aux envois :
+un contact relancé deux fois qui ouvre une fois donnerait sinon 50 %, ce qui ne dit rien
+de personne. Les réactions viennent de `email_events`, le journal commun — une ouverture
+est la même qu'elle vienne d'un scénario ou d'une campagne.
+
+**3. La liste se lit en diagonale.** Fond vert pastel pour ce qui tourne, rose pastel pour
+ce qui est terminé, ambre pour la pause, et **fond sombre inversé** pour ce qui est en
+défaut — la seule ligne qui rompt la douceur de la liste, pour qu'elle se voie sans qu'on
+la cherche. Chaque état porte aussi une **icône et un mot** : une lecture qui ne repose que
+sur la couleur exclut les personnes qui la distinguent mal, et ne survit pas à un écran mal
+réglé. Taux d'ouverture et de clic en pastilles avec leurs icônes (œil, curseur), infobulle
+donnant le nombre de personnes derrière le pourcentage.
+
+En tête de liste : emails partis aujourd'hui, total, et **l'état de la fenêtre** — une
+capacité à zéro s'explique par l'heure une fois sur deux.
+
+**4. Barre compacte de statistiques dans l'éditeur**, au-dessus du canevas : contacts,
+en route, aujourd'hui, total, taux d'ouverture, taux de clic, date de début en heure de
+Paris, et l'avertissement de fenêtre fermée. Au-dessus du dessin plutôt que dans un autre
+écran : on regarde les chiffres EN modifiant le scénario.
+
+**5. Les dates sont affichées en heure de Paris**, mises en forme côté écran. Le serveur
+tourne en locale anglaise et rendait « Monday 24 August » ; l'API envoie de l'ISO, l'écran
+sait la langue de qui regarde.
+
+### MAJ 2026-08-24 — Mozart : panneau lisible, libellés propres, trois modèles verrouillés
+
+**1. Le panneau était trop étroit.** 320 px, avec des listes déroulantes qui prenaient la
+largeur de leur valeur : « auto » réduisait le déclencheur à quatre lettres, et la liste
+qui s'ouvrait héritait de cette largeur — les options y étaient coupées au cinquième
+caractère. Panneau porté à 26 rem (30 en très large), listes en `w-full`, contenu déroulant
+à 22 rem minimum.
+
+**2. Les identifiants de message s'affichaient bruts.** Le nœud montrait
+`cold:immobilier:first`. Le préfixe sert au résolveur, il n'apprend rien à l'œil :
+`libelleMessage()` rend « immobilier », « agences », « version 12 » selon la source. Et la
+liste de choix affiche désormais le SUJET du message à côté de son nom — choisir entre huit
+cold emails par leur seul secteur suppose de les connaître par cœur.
+
+**3. Trois modèles verrouillés** — `scripts/mozart_modeles.py`, idempotent.
+*1 message sans relance* · *1 message + 1 relance* · *1 message + 2 relances*.
+Trois formes et pas trente : elles couvrent l'essentiel des séquences de prospection et se
+lisent en entier. Un catalogue qu'on doit parcourir coûte plus de temps qu'il n'en fait
+gagner.
+
+Les délais viennent de la pratique, pas d'un tirage : **J+1** avant le premier message
+(écrire dans la minute qui suit la collecte n'apporte rien et concentre les envois),
+**J+4** puis **J+7** pour les relances (assez pour qu'un message non lu le reste, assez peu
+pour qu'on se souvienne du premier). Chaque relance est branchée sur la branche **« n'a pas
+ouvert »** : relancer quelqu'un qui a ouvert, c'est le punir d'avoir lu.
+
+**Le cadenas n'est pas de la méfiance, c'est une protection contre soi-même.** On ouvre un
+modèle pour s'en inspirer, on ajuste un délai « juste pour voir », et trois clics plus tard
+le point de départ commun n'existe plus. Le verrou force le geste juste — dupliquer — et le
+modèle reste intact pour la fois suivante et pour tout le monde. Trois barrières :
+l'enregistrement est refusé (409 avec l'explication), la suppression aussi, et l'éditeur
+passe en lecture seule (nœuds non déplaçables, panneau remplacé par un mot).
+
+Les messages des modèles sont **volontairement vides** : on les choisit dans la copie,
+selon la cible. Le contrôle d'activation le signale — c'est normal sur un modèle, qui n'est
+jamais activé.
+
+Bouton **Dupliquer** partout, et sur un modèle c'est l'action principale (« Utiliser ») :
+activer ou supprimer un point de départ commun n'a aucun sens. Le cadenas se pose et se
+retire sur n'importe quel scénario : n'importe lequel peut devenir un modèle.
+
+Tests : les trois formes, leur structure sans faute, les branches « oui »/« non » bien
+orientées, les délais croissants, le verrou en base, la copie libre, et l'idempotence de la
+création.
+
+### MAJ 2026-08-24 — Bloqué à 29 emails : une écriture de comptabilité tuait le lot
+
+Question de Camille : « pourquoi sommes-nous bloqués à 29 emails envoyés aujourd'hui ? »
+La cadence en prévoyait 80.
+
+**Ce n'était ni les contacts ni la capacité.** Le moteur autorisait encore 51 envois et les
+boîtes avaient 131 places libres. Le lot du matin est simplement MORT en route.
+
+**La cause.** Dans `maildoso_backend.send_email`, deux écritures suivent l'envoi SMTP :
+`_record_sent` (journal `maildoso_sent`) et `_increment_sent` (compteur
+`mailboxes.sent_today`). Les deux visent `god_mode.duckdb`, le fichier à écrivain unique
+que le scraping et le dispatch se disputent. À 08h48, un verrou a levé là ; l'exception est
+remontée par `send_email`, puis par `send_batch`, et le lot s'est arrêté. **Les 29 premiers
+étaient partis ; les 51 suivants ne sont jamais partis, pour une écriture de comptabilité.**
+
+Et le blocage a duré la journée : `last_dispatch_day` est posé AVANT le lot — à raison,
+c'est ce qui empêche deux dispatches concurrents — donc le cron de 8h30 refusait de
+reprendre.
+
+**Ce qui rend la chose absurde : ces deux écritures sont REDONDANTES depuis la fin du
+Lot 1.** Le journal `email_events` porte l'envoi, et le compteur du jour se lit dans ce
+journal (`expediteur.envoyes_aujourdhui`), plus dans `mailboxes.sent_today`. Elles ne
+méritaient en aucun cas de coûter un lot.
+
+**Correction, sur deux niveaux :**
+1. `_comptabiliser()` remplace les deux appels : chaque écriture est isolée et **ne peut
+   plus faire échouer un envoi**. L'échec est CRIÉ, jamais avalé — une comptabilité qui
+   tombe en silence laisserait `maildoso_sent` incomplet sans que personne ne le sache.
+2. `send_batch` isole chaque destinataire : une panne imprévue sur l'un ne peut plus
+   emporter les autres. Second rideau, parce que la première correction ne couvre que les
+   causes qu'on a vues.
+
+**Reprise du jour.** Marqueur retiré, lot relancé. La garde de reprise — qui lit désormais
+PostgreSQL — a bien reconnu les 29 déjà servis et les a ignorés. Le 30ᵉ email est parti de
+**j.durand** et non de j.bernard : la répartition entre boîtes, réparée ce matin, fonctionne.
+
+**Reste à signaler** : un processus root de surveillance traîne depuis 63 jours
+(`sudo -u autoblog bash -lc until … done`), vestige d'une session ancienne. Il ne consomme
+rien et ne tient aucune base, mais il n'a plus de raison d'être.
+
+### MAJ 2026-08-24 — Le verrou expliqué, et la cadence d'envoi régulée
+
+**1. Ce qu'était le verrou (question de Camille : « je ne comprends pas en quoi c'était un
+verrou »).** Sa remarque était juste : le dispatch n'écrit qu'à des adresses DÉJÀ nettoyées
+par Mailnjoy, et le drain Mailnjoy nettoie des adresses qui ne sont pas encore parties. Les
+deux ne se croisent jamais côté métier.
+
+Ils se croisent côté FICHIER. `god_mode.duckdb` n'accepte **qu'un seul écrivain à la fois**
+— c'est une propriété du moteur DuckDB, pas une règle qu'on a écrite. Le drain Mailnjoy
+(`mailnjoy_drain_loop.py`, PID 4036959, service PM2 tournant en permanence depuis le 19/08)
+ouvre ce fichier pour déplacer ses lignes de `scrappe_pending` vers `scrappe`. Le dispatch
+ouvre le MÊME fichier pour écrire « email parti ». Quand les deux tombent en même temps, le
+second est refusé — pour la seule raison qu'ils partagent un fichier, sans aucun rapport
+entre les données.
+
+C'est exactement l'absurdité que la migration PostgreSQL corrige : PostgreSQL accepte des
+écrivains concurrents. Le Lot 1 avait déplacé les LECTURES ; il restait ces deux écritures
+de comptabilité, désormais rendues non bloquantes.
+
+**2. La cadence.** Camille : « il faut réguler les envois, pas faire partir 80 en 1 h,
+sinon tu vas cramer mon IP et ma réputation. » Elle a raison, et le chiffre du matin le
+prouve : **29 emails depuis la même adresse en 18 minutes, soit ~97 par heure.**
+
+La pause de 15–60 s existait pourtant. Elle s'appliquait au **LOT**, pas à la **BOÎTE** :
+tant que la rotation fonctionne, quatre boîtes se partagent le rythme ; dès qu'une seule
+encaisse tout — ce qui était le cas ce matin, compteur par boîte cassé — la pause du lot ne
+protège plus rien.
+
+Deux règles désormais, la plus contraignante gagnant :
+- **écart minimum par boîte : 4 minutes**, soit au plus 15 emails/heure et par adresse
+  (60/h sur les quatre réunies, contre 97/h pour une seule ce matin) ;
+- **étalement sur la fenêtre restante** : l'écart est recalculé à chaque envoi à partir du
+  nombre restant et du temps restant. Un lot de 36 à 14 h donne un envoi toutes les 2 à 4
+  minutes ; le même lot à 17 h s'étale davantage. L'intervalle est tiré au hasard autour de
+  la cible — un envoi toutes les 380 secondes à la seconde près se reconnaît aussi bien
+  qu'une rafale.
+
+**Vérifié à sa demande : Maildoso n'a AUCUNE file d'attente.** C'est du SMTP direct
+(`smtplib`) : le message part à la seconde où on le lui remet. La régulation nous appartient
+entièrement, il n'y a personne derrière pour amortir.
+
+Mozart applique la même contrainte par boîte : un scénario n'envoie qu'un contact à la
+fois, mais rien n'empêche vingt contacts d'atteindre le même nœud au même passage horaire.
+Le refus est un REPORT annoncé, pas un échec.
+
+`tests/test_cadence.py` couvre les deux règles, les bornes, la fenêtre déjà fermée, le
+dernier destinataire, et la vérification que Maildoso ne régule rien.
+
+**Aujourd'hui : 44 emails partis** (29 le matin depuis une seule boîte, 15 l'après-midi
+répartis sur trois). Le lot est arrêté ; il reprendra à la cadence régulée.
+
+### MAJ 2026-08-24 — Revue : pourquoi les protections d'hier n'ont rien protégé
+
+Camille : « on a mis en place hier un max d'email par adresse expéditrice avec une cadence
+et un warmup à respecter, et sur la 1re campagne tu n'as rien respecté ». Elle a raison sur
+toute la ligne. Voici l'examen, sans arrangement.
+
+**Ce qui devait protéger, et ce qui s'est passé le 24/08 au matin :**
+
+| Protection | Posée | Réalité du matin |
+|---|---|---|
+| Plafond 40/jour/boîte | 23/08 | **inerte** — le compteur rendait 0 pour les quatre |
+| Rotation entre boîtes | 23/08 | **inerte** — même cause, tout est parti de j.bernard |
+| Cadence 15–60 s | ancienne | appliquée au LOT, pas à la BOÎTE — sans effet dès qu'une seule encaisse |
+| Montée en charge | 23/08 | **inerte** — ne voyait aucun envoi, donc n'a rien ajusté |
+
+**Trois échecs sur quatre, une seule cause : le champ `mailbox` n'atteignait pas le
+journal.** `expediteur.envoyes_aujourdhui` compte les envois par boîte en filtrant sur
+`mailbox IS NOT NULL` ; le chemin d'envoi journalisait sans ce champ. Compteur à zéro →
+`reste` toujours à 40 → plafond inatteignable, et « la moins chargée » toujours la même
+(première par ordre alphabétique). Une seule ligne manquante a désactivé trois protections.
+
+**Pourquoi les tests ne l'ont pas vu — et c'est le point le plus grave.**
+1. Chaque brique était testée avec des valeurs FABRIQUÉES : `test_lot4_protections`
+   passait une liste de boîtes construite à la main, `test_sante_envoi` passait un relevé
+   de santé construit à la main. Les briques étaient bonnes ; **rien ne vérifiait qu'elles
+   étaient reliées**.
+2. Pire : le 23/08 au soir, j'ai rempli `email_events.mailbox` **par un rattrapage manuel**
+   depuis `maildoso_sent`. Le compteur affichait alors les bons chiffres, et je l'ai
+   vérifié. Mais le chemin de PRODUCTION n'écrivait toujours pas ce champ. **J'ai validé ma
+   réparation, pas le mécanisme.** C'est la leçon à retenir : une vérification faite sur des
+   données qu'on vient de réparer à la main ne prouve rien du système.
+
+**Le warmup n'a jamais eu lieu.** Les quatre boîtes ont été créées le 2026-07-07 et portent
+un plafond de **40 depuis l'origine**. Le journal de montée en charge ne contient que
+« plafond 40 atteint » et « inchangé » : il n'a jamais fait monter quoi que ce soit, il n'a
+fait que confirmer un plafond déjà au maximum. Elles ont donc démarré au sommet.
+**Décision à prendre par Camille** : redescendre les plafonds et laisser la montée en charge
+faire son travail (elle réagit désormais aux plaintes, rebonds et taux d'ouverture), ou
+assumer 40/jour sur des boîtes de sept semaines.
+
+**Ce qui est vérifié maintenant, sur données réelles** (pas fabriquées) :
+- compteur par boîte : 29 / 6 / 5 / 5 — il bouge ;
+- rotation : la prochaine boîte proposée est j.juste, la moins chargée ;
+- cadence : 4 min minimum par boîte (15 emails/h max, contre 97/h le matin), plus un
+  étalement sur la fenêtre restante ;
+- montée en charge : lit de vrais taux d'ouverture (38 à 43 %).
+
+**Contrôle ajouté, du type qui aurait vu le problème** — `tests/test_cadence.py` interroge
+le JOURNAL DES ENVOIS RÉELLEMENT PARTIS et non le code : chaque envoi porte-t-il sa boîte ?
+quel débit maximum sur une heure glissante ? une seule boîte concentre-t-elle tout ? Il
+signale d'ailleurs encore le pic de 29/h du matin, comme il se doit.
+
+**Ce qui reste fragile et qu'il faut savoir :** la cadence par boîte est tenue en mémoire du
+process. Elle protège d'une rafale À L'INTÉRIEUR d'un lot, pas de deux lots lancés coup sur
+coup depuis deux process. Tant qu'un seul dispatch tourne à la fois — c'est le cas, garanti
+par `last_dispatch_day` — la protection est complète.
+
+### MAJ 2026-08-24 — Progressivité du volume et alerte sur la pente
+
+**1. Le plafond de progression.** Le trou était structurel : le PLAFOND par boîte (40) et
+le PLAN DU JOUR sont deux nombres différents, et **seul le plafond était protégé**. Une
+cadence de campagne pouvait réclamer 40 quand la moyenne récente était à 14, sans que rien
+ne s'y oppose — c'est ainsi que le volume est passé de 6 à 40 par boîte en une nuit le
+22/08. Ce n'est pas le chiffre qui se voit chez un fournisseur, c'est le SAUT : il lit un
+changement de comportement.
+
+`expediteur.boites()` calcule désormais un **plafond effectif** = le plus bas entre le
+plafond de la boîte et **+50 % de sa moyenne des 7 derniers jours actifs**. Les jours sans
+envoi sont exclus du calcul : une pause de week-end ferait sinon chuter la moyenne et le
+moindre lot du lundi passerait pour un saut. Un plancher de 10 évite de brider une boîte
+qui reprend après une période creuse.
+
+Placé dans `boites()` et nulle part ailleurs : **tout ce qui envoie lit `reste`** — les
+campagnes comme les scénarios Mozart. Une limite posée ailleurs serait une limite qu'un
+chemin d'envoi peut ignorer, et c'est exactement le défaut qu'on vient de corriger.
+
+Effet immédiat : moyennes de 15-16 → plafonds du jour de 22-24 au lieu de 40. Le retour à
+160/jour se fera en trois ou quatre paliers, avec une trace — ce qu'un fournisseur regarde.
+
+**2. L'alerte sur la PENTE.** Le seuil de 5 % demandé par Camille reste, comme plancher de
+secours. Mais le taux d'ouverture est à **46 % sur trente jours** : le jour où il tombe à
+20 %, quelque chose est cassé et l'alerte à 5 % ne dirait toujours rien. On surveille donc
+aussi la **chute relative** : plus d'un tiers de perte entre la fenêtre de 7 jours et la
+référence de 30 jours déclenche l'alerte. Aujourd'hui : 39,7 % contre 46 %, soit 14 % de
+baisse — sous le seuil, rien ne part.
+
+Tests étendus dans `tests/test_cadence.py` : cohérence du plafond effectif par boîte, jamais
+au-dessus du plafond de la boîte, plancher pour une boîte sans historique, existence des
+deux seuils d'ouverture et mesure de la référence longue.
+
+### MAJ 2026-08-24 — Revue de code : 12 défauts trouvés, 12 corrigés
+
+Revue lancée à la demande de Camille sur tout le travail non commité. Verdict sévère et
+mérité. Les deux plus graves d'abord.
+
+**GRAVE 1 — écriture inter-site possible sur un scénario Mozart.** `api_mozart_enregistrer`
+était le seul point d'écriture Mozart qui ne vérifiait NI l'existence du scénario NI son
+site. Le middleware ne contrôle que le code de site présent dans le CHEMIN : un compte
+n'ayant accès qu'à `mkd` pouvait écrire `PUT /api/sites/mkd/mozart/<id-d-un-scénario-lcr>`
+et réécrire le graphe d'un autre client. Et un identifiant inconnu produisait un 500.
+Contrôle ajouté, 404 dans les deux cas.
+
+**GRAVE 2 — l'écart minimum par boîte était vérifié APRÈS l'envoi.** Je l'avais annoncé
+corrigé ; il ne l'était pas. Posé dans la boucle de pacing, il ne retardait que l'envoi
+SUIVANT : deux messages pouvaient partir de la même adresse à vingt secondes d'intervalle,
+puis attendre quatre minutes. Régime permanent : des rafales de deux toutes les quatre
+minutes — exactement ce que la règle interdisait. Le contrôle est descendu dans
+`send_email`, avant toute écriture SMTP, parce que c'est le seul endroit qui connaît la
+boîte retenue. Et l'horodatage se pose à l'envoi réussi, plus dans la boucle : le dernier
+envoi d'un lot n'était jamais enregistré, donc un lot suivant repartait sans écart.
+
+**Les dix autres :**
+- la bêta s'ouvrait sur un code de site inconnu (`/api/sites/zzz/mozart/...` échappait au
+  contrôle) — un garde-fou qui s'annule sur une entrée inattendue n'en est pas un ;
+- une boîte SANS historique repartait au plafond de 40 : le repli annulait la règle de
+  progression dans le seul cas où elle compte. Repli sur le plancher ;
+- les taux de Mozart comptaient des ouvertures ANTÉRIEURES au scénario : sur une liste déjà
+  travaillée, un scénario que personne n'a ouvert pouvait afficher près de 100 %. Chaque
+  réaction est désormais bornée au premier envoi fait à cette personne PAR ce scénario ;
+- les tables Mozart n'existaient que dans la base vivante, créées à la main : une base
+  restaurée aurait fait échouer chaque route. Schéma versionné dans `mozart_schema.sql`,
+  appliqué automatiquement et idempotent ;
+- `sys.path` grossissait d'une entrée à CHAQUE requête authentifiée — après une journée de
+  trafic, chaque `import` parcourt des dizaines de milliers d'entrées ;
+- `beta_testeurs()` relisait `.env` à chaque requête, sur la boucle d'événements, et ne
+  retirait pas les guillemets : `PAGES_BETA_TESTEURS="camille"` fermait la bêta à la
+  personne qu'elle devait ouvrir. Cache d'une minute, guillemets retirés ;
+- `/api/mes-pages` — la route qui alimente toute la sidebar — pouvait rendre 500 sur une
+  panne du catalogue, alors qu'un `try` était justement là pour l'éviter ;
+- forme de réponse incohérente quand `mozart.stats()` échoue ;
+- `if t != "email" or True:` — condition toujours vraie, reste d'écriture : tout scénario
+  finissant par un envoi était impossible à activer ;
+- la borne basse de la cadence pouvait tomber sous le plancher (14 s au lieu de 20) ;
+- `mozart tick` ne traitait que `lcr` : un scénario créé pour une autre marque s'affichait,
+  s'activait, et n'avançait jamais, sans aucun signal. Il traite désormais tous les sites
+  ayant un scénario actif, lus en base ;
+- `moyenne_recente` et `envoyes_aujourdhui` comptaient dans DEUX UNITÉS différentes
+  (adresses distinctes contre envois distincts) : la soustraction rognait l'autorisation
+  les jours où deux campagnes touchent les mêmes personnes ;
+- la référence de 30 jours CONTENAIT la fenêtre de 7 jours mesurée : une chute durable
+  diluait la référence un peu plus chaque jour et l'alerte finissait par s'éteindre. Les
+  deux fenêtres ne se recouvrent plus.
+
+Les dix suites de tests repassent au vert après correction.
+
+### MAJ 2026-08-24 — Simplification : quatre revues, huit corrections appliquées
+
+Quatre agents en parallèle (réutilisation, simplification, efficacité, altitude). Ils
+convergent tous vers le même diagnostic de fond : **plusieurs protections d'envoi ont été
+écrites DEUX fois — une pour les campagnes, une pour Mozart — au lieu d'une seule au point
+de passage commun.** Un doublon de règle d'envoi finit toujours par diverger, et il avait
+déjà commencé.
+
+**Appliqué :**
+
+1. **La cadence par boîte ne vit plus que dans `send_email`.** Mozart la recopiait — et pour
+   le faire devait DEVINER quelle boîte serait retenue, via l'affinité : pour un contact
+   sans affinité, la règle ne s'appliquait donc pas du tout. Le bloc était en outre gardé
+   par `if boite or True:`, une condition toujours vraie. 18 lignes retirées ; Mozart lit
+   simplement le `reporte` que `send_email` lui rend.
+2. **La fenêtre des 120 jours descend au point de passage.** Elle était appliquée par chaque
+   appelant, et la version Mozart était **plus faible** : elle interrogeait le journal mais
+   pas la base repoussoir. C'est la règle la plus coûteuse de la plateforme ; elle vit
+   désormais dans `send_email`, par où TOUT envoi passe. Les BAT et les tests en sont
+   exemptés — ils partent vers nos propres adresses, à notre demande — par la même
+   distinction qui sert déjà au journal. Les appelants gardent leur filtre amont : il
+   évite de composer un message pour quelqu'un qui sera refusé, il n'est plus la garantie.
+   La constante `120` est lue chez `contacts_pool_backend`, plus recopiée.
+3. **`_ecrire()` descend dans `pool_pg`.** Trois copies identiques au caractère près
+   (`expediteur`, `refroidissement`, `mozart`). Ce n'est pas du doublon décoratif : c'est un
+   contrat de transaction — ouvrir, exécuter, VALIDER, RENDRE la connexion. Trois copies,
+   c'est trois endroits où oublier le `commit` ou le retour au pool, et une connexion non
+   rendue épuise le pool en silence.
+4. **Le garde des routes Mozart est unique.** Il était recopié dans huit routes — et OUBLIÉ
+   dans la neuvième, celle qui écrit : c'est ce qui a ouvert l'écriture inter-clients.
+   `_mozart_du_site()` remplace les huit copies ; une dixième route ne pourra pas l'oublier.
+5. **`boites()` fait UNE requête au lieu de deux.** Elle est appelée pour CHAQUE destinataire
+   d'un lot : cent soixante agrégats sur `email_events` pour un lot de quatre-vingts, afin
+   de lire des nombres qui bougent d'une unité entre deux envois. Le jour courant et la
+   moyenne des sept jours se lisent maintenant d'un trait.
+6. **`inscrire()` fait UN insert au lieu de cinq cents.** Cinq cents transactions pour
+   insérer des lignes triviales.
+7. **Le graphe n'est plus reconstruit à chaque pas** : il l'était pour chaque contact et
+   chaque pas, soit des milliers de fois par tick.
+8. **`_cadence()` perd un paramètre mort, un import mort et un repli inatteignable** — dont
+   une borne d'horaire codée en dur qui faisait une TROISIÈME écriture de la fenêtre
+   d'envoi. Elle la demande désormais à `deliverability_agent`.
+Plus : `sys.path` ne grossit plus à chaque requête (garde ajouté), et deux champs dérivables
+sortent du contrat de `boites()`.
+
+**Écarté volontairement :** l'unification des trois fenêtres horaires
+(`deliverability_agent` / Mozart / `_cadence`) en une fonction paramétrée, et le passage de
+`_DERNIER_ENVOI` en base pour que la cadence tienne ENTRE deux process. Les deux sont
+justes et méritent d'être faits — mais ils touchent le chemin d'envoi des campagnes en
+production, un jour où il tourne. À reprendre à froid.
+
+**Deux tests ont cassé, et c'était leur rôle** : ils affirmaient que Mozart portait des
+règles qui ont déménagé. Réécrits pour vérifier l'EMPLACEMENT de la règle plutôt que sa
+copie — dont un contrôle nouveau : `send_email` refuse-t-il bien AVANT d'écrire sur le
+réseau, et non après. Les quinze suites passent.
+
+### MAJ 2026-08-24 — Connecteur Onoff Business : MVP téléphonie
+
+**La contrainte, trouvée avant d'écrire une ligne.** La navigation complète de
+docs.onoffbusiness.com donne la surface exacte de l'API : Members, Numbers, Departments,
+Contacts, Calls (4 endpoints), SMS (2), Statistics. Tous en lecture. Il n'existe :
+- **aucun endpoint pour PASSER un appel** — Onoff passe par son extension Chrome
+  « Click2Call » ou son application ;
+- **aucun endpoint pour ENVOYER un SMS** — la page produit officielle le range dans les
+  fonctions « à venir » : *« SMS management: send messages directly via the API (listing is
+  already live) »* ;
+- **aucun endpoint pour le SOLDE / les crédits**, nulle part.
+
+De plus **l'API entière demande le plan Max**. Le WEBHOOK, lui, fonctionne quel que soit
+l'abonnement : il livre appels, SMS, messagerie et enregistrements. Il est donc la source
+PRIMAIRE ici, l'API n'étant qu'un enrichissement — sans quoi un changement d'abonnement
+ferait disparaître une messagerie non lue de l'écran.
+
+**Ce qui a été livré.**
+- `scripts/onoff.py` (466 l.) — client, normalisation E.164 (le pool stocke du national
+  `0428384508`, Onoff renvoie de l'international : sans conversion des deux côtés aucun
+  rapprochement n'aboutit), journal local, résumé. Délai 8 s + une seconde chance, et le
+  vocabulaire de cause `cle`/`service`/`reseau` repris des connecteurs du tableau de bord.
+- `scripts/onoff_schema.sql` — table `onoff_evenements`, index partiel sur les non-lus.
+- 12 routes API, dont `POST /api/webhook/onoff/{site}` (jeton en query, mécanisme déjà en
+  place) et `POST …/onoff/appel` qui rend l'URI `tel:` **et** consigne l'appel dans le suivi.
+- Trois pages : `/site/{code}/onoff` (état, chiffres 30 j, membres, numéros, derniers
+  appels), `/site/{code}/onoff/messagerie` (répondeur, écoute, marquage), et
+  `/site/{code}/setup/onoff` (clé API + webhook, avec la liste franche de ce que le
+  connecteur permet et ne permet pas).
+- Action **Appeler** dans `ActionsAppel` : composition par `tel:`, SMS 1 à 1, et
+  l'historique Onoff du numéro. Les deux pages sont en **bêta fermée** (compte `camille`).
+
+**Le choix de conception qui compte.** L'appel part par `tel:`, mais la PREUVE qu'il a eu
+lieu ne vient pas du bouton : elle vient du journal Onoff reçu par webhook. C'est
+exactement l'objection de Camille au « bouton appel passé » du 23/08 — « il est branché à
+rien et c'est juste du déclaratif ». Ici le fait est mesuré, pas déclaré.
+
+**Deux invariants figés par `tests/test_onoff.py`** (34 contrôles) :
+1. **Un rejeu d'Onoff ne remet jamais en non lu une messagerie écoutée.** `lu_at` est
+   exclu de l'`ON CONFLICT DO UPDATE` ; sans cela le répondeur se remplirait tout seul.
+2. **Un seul POST part vers Onoff dans tout le module**, et c'est la tentative d'envoi de
+   SMS. Si un autre apparaît, c'est la porte par laquelle une action non supportée
+   s'introduirait.
+
+**Corrigé au passage.** `resume()` comptait les SMS dans « entrants » : le total ne
+s'additionnait plus (2 appels, 2 entrants, 1 sortant). Et `tests/test_cadence.py` supposait
+la fenêtre d'envoi ouverte — hors fenêtre `_cadence` retombe au plancher, ce qui est juste,
+mais la suite passait au rouge tous les soirs après 17h59. Le contrôle suit désormais
+l'heure et vérifie les deux comportements. **18 suites au vert.**
+
+**Ce qui attend Camille** : la clé API dans `/site/lcr/setup/onoff` (plan Max requis), et
+la déclaration du webhook côté Onoff avec l'URL que la page affiche. Le répondeur
+fonctionne avec le webhook SEUL.
+
+
+### MAJ 2026-08-24 — La fausse panne Ahrefs, et la page d'accueil qui ne demandait rien
+
+**Le symptôme.** Le tableau de bord LCR affichait « Erreur — Ahrefs (SEO) », 3051 ms, avec
+pour consigne « Vérifier la clé et la connectivité réseau ».
+
+**Ce que la clé disait vraiment.** Trois appels de suite à l'API Ahrefs : HTTP 200 en
+953 ms, puis 200 ms, puis 187 ms. Abonnement Lite actif. **La clé n'a jamais été en cause.**
+Le ping était coupé à 3 secondes, sans seconde tentative — or la toute première requête paie
+la poignée de main TLS, et Ahrefs oscille : mesuré à 5 903 ms lors d'un contrôle ultérieur,
+soit le double de l'ancien plafond. La panne était fabriquée par le contrôle lui-même.
+
+**Deux défauts, pas un.** Le second est le plus coûteux : le message d'action accusait la
+clé dans TOUS les cas d'erreur. Il envoyait chercher un problème là où il n'y en avait pas,
+et masquait ceux qui existaient vraiment.
+
+**Corrections.**
+- Délai porté à 8 s avec une seconde tentative sur incident réseau uniquement
+  (`_http(..., essais=2)`) — un code HTTP d'erreur n'est jamais rejoué.
+- Nouvelle fonction `_verdict()` : elle traduit un ping en statut **et en cause** —
+  `cle` (401/403), `service` (autre code HTTP), `reseau` (aucune réponse). Elle remplace au
+  passage six lignes de verdict recopiées à l'identique.
+- Les dix connecteurs sont désormais pingés **de front** et non en file indienne : à 8 s
+  × 2 essais, la séquence aurait fait attendre l'écran jusqu'à deux minutes. Mesuré à
+  **5,9 s pour les dix**, soit le plus lent d'entre eux.
+- L'écran propose une action par cause, et n'envoie plus vers Setup & API quand la clé est
+  hors de cause.
+
+**Trouvé au passage — un vrai défaut, lui.** WordPress MKD répond **HTTP 401
+`incorrect_password`** : le mot de passe d'application n'est plus valide. Le site lui-même
+répond 200 sans authentification, donc seule la clé est en cause. Ce défaut existait déjà,
+noyé dans le même message générique que la fausse panne Ahrefs. **Il demande une action de
+Camille** : régénérer un mot de passe d'application dans WordPress (Utilisateurs → Profil →
+Mots de passe d'application) et le reporter dans `WP_APP_PASSWORD`.
+
+**La page d'accueil.** `/` renvoyait vers `/view`, un tableau croisé de huit colonnes — la
+« page bizarre ». Elle demande maintenant **quel projet ouvrir**, avec une grande carte
+cliquable par marque : pastille d'identité colorée (LCR ambre, MKD bleu), nom, domaine,
+statut en ligne, et quatre chiffres — visites/mois, leads, emails sur 7 jours, coût IA sur
+la période choisie. Le tableau technique n'est pas perdu : il est replié sous « Détail
+technique et SEO des projets ».
+
+Deux pièges évités en la construisant :
+- `/api/campaigns` **n'a aucun champ `site`** — le site est encodé dans le NOM de la
+  campagne (`lcr-…`). Compter les emails par site ainsi aurait attribué chaque campagne aux
+  deux projets. Le chiffre vient désormais du **journal réel** (`daily-stats`, Maildoso +
+  Sweego), pas d'Emelia.
+- Le journal ne remonte qu'à 31 jours (`_PERIODES_JOURS`). La cellule « Emails » est donc
+  fixée à 7 jours et libellée comme telle, plutôt que de prétendre suivre l'onglet « 1 an ».
+- `/api/campaigns` faisait un appel GraphQL Emelia **par campagne** à chaque ouverture de la
+  page d'accueil. Devenu inutile, il est retiré — autant de crédits Emelia préservés.
+
+**Contrôle.** `tests/test_connecteurs.py` fige les deux règles : le délai, et la traduction
+d'un échec en cause (clé refusée → `cle`, réseau muet → `reseau` et jamais `cle`, clé absente
+→ `missing_key`). 17 suites au vert.
+

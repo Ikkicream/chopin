@@ -48,15 +48,7 @@ def _q(sql: str, params=None) -> list[tuple]:
 
 def _ecrire(sql: str, params=None) -> int:
     import pool_pg
-    c = pool_pg._conn()
-    try:
-        with c.cursor() as cur:
-            cur.execute(sql, params or {})
-            n = cur.rowcount
-        c.commit()
-        return n
-    finally:
-        pool_pg._rendre(c)
+    return pool_pg._ecrire(sql, params)
 
 
 def pauses_en_cours(site: str) -> dict[str, dict]:

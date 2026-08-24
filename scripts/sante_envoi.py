@@ -47,7 +47,12 @@ SELECTEURS_DKIM = ("selector1", "selector2", "default", "mail", "dkim", "s1", "s
 # agressive produit des faux positifs, et une alerte fausse est pire qu'aucune alerte.
 LISTES_NOIRES = ("zen.spamhaus.org", "bl.spamcop.net", "b.barracudacentral.org")
 
-SEUIL_OUVERTURE = 5.0        # %  — sous ce niveau, on n'est plus lu
+SEUIL_OUVERTURE = 5.0        # %  — plancher absolu : sous ce niveau, on n'est plus lu
+# Un plancher absolu ne suffit pas. Le taux d'ouverture est à 54 % sur trente jours : le
+# jour où il tombe à 20 %, quelque chose est cassé — et l'alerte à 5 % ne dirait toujours
+# rien. C'est la CHUTE qui prévient à temps, pas le niveau.
+CHUTE_OUVERTURE = 0.35       # perte d'un tiers par rapport à la référence
+FENETRE_REFERENCE = 30       # jours de référence
 SEUIL_REBOND = 3.0           # %
 SEUIL_PLAINTE = 0.1          # %
 VOLUME_MINIMUM = 50          # envois avant de tirer une conclusion
@@ -182,7 +187,8 @@ def _q(sql: str, params=None) -> list[tuple]:
     return pool_pg._q(sql, params or {})
 
 
-def taux(site: str, jours: int = FENETRE_JOURS, mailbox: str | None = None) -> dict:
+def taux(site: str, jours: int = FENETRE_JOURS, mailbox: str | None = None,
+         jusqu_a_il_y_a: int = 0) -> dict:
     """Ouverture, clic, rebond et plainte sur la fenêtre, en PERSONNES distinctes.
 
     On compte des personnes et non des événements : un prospect qui ouvre douze fois ne
@@ -199,17 +205,22 @@ def taux(site: str, jours: int = FENETRE_JOURS, mailbox: str | None = None) -> d
     # On sélectionne donc les destinataires servis PAR cette boîte, puis on mesure ce
     # qu'ils ont fait, quelle qu'en soit la trace.
     cond_boite = " AND ev.mailbox = %(mb)s" if mailbox else ""
-    p = {"site": site, "j": int(jours), "mb": mailbox}
+    # `jusqu_a_il_y_a` exclut les N derniers jours. Sert à la RÉFÉRENCE : mesurer une
+    # chute contre une moyenne qui contient déjà la chute la dilue un peu plus chaque
+    # jour, et l'alerte finit par s'éteindre alors que le problème dure.
+    cond_fin = (" AND ev.occurred_at < now() - make_interval(days => %(f)s)"
+                if jusqu_a_il_y_a else "")
+    p = {"site": site, "j": int(jours), "mb": mailbox, "f": int(jusqu_a_il_y_a)}
     r = _q(f"""
         WITH envoyes AS (
             SELECT DISTINCT ev.email FROM email_events ev
             WHERE ev.site_code = %(site)s AND ev.event_type = 'sent'
-              AND ev.occurred_at >= now() - make_interval(days => %(j)s){cond_boite}),
+              AND ev.occurred_at >= now() - make_interval(days => %(j)s){cond_boite}{cond_fin}),
         reactions AS (
             SELECT ev.email, ev.event_type FROM email_events ev
             JOIN envoyes e ON e.email = ev.email
             WHERE ev.site_code = %(site)s AND ev.event_type <> 'sent'
-              AND ev.occurred_at >= now() - make_interval(days => %(j)s))
+              AND ev.occurred_at >= now() - make_interval(days => %(j)s){cond_fin})
         SELECT (SELECT count(*) FROM envoyes),
                count(DISTINCT f.email) FILTER (WHERE f.event_type = 'open'),
                count(DISTINCT f.email) FILTER (WHERE f.event_type = 'click'),
@@ -283,6 +294,10 @@ def bilan(site: str = "lcr", forcer_dns: bool = False) -> dict:
         "domaines": dns["domaines"],
         "listes_noires": dns["listes_noires"],
         "global": taux(site),
+        # La référence longue : c'est elle qui donne son sens au chiffre de la semaine.
+        # La référence s'arrête où commence la mesure : les deux fenêtres ne se
+        # recouvrent pas, sinon on compare un chiffre à lui-même.
+        "reference": taux(site, jours=FENETRE_REFERENCE, jusqu_a_il_y_a=FENETRE_JOURS),
         "par_boite": [dict(taux(site, mailbox=b["email"]),
                            daily_cap=b["daily_cap"], statut=b["status"],
                            envoyes_aujourdhui=b["envoyes_aujourdhui"]) for b in boites],
@@ -318,6 +333,22 @@ def problemes(site: str = "lcr") -> dict[str, str]:
                 f"Demander le retrait avant de reprendre les campagnes.")
 
     g = b["global"]
+    # La chute relative, d'abord : elle se déclenche bien avant le plancher.
+    ref = b.get("reference") or {}
+    if (g["concluant"] and ref.get("concluant")
+            and (ref.get("taux_ouverture") or 0) > 0
+            and (g["taux_ouverture"] or 0) > 0):
+        perte = 1 - (g["taux_ouverture"] / ref["taux_ouverture"])
+        if perte >= CHUTE_OUVERTURE:
+            out["ouverture:chute"] = (
+                f"📉 *L'ouverture chute* : {g['taux_ouverture']} % sur {g['jours']} jours, "
+                f"contre {ref['taux_ouverture']} % sur les {FENETRE_REFERENCE} derniers "
+                f"({round(perte * 100)} % de moins).\n"
+                f"   Le niveau reste correct, c'est la PENTE qui alerte — attendre le "
+                f"plancher de {SEUIL_OUVERTURE} % reviendrait à prévenir une fois le "
+                f"domaine abîmé. À regarder : un changement d'objet, de message, ou de "
+                f"cible récent.")
+
     if g["concluant"]:
         if (g["taux_ouverture"] or 0) < SEUIL_OUVERTURE:
             out["ouverture:site"] = (

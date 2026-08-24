@@ -96,6 +96,28 @@ PAGES = [
      "url": "/site/{site}/campaigns", "api": ["/api/sites/{site}/campaigns"]},
     {"cle": "segments", "label": "Segments", "groupe": "Campagnes",
      "url": "/site/{site}/segments", "api": ["/api/sites/{site}/segments"]},
+    # Mozart doit figurer ICI pour exister aux yeux de la matrice des droits. Une page
+    # absente de ce registre n'est pas « ouverte à tous » : elle est invisible du réglage
+    # par rôle, donc impossible à retirer à quelqu'un — et personne ne s'en aperçoit avant
+    # d'en avoir besoin.
+    # `beta: True` : la page reste VISIBLE de tous — grisée, avec une étiquette — mais
+    # n'est utilisable que par les comptes de la liste ci-dessous. Visible plutôt que
+    # cachée, parce qu'une fonctionnalité qui apparaît un jour sans prévenir surprend, et
+    # qu'une équipe qui la voit arriver pose ses questions avant, pas après.
+    {"cle": "mozart", "label": "Mozart (scénarios)", "groupe": "Campagnes", "beta": True,
+     "url": "/site/{site}/mozart",
+     "api": ["/api/sites/{site}/mozart", "/api/sites/{site}/mozart-expediteurs"]},
+
+    # — Téléphonie (Onoff Business) —
+    # En bêta comme Mozart : le connecteur dépend d'un abonnement Onoff « Max » pour
+    # l'API, et la partie appel repose sur l'application Onoff installée côté poste.
+    # Autant l'éprouver sur un compte avant de l'ouvrir à l'équipe.
+    {"cle": "onoff", "label": "Téléphonie (ON/OFF)", "groupe": "Acquisition", "beta": True,
+     "url": "/site/{site}/onoff",
+     "api": ["/api/sites/{site}/onoff", "/api/sites/{site}/onoff/etat"]},
+    {"cle": "onoff_messagerie", "label": "Répondeur", "groupe": "Acquisition", "beta": True,
+     "url": "/site/{site}/onoff/messagerie",
+     "api": ["/api/sites/{site}/onoff/messagerie"]},
 
     # — Contenu & SEO —
     {"cle": "articles", "label": "Articles", "groupe": "Contenu & SEO",
@@ -259,6 +281,78 @@ def _prefixes_interdits(role: str) -> list[str]:
     # de bord qui lit la même donnée.
     permis = {pref for p in PAGES if p["cle"] in autorisees for pref in p["api"]}
     return [x for x in interdits if x not in permis]
+
+
+# Qui a le droit d'utiliser les pages marquées `beta`. Lu dans `.env` pour qu'ouvrir une
+# bêta à quelqu'un ne demande pas de toucher au code — ni de redéployer.
+#   PAGES_BETA_TESTEURS=camille,gilles
+_BETA_CACHE: tuple[float, set[str]] | None = None
+
+
+def beta_testeurs() -> set[str]:
+    """Lu une fois par minute, pas à chaque requête.
+
+    Cette fonction est appelée par le middleware sur CHAQUE requête authentifiée : la
+    relire depuis le disque à chaque fois, c'est un accès fichier par requête sur la boucle
+    d'événements. Une minute de cache suffit — ouvrir une bêta à quelqu'un peut attendre
+    soixante secondes.
+
+    Les guillemets sont retirés : `PAGES_BETA_TESTEURS="camille"` produisait `{'"camille"'}`
+    et fermait la bêta à la personne qu'elle devait ouvrir.
+    """
+    global _BETA_CACHE
+    import time
+    if _BETA_CACHE and (time.time() - _BETA_CACHE[0]) < 60:
+        return _BETA_CACHE[1]
+    valeurs = {"camille"}
+    try:
+        for ligne in (BASE_DIR / ".env").read_text().splitlines():
+            if ligne.startswith("PAGES_BETA_TESTEURS="):
+                v = ligne.split("=", 1)[1].strip().strip('"').strip("'")
+                trouves = {x.strip().strip('"').strip("'").lower()
+                           for x in v.split(",") if x.strip()}
+                if trouves:
+                    valeurs = trouves
+                break
+    except Exception:  # noqa: BLE001
+        pass
+    _BETA_CACHE = (time.time(), valeurs)
+    return valeurs
+
+
+def pages_beta() -> set[str]:
+    return {p["cle"] for p in PAGES if p.get("beta")}
+
+
+def beta_interdite(chemin: str, utilisateur: str, site: str | None = None) -> str | None:
+    """Le libellé de la page si ce chemin relève d'une bêta fermée à cet utilisateur.
+
+    Le contrôle porte sur le COMPTE, pas sur le rôle : une bêta s'ouvre à des personnes
+    nommées, pas à une catégorie. Un superadmin qui n'est pas dans la liste n'y a pas accès
+    non plus — sans quoi « réservé à mes tests » ne voudrait rien dire.
+    """
+    if (utilisateur or "").strip().lower() in beta_testeurs():
+        return None
+    for p in PAGES:
+        if not p.get("beta"):
+            continue
+        for pref in p["api"]:
+            if "{site}" not in pref:
+                if chemin.startswith(pref):
+                    return p["label"]
+                continue
+            if site:
+                if chemin.startswith(pref.replace("{site}", site)):
+                    return p["label"]
+                continue
+            # Site inconnu ou absent : on ne peut pas construire le chemin exact, mais on
+            # peut reconnaître sa FORME. Sans cela, `/api/sites/zzz/mozart/<id>` échappait
+            # au contrôle — un code de site inventé suffisait à ouvrir la bêta.
+            # Un garde-fou qui s'annule sur une entrée inattendue n'est pas un garde-fou.
+            debut, fin = pref.split("{site}", 1)
+            if chemin.startswith(debut) and fin.lstrip("/").split("/")[0] in chemin:
+                return p["label"]
+    return None
 
 
 def route_interdite(chemin: str, role: str, site: str | None = None) -> str | None:

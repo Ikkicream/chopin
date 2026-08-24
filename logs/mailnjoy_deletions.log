@@ -23566,3 +23566,12 @@
 {"ts": "2026-08-24T08:14:30.677650+00:00", "email": "le2022.restaurant@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-24T08:48:52.060092+00:00", "email": "hermann@vendremaboite.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
 {"ts": "2026-08-24T08:53:59.556901+00:00", "email": "louise.lanet@o2.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T10:09:27.299780+00:00", "email": "mio@mio-normandie.fr", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T10:20:31.351927+00:00", "email": "resa@saison2-restaurant.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T10:20:48.910624+00:00", "email": "35contact@restaurant-lacageauxfleurs.com", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T10:22:31.827784+00:00", "email": "formulairebooster@effilab-local.com", "decision": "invalid", "status": "INCORRECT", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T10:27:54.082780+00:00", "email": "lateranga26000@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T10:28:42.151342+00:00", "email": "david@youzprod.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T10:29:48.500842+00:00", "email": "reservation@hanotokysushi.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}
+{"ts": "2026-08-24T10:29:52.591087+00:00", "email": "lcroquantsdpm@gmail.com", "decision": "risky", "status": "VALID", "category": "RISKY", "reason": "kill par décision user 2026-05-22"}
+{"ts": "2026-08-24T10:34:01.974328+00:00", "email": "0-email-adv@saint-jean.fr", "decision": "invalid", "status": "INVALID", "category": "UNSAFE", "reason": "mailnjoy invalid"}

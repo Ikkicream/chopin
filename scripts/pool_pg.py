@@ -60,6 +60,26 @@ def _rendre(c) -> None:
         _POOL.putconn(c)
 
 
+def _ecrire(sql: str, params=None) -> int:
+    """Une écriture, validée, avec retour de la connexion au pool. Rend le nombre de lignes.
+
+    Trois modules en avaient recopié une version identique au caractère près
+    (`expediteur`, `refroidissement`, `mozart`). Ce n'est pas seulement du doublon : c'est
+    un contrat de transaction — ouvrir, exécuter, VALIDER, RENDRE la connexion. Trois
+    copies, c'est trois endroits où l'on peut oublier le `commit` ou le `_rendre`, et une
+    connexion non rendue épuise le pool en silence.
+    """
+    c = _conn()
+    try:
+        with c.cursor() as cur:
+            cur.execute(sql, params or {})
+            n = cur.rowcount
+        c.commit()
+        return n
+    finally:
+        _rendre(c)
+
+
 def _q(sql: str, params: tuple = ()) -> list[tuple]:
     c = _conn()
     try:

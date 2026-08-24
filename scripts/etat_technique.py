@@ -203,6 +203,7 @@ _TACHES = {
     "statistiques": "logs/stats.log",
     "plancher de collecte": "logs/plancher_collecte.log",
     "dirigeants nommés": "logs/dirigeants.log",
+    "scénarios Mozart": "logs/mozart.log",
 }
 
 

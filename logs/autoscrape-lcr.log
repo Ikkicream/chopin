@@ -1,2 +1,5 @@
 
 === [veilleur 2026-08-24 10:00:02 UTC] reprise automatique après arrêt anormal ===
+[mailnjoy] 72 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 72 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+{"ok": true, "resumed": true, "region": "28", "dept": null, "status": "done"}
