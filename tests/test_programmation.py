@@ -112,7 +112,10 @@ def lance() -> int:
 
     print("\nL'objectif suit les plafonds, il n'est pas écrit en dur")
     import expediteur as ex
-    attendu = sum(b["daily_cap"] for b in ex.boites("lcr") if b["active"])
+    # Ad hoc seulement : depuis le 2026-08-25 les adresses réservées à Mozart ne sont pas
+    # disponibles pour les campagnes, et `programmation` ne les compte donc plus. Les
+    # inclure ici ferait attendre un objectif que le dispatch ne pourrait jamais honorer.
+    attendu = sum(b["daily_cap"] for b in ex.boites("lcr", usage="adhoc") if b["active"])
     verifie("objectif = somme des plafonds actifs",
             pr.objectif_jour("lcr") == attendu, f"({attendu})")
 

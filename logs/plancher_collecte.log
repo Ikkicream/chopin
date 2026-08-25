@@ -575,3 +575,663 @@
   "plancher atteint (1008/500)"
  ]
 }
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1008,
+ "par_source": {
+  "serper": 657,
+  "basile": 285,
+  "serper_places": 66
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1004/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1008/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1008,
+ "par_source": {
+  "serper": 657,
+  "basile": 285,
+  "serper_places": 66
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1004/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1008/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 0,
+ "par_source": {},
+ "manque": 500,
+ "atteint": false,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "resume",
+  "pourquoi": "statut 'quota' — relance"
+ },
+ "appliquer": true,
+ "actions": [
+  "réveil du scraper — il manque 500 contact(s) (resume : statut 'quota' — relance)"
+ ],
+ "lancement": {
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+   "status": "running",
+   "scope": "Dept 26",
+   "valid": 0,
+   "current_city": "Valence"
+  }
+ }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 53,
+ "par_source": {
+  "serper": 53
+ },
+ "manque": 447,
+ "atteint": false,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "réveil du scraper — il manque 447 contact(s) (start : nouvelle cible)"
+ ],
+ "lancement": {
+  "ok": true,
+  "launched": {
+   "action": "start",
+   "sector": "restaurant",
+   "dept": "01 Ain",
+   "why": "nouvelle cible"
+  }
+ }
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 186,
+ "par_source": {
+  "serper": 134,
+  "basile": 52
+ },
+ "manque": 314,
+ "atteint": false,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "un scrape tourne déjà — on le laisse travailler"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 251,
+ "par_source": {
+  "serper": 142,
+  "basile": 109
+ },
+ "manque": 249,
+ "atteint": false,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "close",
+  "pourquoi": "reprise impossible (fichier écrasé)"
+ },
+ "appliquer": true,
+ "actions": [
+  "un scrape tourne déjà — on le laisse travailler"
+ ]
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 313,
+ "par_source": {
+  "serper": 197,
+  "basile": 116
+ },
+ "manque": 187,
+ "atteint": false,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "réveil du scraper — il manque 187 contact(s) (start : nouvelle cible)"
+ ],
+ "lancement": {
+  "ok": true,
+  "launched": {
+   "action": "start",
+   "sector": "restaurant",
+   "dept": "03 Allier",
+   "why": "nouvelle cible"
+  }
+ }
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 416,
+ "par_source": {
+  "serper": 256,
+  "basile": 160
+ },
+ "manque": 84,
+ "atteint": false,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "un scrape tourne déjà — on le laisse travailler"
+ ]
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 426,
+ "par_source": {
+  "serper": 266,
+  "basile": 160
+ },
+ "manque": 74,
+ "atteint": false,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "réveil du scraper — il manque 74 contact(s) (start : nouvelle cible)"
+ ],
+ "lancement": {
+  "ok": true,
+  "launched": {
+   "action": "start",
+   "sector": "restaurant",
+   "dept": "15 Cantal",
+   "why": "nouvelle cible"
+  }
+ }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 460,
+ "par_source": {
+  "serper": 279,
+  "basile": 181
+ },
+ "manque": 40,
+ "atteint": false,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "réveil du scraper — il manque 40 contact(s) (start : nouvelle cible)"
+ ],
+ "lancement": {
+  "ok": true,
+  "launched": {
+   "action": "start",
+   "sector": "restaurant",
+   "dept": "59 Nord",
+   "why": "nouvelle cible"
+  }
+ }
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 591,
+ "par_source": {
+  "serper": 320,
+  "basile": 271
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (591/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 707,
+ "par_source": {
+  "serper": 436,
+  "basile": 271
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (707/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 825,
+ "par_source": {
+  "serper": 554,
+  "basile": 271
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (825/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 834,
+ "par_source": {
+  "serper": 563,
+  "basile": 271
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (834/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 839,
+ "par_source": {
+  "serper": 563,
+  "basile": 276
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (839/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 896,
+ "par_source": {
+  "serper": 620,
+  "basile": 276
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (896/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 967,
+ "par_source": {
+  "serper": 659,
+  "basile": 308
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (967/500)"
+ ]
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1051,
+ "par_source": {
+  "serper": 743,
+  "basile": 308
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1051/500)"
+ ]
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1095,
+ "par_source": {
+  "serper": 761,
+  "basile": 334
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1095/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1164,
+ "par_source": {
+  "serper": 818,
+  "basile": 346
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1164/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 539,
+ "par_source": {
+  "serper": 279,
+  "basile": 149,
+  "serper_places": 111
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (539/500)"
+ ]
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 539,
+ "par_source": {
+  "serper": 279,
+  "basile": 149,
+  "serper_places": 111
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (539/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 626,
+ "par_source": {
+  "serper": 281,
+  "basile": 234,
+  "serper_places": 111
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (626/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 748,
+ "par_source": {
+  "serper": 403,
+  "basile": 234,
+  "serper_places": 111
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": true,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (748/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 817,
+ "par_source": {
+  "serper": 472,
+  "basile": 234,
+  "serper_places": 111
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (817/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 818,
+ "par_source": {
+  "serper": 472,
+  "basile": 234,
+  "serper_places": 111,
+  "sweego": 1
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (818/500)"
+ ]
+}

@@ -108,6 +108,9 @@ PAGES = [
      "url": "/site/{site}/mozart",
      "api": ["/api/sites/{site}/mozart", "/api/sites/{site}/mozart-expediteurs"]},
 
+    {"cle": "expediteurs", "label": "Adresses d'envoi", "groupe": "Configuration",
+     "url": "/site/{site}/setup/expediteurs", "api": ["/api/sites/{site}/expediteurs"]},
+
     # — Téléphonie (Onoff Business) —
     # En bêta comme Mozart : le connecteur dépend d'un abonnement Onoff « Max » pour
     # l'API, et la partie appel repose sur l'application Onoff installée côté poste.
@@ -151,7 +154,7 @@ PAGES = [
 ]
 
 GROUPES = ["Pilotage", "Acquisition", "Ventes", "Campagnes", "Contenu & SEO",
-           "Administration"]
+           "Configuration", "Administration"]
 
 # La matrice de départ. Elle reprend ce que faisait déjà la sidebar, pour que rien ne
 # change le jour de la mise en service : on rend explicite un comportement existant avant

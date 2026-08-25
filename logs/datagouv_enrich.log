@@ -161,3 +161,27 @@ ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'
 2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "La crêpe au carré", "denomination": "LA CREPERIE", "siret": "83496210200036", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "10-19", "commune": "PARIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "Boucherie SOZERI Villefontaine", "denomination": "BOUCHERIE SOZERI", "siret": "98323902100022", "code_naf": "47.22Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "VILLEFONTAINE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "La Brasserie Dauphinoise", "denomination": "LA BRASSERIE DAUPHINOISE", "siret": "82919811800012", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "SAINT-EGREVE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-25 06:30:57,304 [INFO] 564 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-25 06:30:57,305 [INFO] Durée estimée minimale : ~141s (564 × 4 req/s)
+2026-08-25 06:31:12,206 [INFO]   ...50/564 (39 enrichis, 1 exclus, API=52 cache=0)
+2026-08-25 06:31:27,495 [INFO]   ...100/564 (59 enrichis, 4 exclus, API=108 cache=0)
+2026-08-25 06:31:42,430 [INFO]   ...150/564 (71 enrichis, 5 exclus, API=163 cache=0)
+2026-08-25 06:31:56,935 [INFO]   ...200/564 (100 enrichis, 5 exclus, API=216 cache=0)
+2026-08-25 06:32:11,186 [INFO]   ...250/564 (133 enrichis, 7 exclus, API=269 cache=0)
+2026-08-25 06:32:25,473 [INFO]   ...300/564 (155 enrichis, 11 exclus, API=322 cache=0)
+2026-08-25 06:32:39,742 [INFO]   ...350/564 (190 enrichis, 13 exclus, API=375 cache=0)
+2026-08-25 06:32:54,942 [INFO]   ...400/564 (207 enrichis, 16 exclus, API=432 cache=0)
+2026-08-25 06:33:10,753 [INFO]   ...450/564 (213 enrichis, 21 exclus, API=491 cache=0)
+2026-08-25 06:33:24,568 [INFO]   ...500/564 (254 enrichis, 22 exclus, API=542 cache=0)
+2026-08-25 06:33:39,568 [INFO]   ...550/564 (281 enrichis, 22 exclus, API=598 cache=0)
+2026-08-25 06:33:52,250 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-25 06:33:53,207 [INFO] ============================================================
+2026-08-25 06:33:53,207 [INFO] Total: 564 | Enrichis: 289 | Non-vérifiés(contactables): 252 | Exclus durs: 22 | Transitoires(non écrits): 1 | API: 616 | Cache: 0 | 429: 0 | 175.9s
+2026-08-25 06:33:53,207 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 21, "administration_service_public": 1}
+2026-08-25 06:33:53,207 [INFO] Non-vérifiés par motif (restent contactables): {"match_ambigu": 44, "non_trouve": 208}
+2026-08-25 06:33:53,207 [INFO] Échantillon enrichis:
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "Le Rojance", "denomination": "LE ROJANCE", "siret": "98419502400018", "code_naf": "56.21Z", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "CALAIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "LE POINT GOURMAND", "denomination": null, "siret": "50273331400020", "code_naf": "47.29Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "CALAIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "TRAITEUR 62", "denomination": "TRAITEUR 62", "siret": "50967948600019", "code_naf": "56.21Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "HENIN-BEAUMONT", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "LE VIDOCQ", "denomination": "LE VIDOCQ", "siret": "80226697300022", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "ARRAS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "AVINE", "denomination": "AVINE", "siret": "82790435000028", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "0 salarié", "commune": "VERMELLES", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}

@@ -167,13 +167,16 @@ def _suivant(liens: list, noeud_id: str, sortie: str | None = None) -> str | Non
 
 
 _COLONNES = """id, site_code, nom, description, statut, graphe, cree_le, modifie_le,
-               est_modele, verrouille"""
+               est_modele, verrouille, suivi_ouverture"""
 
 
 def _ligne(x) -> dict:
     return {"id": str(x[0]), "site_code": x[1], "nom": x[2], "description": x[3],
             "statut": x[4], "graphe": x[5], "cree_le": str(x[6]), "modifie_le": str(x[7]),
-            "est_modele": bool(x[8]), "verrouille": bool(x[9])}
+            "est_modele": bool(x[8]), "verrouille": bool(x[9]),
+            # Ajouter une colonne à `_COLONNES` sans l'ajouter ICI la rend invisible :
+            # elle est bien lue, mais jamais rendue. Les deux listes vont ensemble.
+            "suivi_ouverture": bool(x[10])}
 
 
 def scenarios(site: str, statut: str | None = None) -> list[dict]:
@@ -383,7 +386,7 @@ def expediteurs(site: str) -> list[dict]:
         "porte_affinite": True,
         "expediteurs": [{"email": b["email"], "nom": b["sender_name"],
                          "statut": b["status"], "disponible": b["active"]}
-                        for b in ex.boites(site)],
+                        for b in ex.boites(site, usage="mozart")],
     }]
     try:
         import sweego_backend as sw
@@ -496,7 +499,7 @@ def _envoyer(sc: dict, noeud: dict, insc: dict, dry_run: bool = False) -> tuple[
         if aff and aff.get("confirmee"):
             boite = None          # sa boîte, choisie par `send_email` via l'affinité
         else:
-            boite = next((b for b in ex.boites(site)
+            boite = next((b for b in ex.boites(site, usage="mozart")
                           if b["email"] == voulue and b["active"] and b["reste"] > 0), None)
             if not boite:
                 return "reporte", f"la boîte {voulue} n'est pas disponible aujourd'hui"
@@ -505,9 +508,16 @@ def _envoyer(sc: dict, noeud: dict, insc: dict, dry_run: bool = False) -> tuple[
     # savoir quelle boîte servira réellement. Le refaire ici obligeait à DEVINER cette
     # boîte via l'affinité — et à ne rien contrôler du tout pour un contact qui n'en a pas
     # encore. Le refus revient sous la forme `reporte`, traitée juste en dessous.
+    # Le pixel d'ouverture est optionnel PAR SCÉNARIO. Le guide Maildoso le déconseille
+    # (Gmail le note), mais le couper partout priverait les commerciaux de la liste des
+    # ouvreurs et éteindrait l'alerte sur la pente du taux d'ouverture. Un scénario
+    # automatique, lui, tourne sans personne derrière : c'est là qu'on peut s'en passer.
+    # Défaut : suivi actif — on ne retire pas une mesure sans que ce soit demandé.
+    suivi = sc.get("suivi_ouverture")
     res = md.send_email(email, d.get("objet") or msg.get("subject") or "",
                         html=msg["html"], site=site, campaign_id=campaign_id, contact=ct,
-                        mailbox=boite)
+                        mailbox=boite, usage="mozart",
+                        suivi_ouverture=True if suivi is None else bool(suivi))
     if not res.get("ok"):
         # Un report (boîte pleine, contact en attente de SA boîte) n'est pas un échec :
         # on le rejouera au prochain passage sans avancer dans le graphe.

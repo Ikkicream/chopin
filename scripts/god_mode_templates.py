@@ -26,12 +26,15 @@ if env_file.exists():
 
 DEEPSEEK_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 
-# Signature Juliette HTML (fournie par client)
+# Signature Juliette — EN TEXTE, plus en image.
+# Le guide de délivrabilité de Maildoso demande une signature sans photo, sans lien et
+# sans domaine. L'ancienne version était une image distante hébergée sur S3 : chaque
+# email chargeait un fichier sur un domaine tiers, ce qui se voit et ne rapportait rien
+# qu'un texte ne fasse. Le lien de désinscription reste : il est obligatoire.
 SIGNATURE_HTML = (
-    '<p><img src="https://emelia-public-files.s3.eu-west-3.amazonaws.com/'
-    '69821e307d7c504e0e847ac1-1778073002600-signature.png"></p>'
+    '<p>Juliette<br>LeClientROI</p>'
     '<p><a href="{{UNSUBSCRIBE_LINK}}" rel="noopener noreferrer" target="_blank">'
-    "Si vous ne souhaitez pas recevoir d'email de ma part, n'hésitez pas à cliquer sur ce lien 🙂"
+    "Si vous ne souhaitez plus recevoir d'email de ma part, cliquez ici"
     "</a></p>"
 )
 

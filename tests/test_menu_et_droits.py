@@ -75,12 +75,52 @@ def lance() -> int:
                    if not (p.get("cle") and p.get("url") and p.get("label"))]
     verifie("catalogue complet", not incompletes, f"({incompletes})")
 
+    print("\nLa sidebar peut afficher ce que le serveur déclare")
+
+    _sidebar_complete()
+
+
     print("\n" + "=" * 62)
     if ECHECS:
         print(f"{len(ECHECS)} ÉCHEC(S) : {', '.join(ECHECS[:6])}")
         return 1
     print("Menu et droits disent la même chose : aucune entrée ne peut clignoter.")
     return 0
+
+
+
+def _sidebar_complete() -> None:
+    """Toute page de site déclarée au serveur doit pouvoir apparaître dans la sidebar.
+
+    Trois fois de suite une page a été déclarée côté serveur sans être visible : Mozart le
+    2026-08-24, puis la téléphonie Onoff et les adresses d'envoi le 2026-08-25. La cause
+    était toujours la même — la sidebar ne se servait de la liste du serveur que pour
+    FILTRER ses entrées écrites en dur, jamais pour en AJOUTER.
+
+    Ce contrôle vérifie les deux moitiés du contrat : le serveur envoie bien le catalogue
+    (libellé + groupe + URL), et l'écran sait ajouter ce qu'il ne connaît pas.
+    """
+    racine = Path(__file__).resolve().parent.parent
+    api = (racine / "scripts" / "api.py").read_text()
+    verifie("l'API envoie le catalogue, pas seulement les URL",
+            '"catalogue": catalogue' in api and '"groupe": p.get("groupe")' in api)
+
+    side = racine.parent / "genesis-ui" / "src" / "components" / "app-sidebar.tsx"
+    if not side.exists():
+        print("  … sidebar introuvable, contrôle ignoré")
+        return
+    t = side.read_text()
+    verifie("la sidebar lit le catalogue", "setCatalogue(d.catalogue)" in t)
+    verifie("elle AJOUTE les pages qu'elle ne connaît pas",
+            "groupe.items.push({ title: p.label" in t)
+    verifie("une clé sans icône reçoit tout de même une entrée",
+            "ICONES_PAGES[p.cle] || CircleDotIcon" in t)
+    # L'ordre compte : une page ajoutée après le marquage bêta n'aurait jamais d'étiquette.
+    verifie("la fusion précède le marquage des bêtas",
+            t.index("Ce qui manque au menu") < t.index("Les pages en bêta restent"))
+    # Et une page hors du site courant ne doit pas polluer le menu contextuel.
+    verifie("une page hors site est écartée", 'url.startsWith(`/site/${currentSite}/`)' in t)
+
 
 
 if __name__ == "__main__":

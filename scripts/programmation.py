@@ -63,7 +63,9 @@ def objectif_jour(site: str) -> int:
     suit, et la programmation cesse de réclamer un volume qu'on ne peut plus tenir.
     """
     import expediteur
-    return sum(b["daily_cap"] for b in expediteur.boites(site) if b["active"])
+    # Ad hoc seulement : la programmation d'une campagne ne peut pas compter sur les
+    # adresses réservées aux scénarios Mozart.
+    return sum(b["daily_cap"] for b in expediteur.boites(site, usage="adhoc") if b["active"])
 
 
 def vivier(site: str, secteurs: list[str] | None) -> int:

@@ -3235,7 +3235,11 @@ Chaque email a : subject, body_html, delay_days (0 pour le premier, {relance_del
         }]
 
     # Post-process HTML: ensure proper paragraphs + append signature
-    signature = '<p><img src="https://emelia-public-files.s3.eu-west-3.amazonaws.com/69821e307d7c504e0e847ac1-1778073002600-signature.png"></p><p><a href="{{UNSUBSCRIBE_LINK}}" rel="noopener noreferrer" target="_blank">Si vous ne souhaitez pas recevoir d\u2019email de ma part, n\u2019h\u00e9sitez pas \u00e0 cliquer sur ce lien \U0001f642</a></p>'
+    # Signature en TEXTE : une image distante dans la signature est un marqueur fort
+    # pour les filtres, et elle n'apporte rien qu'un texte ne fasse (guide Maildoso).
+    signature = ('<p>Juliette<br>LeClientROI</p>'
+                 '<p><a href="{{UNSUBSCRIBE_LINK}}" rel="noopener noreferrer" target="_blank">'
+                 "Si vous ne souhaitez plus recevoir d'email de ma part, cliquez ici</a></p>")
 
     # Remove any signature DeepSeek might have generated
     for em in emails:
@@ -4933,6 +4937,60 @@ async def api_env_keys_update(site: str, request: Request):
     return {"ok": True, "updated": updated}
 
 
+# ── Adresses d'envoi : le tableau de la page Configuration ───────────────────
+
+@app.get("/api/sites/{site}/expediteurs")
+def api_expediteurs(site: str):
+    """Toutes les adresses d'envoi : usage, chauffe, volumes et engagement.
+
+    Les volumes viennent du journal `email_events` — ce qui est réellement parti — et
+    jamais de `mailboxes.sent_today`, qui vit dans DuckDB et se perd sous verrou.
+    """
+    _scripts_dans_le_chemin()
+    import expediteur
+    try:
+        return expediteur.tableau(site)
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503,
+                            content={"error": f"adresses indisponibles: {e}"[:200]})
+
+
+@app.patch("/api/sites/{site}/expediteurs/{email}")
+async def api_expediteur_maj(site: str, email: str, request: Request):
+    """Ajuste une adresse : son usage, son plafond Maildoso, son activation.
+
+    Le plafond est celui que MAILDOSO accepte : le relever ici sans le relever chez
+    Maildoso ferait rejeter les envois. L'écran le dit.
+    """
+    _scripts_dans_le_chemin()
+    import expediteur
+    d = await request.json()
+    champs, vals = [], []
+    if "usage" in d:
+        if d["usage"] not in ("adhoc", "mozart"):
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=400,
+                                content={"error": "usage doit valoir adhoc ou mozart"})
+        champs.append("usage = %s"); vals.append(d["usage"])
+    if "daily_cap" in d:
+        champs.append("daily_cap = %s"); vals.append(max(0, int(d["daily_cap"])))
+    if "status" in d:
+        if d["status"] not in ("active", "inactive"):
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=400,
+                                content={"error": "status doit valoir active ou inactive"})
+        champs.append("status = %s"); vals.append(d["status"])
+    if not champs:
+        return {"ok": True, "inchange": True}
+    n = expediteur._ecrire(
+        f"UPDATE mailboxes SET {', '.join(champs)} WHERE email = %s AND site_code = %s",
+        tuple(vals) + (email, site))
+    if not n:
+        return _introuvable("adresse d'envoi")
+    return {"ok": True, "tableau": expediteur.tableau(site)}
+
+
 # ── Onoff Business — téléphonie ───────────────────────────────────────────────
 # Le connecteur est en lecture seule côté Onoff (l'API n'expose ni la composition d'un
 # appel, ni l'envoi de SMS, ni le solde — voir l'en-tête de scripts/onoff.py). Les journaux
@@ -5700,6 +5758,13 @@ def api_mes_pages(request: Request):
     beta_ok = False
     try:
         urls = {p["cle"]: p["url"] for p in rbk.PAGES}
+        # Le catalogue complet, et pas seulement les URL. La sidebar s'en servait
+        # uniquement pour FILTRER ses entrées écrites en dur : une page déclarée ici mais
+        # absente de son code restait invisible pour toujours — c'est arrivé à Mozart le
+        # 24/08, puis à Onoff et aux adresses d'envoi le 25/08. Avec le libellé et le
+        # groupe, l'écran peut AJOUTER ce qu'il ne connaît pas.
+        catalogue = [{"cle": p["cle"], "label": p["label"], "groupe": p.get("groupe") or "",
+                      "url": p["url"]} for p in rbk.PAGES]
         beta = sorted(rbk.pages_beta())
         beta_ok = (sess.get("username") or "").strip().lower() in rbk.beta_testeurs()
     except Exception as e:  # noqa: BLE001
@@ -5710,11 +5775,11 @@ def api_mes_pages(request: Request):
     try:
         return {"role": sess.get("role") or "",
                 "pages": rbk.pages_autorisees(sess.get("role") or ""), "urls": urls,
-                "beta": beta, "beta_autorise": beta_ok}
+                "catalogue": catalogue, "beta": beta, "beta_autorise": beta_ok}
     except Exception:  # noqa: BLE001
         return {"role": sess.get("role") or "",
                 "pages": [p["cle"] for p in rbk.PAGES], "urls": urls,
-                "beta": beta, "beta_autorise": beta_ok}
+                "catalogue": catalogue, "beta": beta, "beta_autorise": beta_ok}
 
 
 @app.get("/api/admin/secteurs")
@@ -7028,6 +7093,9 @@ async def api_mozart_enregistrer(site: str, sid: str, request: Request):
         champs.append("description = %s"); vals.append(d["description"])
     if "graphe" in d:
         champs.append("graphe = %s::jsonb"); vals.append(json.dumps(d["graphe"]))
+    if "suivi_ouverture" in d:
+        # Le pixel d'ouverture, scénario par scénario (guide de délivrabilité Maildoso).
+        champs.append("suivi_ouverture = %s"); vals.append(bool(d["suivi_ouverture"]))
     if not champs:
         return {"ok": True, "inchange": True}
     champs.append("modifie_le = now()")

@@ -755,6 +755,24 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
         # Les variables : même garde qu'à l'envoi, mais posée AVANT le lot. Une variable
         # qu'aucun moteur ne connaît ferait refuser chaque destinataire un par un ; autant
         # le dire une fois, avant de commencer.
+        # Le vocabulaire qui pèse sur la note de spam (guide Maildoso, 2026-08-25). Le lint
+        # ci-dessus traque les défauts de FORME (lien mort, désinscription introuvable) ;
+        # celui-ci traque le vocabulaire. Seuls les termes notoires arrêtent le lot — un
+        # mot ambigu produit un avertissement, sinon on débrancherait le contrôle à la
+        # première campagne.
+        import qualite_message as qmsg
+        qual = qmsg.controler(camp.get("subject") or "", msg["html"])
+        for a in qual["avertissements"][:5]:
+            print(f"[campaign_engine] avertissement délivrabilité — {a}", flush=True)
+        if qual["bloquants"]:
+            return {"ok": False, "error": "message à risque pour la délivrabilité — "
+                    + " | ".join(qual["bloquants"][:3])}
+        if qual["variantes"] == 1:
+            # Pas bloquant : la variation se travaille dans le message, elle ne s'improvise
+            # pas à l'envoi. Mais un texte identique mille fois se reconnaît par empreinte.
+            print("[campaign_engine] message sans spintax — tous les destinataires "
+                  "recevront exactement le même texte", flush=True)
+
         import garde_variables as gvar
         inconnues = (gvar.variables_inconnues(msg["html"])
                      | gvar.variables_inconnues(camp.get("subject") or ""))
@@ -917,7 +935,10 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
             _bump_sent(camp["id"], 1)
 
         res = md.send_batch(campaign_id, camp["subject"], msg["html"], contacts,
-                            site=site, utm_campaign=utm_campaign, on_sent=_on_sent)
+                            site=site, utm_campaign=utm_campaign, on_sent=_on_sent,
+                            # Les campagnes ad hoc n'empruntent jamais les adresses
+                            # réservées aux scénarios Mozart, et réciproquement.
+                            usage="adhoc")
         if not res.get("ok"):
             return res
         # Filet : reprend UNIQUEMENT les contacts dont le marquage a échoué dans le

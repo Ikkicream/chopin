@@ -3628,6 +3628,156 @@ règles qui ont déménagé. Réécrits pour vérifier l'EMPLACEMENT de la règl
 copie — dont un contrôle nouveau : `send_email` refuse-t-il bien AVANT d'écrire sur le
 réseau, et non après. Les quinze suites passent.
 
+### MAJ 2026-08-25 — La sidebar ne pouvait qu'enlever des entrées, jamais en ajouter
+
+**Symptôme.** Ni les pages Onoff ni « Adresses d'envoi » n'apparaissaient dans le menu,
+alors que le serveur les déclarait et que le compte `camille` (superadmin) y avait droit.
+
+**La cause, et c'est la TROISIÈME fois.** `app-sidebar.tsx` porte ses entrées de menu
+**écrites en dur**, et ne se sert de la réponse de `/api/mes-pages` que pour les FILTRER :
+
+```
+navMain = navConstruit.map(g => ({ ...g, items: g.items.filter(…autorisées…) }))
+```
+
+Une page déclarée côté serveur mais absente de ce fichier ne pouvait donc jamais s'afficher.
+Le 2026-08-24, Mozart clignotait pour la même raison ; j'avais alors corrigé la table
+clé → URL en la faisant venir du serveur, **et cru avoir traité la racine**. Je n'avais
+traité que la moitié : l'URL venait du serveur, l'EXISTENCE de l'entrée restait locale.
+
+**Correction à la racine.**
+- `/api/mes-pages` renvoie désormais un `catalogue` complet — clé, libellé, groupe, URL —
+  et plus seulement les URL.
+- La sidebar **ajoute** toute page autorisée absente de son menu, dans le groupe que le
+  serveur lui donne. Le code local ne décide plus que de l'ORDRE des groupes et de
+  l'ICÔNE ; l'existence vient d'une seule source. Une clé sans icône reçoit une pastille
+  neutre — mieux vaut une entrée sans belle icône qu'une entrée invisible.
+- Deux écueils d'ordonnancement traités : la fusion s'exécute APRÈS la création du groupe
+  « Configuration » (sinon il existait en double) et AVANT le marquage des bêtas (sinon
+  une page ajoutée n'aurait jamais son étiquette).
+- Nouveau groupe `Configuration` dans le catalogue serveur ; « Adresses d'envoi » y est
+  rangée plutôt que dans « Administration » — c'est une page de site, pas d'admin globale.
+  Une page hors `/site/{code}/` est explicitement écartée du menu contextuel.
+
+**Contrôle** dans `tests/test_menu_et_droits.py` : il vérifie les DEUX moitiés du contrat —
+le serveur envoie le catalogue, l'écran sait ajouter ce qu'il ne connaît pas — plus l'ordre
+fusion/bêta. C'est le contrôle qui aurait vu les trois disparitions.
+
+### MAJ 2026-08-25 — Quatre adresses réservées à Mozart, et une chauffe par boîte
+
+**Demande de Camille.** Quatre nouvelles boîtes Maildoso — `news@`, `agence@`, `info@`
+(Pascal Cabral) et `immo@` (Julie Durand) — **exclusivement pour Mozart**, afin que les
+volumes des campagnes ad hoc et des scénarios automatiques ne se croisent pas. Avec une
+chauffe conforme au guide Maildoso, et un tableau de toutes les adresses en Configuration.
+
+**Ce qui a été fait.**
+- Colonnes `usage` ('adhoc' | 'mozart', contrainte en base) et `warmup_debut` sur
+  `mailboxes`. Les quatre anciennes passent en `adhoc`, les quatre nouvelles en `mozart`.
+- Mot de passe SMTP distinct (`MAILDOSO_SMTP_PASSWORD_MOZART`) : celui du CSV n'est pas
+  celui des boîtes existantes.
+- **`expediteur.plafond_chauffe()`** — une adresse de moins de **14 jours rend 0**, pas
+  « un peu » : zéro cold email, elle ne fait que la chauffe interne de Maildoso. Ensuite la
+  même pente que la flotte : 15, +1/jour, 35 au plus. Pour les quatre nouvelles :
+  **rien jusqu'au 2026-09-08**, 15 ce jour-là, **35 le 2026-09-28**.
+- `boites(site, usage=…)` filtre les pools. Mozart envoie avec `usage="mozart"`, les
+  campagnes avec `usage="adhoc"`. `routage` et `programmation` ne comptent plus que les
+  adresses ad hoc — sinon la planification promettrait un volume que le dispatch ne peut
+  pas honorer.
+- **QUATRE plafonds désormais, le plus bas gagnant** : plafond Maildoso (ce que le
+  fournisseur accepte), plafond de progression, rampe de flotte, chauffe individuelle.
+
+**La précédence qu'il fallait trancher.** L'affinité expéditeur dit « 1 contact = 1 adresse
+à vie » ; la séparation des pools dit « Mozart n'utilise que ses adresses ». Les deux
+s'opposent pour un contact déjà démarché par une campagne qui entre dans un scénario.
+**L'affinité gagne** : `choisir()` cherche l'affinité parmi TOUTES les boîtes du site, et
+seule la PREMIÈRE attribution respecte l'usage. Sans cette précédence, ce contact aurait
+attendu indéfiniment (sa boîte absente de la liste proposée) ou changé d'expéditeur, ce qui
+remet à zéro la réputation acquise auprès de lui.
+
+**Incident, causé par mon ordre d'opérations.** J'ai inséré les quatre boîtes en base
+**pendant qu'un dispatch de campagne tournait**, et avant d'avoir câblé la séparation. Le
+dispatch a immédiatement pris `agence@` pour un envoi ad hoc : **1 email parti d'une boîte
+née le jour même**, à 10h58 (Paris), vers `immobilier@captaldea.com`. Exactement ce que la
+demande visait à empêcher. Actions : dispatch arrêté (reprise sûre — `send_batch` ignore
+les destinataires déjà servis), affinité accidentelle libérée (non confirmée, sinon le
+contact aurait attendu 14 jours). **La leçon : insérer une adresse d'envoi en base est un
+acte de production ; il se fait dispatch à l'arrêt.**
+
+**Le tableau demandé** — `/site/{code}/setup/expediteurs` : par adresse, l'usage
+(cliquable pour basculer), les envois d'aujourd'hui, d'hier, sur 30 jours et depuis le
+début, le reste du jour, le plafond Cheffer **sur** le plafond Maildoso, les ouvreurs et
+cliqueurs sur 30 jours, et l'état (active / en chauffe jusqu'au … / au repos). Les volumes
+viennent de `email_events`, jamais de `mailboxes.sent_today` qui vit dans DuckDB et se perd
+sous verrou.
+
+**Piège signalé à l'écran** : Maildoso limite les quatre nouvelles à **3/jour**. Ce chiffre
+doit être relevé **chez Maildoso** au fil de la chauffe, sinon les envois seront rejetés à
+la source quelle que soit la rampe de Cheffer.
+
+### MAJ 2026-08-25 — Guide de délivrabilité Maildoso : l'écart mesuré, et ce qu'on en a fait
+
+**Point de départ, pour ne pas dramatiser.** Sur 30 jours : 1 046 envois, **46,9 %
+d'ouverture, 9,8 % de clic, 0,1 % de rebond, 0 plainte**. Maildoso affiche par ailleurs
+Google « High » et Microsoft « High » au 24/08. Rien n'était en feu ; ce qui suit est de
+l'optimisation.
+
+**Le seul chiffre du guide** : « limit cold sending to **15 emails per day per mailbox,
+including follow-ups** », après 14 jours de chauffe. Nous étions à 40 de plafond, 24-27
+effectifs. Les dix autres recommandations, confrontées au code :
+
+| Recommandation | État constaté |
+|---|---|
+| Texte seul, sans HTML | multipart texte + HTML |
+| Ne pas tracker les ouvertures | pixel actif |
+| Éviter liens/images au 1er message | **2,4 liens** de moyenne, 1 image |
+| Signature sans lien ni photo | **la signature ÉTAIT une image S3** |
+| Vérifier les mots spam | **aucun contrôle** |
+| Spintax | **absent** (variantes = 1 partout) |
+| Plusieurs campagnes en parallèle | une seule à la fois |
+| Rotation toutes les 2 semaines | 18 j puis 7 j — conforme |
+| En-tête de désinscription | présent, `mailto:` seul |
+
+**Trouvé en plus, hors guide** : le pixel et les liens réécrits pointent vers
+`api.cheffer.email` alors que l'envoi part de `leclient-roi.com`. Un domaine de tracking
+étranger au domaine d'envoi est un signal classique. **Non corrigé** : demande une entrée
+DNS, donc une décision de Camille.
+
+**Décisions de Camille (2026-08-25).**
+1. **Volume : rampe de chauffe.** 15/jour/boîte aujourd'hui, **+1 par jour pendant 20
+   jours, jusqu'à 35**. Implémentée dans `expediteur.plafond_rampe()` comme TROISIÈME
+   plafond : plafond de la boîte, plafond de progression, rampe — la plus basse gagne.
+   Arrivée à 35 le **2026-09-14**, puis stable.
+2. **Suivi des ouvertures : option, jamais suppression.** « Sinon notre outil tombe à
+   l'eau, comment j'alimente les commerciaux sur les ouvreurs. » Le pixel devient une
+   option `suivi_ouverture` par scénario Mozart (colonne + bascule dans l'éditeur), défaut
+   à VRAI. Les **clics restent toujours mesurés** : c'est une redirection, pas une image.
+3. **Contenu : les quatre points retenus**, tous livrés.
+
+**Livré.**
+- `scripts/qualite_message.py` — mots à risque (deux niveaux : bloquant / avertissement),
+  excès de forme (capitales, `!!`, symboles monétaires), comptage des liens et images, et
+  **spintax déterministe**. Le tirage utilise `hashlib` et non `hash()`, qui est salé par
+  processus : sinon une relance aurait été rédigée autrement que le message déjà reçu par
+  la même personne. Le motif exige un `|`, donc `{{prenom}}` et `{prenom}` traversent intacts.
+- Branchements : spintax dans `send_email` (avant la personnalisation), contrôle de
+  vocabulaire dans la garde avant lot de `campaign_engine` — bloquant sur les termes
+  notoires, avertissement sinon, et signalement quand un message n'a aucune variante.
+- **Signature en texte** dans `god_mode_templates.py` et `api.py` (l'image S3 disparaît).
+- **Premier message allégé** : `email_generator` n'ajoute plus le lien secteur au premier
+  email (réservé aux relances), et `scripts/alleger_premiers_messages.py` a repris les
+  modèles déjà en base. Résultat : **10 modèles passés de 2-5 liens à 1 lien, 0 image**,
+  tous conformes au lint existant (le CTA de rendez-vous est préservé).
+
+**Deux tests corrigés dans leur PRÉMISSE, pas dans leur résultat.**
+- `test_pg_journal` exigeait « PostgreSQL ne compte jamais PLUS que le pool ». Depuis le
+  Lot 1, PostgreSQL fait foi et c'est DuckDB la copie qui perd : `mark_pushed_to_emelia`
+  écrit PG PUIS DuckDB, un verrou entre les deux laisse une ligne d'un seul côté. Constaté :
+  70 contre 69 pour j.bernard. L'écart est désormais toléré **dans les deux sens**, serré.
+- `test_cadence` calculait le plafond attendu à partir de deux limites ; il y en a trois
+  depuis la rampe.
+
+`tests/test_delivrabilite_contenu.py` (28 contrôles) fige l'ensemble. **19 suites au vert.**
+
 ### MAJ 2026-08-24 — Connecteur Onoff Business : MVP téléphonie
 
 **La contrainte, trouvée avant d'écrire une ligne.** La navigation complète de

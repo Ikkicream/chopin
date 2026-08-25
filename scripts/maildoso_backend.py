@@ -204,7 +204,8 @@ def _toutes_pleines(site: str) -> bool:
         return False
 
 
-def _boite_du_contact(site: str, email_contact: str, today: _date) -> dict | None:
+def _boite_du_contact(site: str, email_contact: str, today: _date,
+                      usage: str | None = None) -> dict | None:
     """La boîte d'envoi de CE contact — la même à chaque fois (décision du 2026-08-23).
 
     L'ancienne rotation « la moins chargée, au hasard » changeait d'expéditeur d'un envoi
@@ -219,7 +220,7 @@ def _boite_du_contact(site: str, email_contact: str, today: _date) -> dict | Non
     """
     try:
         import expediteur
-        return expediteur.choisir(email_contact, site)
+        return expediteur.choisir(email_contact, site, usage=usage)
     except Exception as e:  # noqa: BLE001
         print(f"[maildoso] affinité expéditeur indisponible ({type(e).__name__}: {e}) "
               f"— rotation par défaut", flush=True)
@@ -401,11 +402,19 @@ def _apply_tokens(s: str, contact: dict | None, mb: dict) -> str:
 TRACK_BASE = os.environ.get("GENESIS_PUBLIC_URL", "https://api.cheffer.email").rstrip("/")
 
 
-def _add_tracking(html_str: str, site: str, email: str, campaign_id: str) -> str:
+def _add_tracking(html_str: str, site: str, email: str, campaign_id: str,
+                  suivi_ouverture: bool = True) -> str:
     """Réécrit les liens http(s) vers /api/sweego/click (token par destinataire) et
     ajoute un pixel /api/track/open. Ignore désinscription, mailto, ancres et
     variables non résolues. En cas d'échec de création d'un token, le lien
-    d'origine est conservé (le tracking est best-effort, jamais bloquant)."""
+    d'origine est conservé (le tracking est best-effort, jamais bloquant).
+
+    `suivi_ouverture=False` retire le PIXEL sans toucher aux liens : le guide de
+    délivrabilité de Maildoso déconseille le pixel d'ouverture, que Gmail note. Les clics,
+    eux, restent mesurés — c'est une redirection, pas une image invisible. L'option est
+    posée au cas par cas : couper le pixel partout priverait les commerciaux de la liste
+    des ouvreurs, et le taux d'ouverture est aussi ce qui déclenche l'alerte sur la pente.
+    """
     import re as _re
     from sweego_backend import make_click_token
 
@@ -420,6 +429,8 @@ def _add_tracking(html_str: str, site: str, email: str, campaign_id: str) -> str
             return m.group(0)
 
     out = _re.sub(r'(href=)"(https?://[^"]+)"', _rw, html_str)
+    if not suivi_ouverture:
+        return out
     try:
         tok_open = make_click_token(site, email, campaign_id, "pixel:open", channel="maildoso")
         pixel = (f'<img src="{TRACK_BASE}/api/track/open?t={tok_open}" '
@@ -434,7 +445,8 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
                site: str = SITE_DEFAULT, campaign_id: str | None = None,
                to_name: str | None = None, mailbox: dict | None = None,
                in_reply_to: str | None = None, contact: dict | None = None,
-               pieces_jointes: list | None = None) -> dict:
+               pieces_jointes: list | None = None, suivi_ouverture: bool = True,
+               usage: str | None = None) -> dict:
     """Envoie UN email via une boîte Maildoso (rotation auto si `mailbox` non fourni).
 
     text/html : au moins un des deux. Cold email → préférer text seul.
@@ -447,7 +459,10 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
         return {"ok": False, "error": "text ou html requis"}
     _ensure_tables()
     today = _date.today()
-    mb = mailbox or _boite_du_contact(site, (contact or {}).get("email") or to_email, today)
+    # `usage` sépare les pools d'adresses ('adhoc' pour les campagnes, 'mozart' pour les
+    # scénarios). L'affinité d'un contact déjà servi prime : voir `expediteur.choisir`.
+    mb = mailbox or _boite_du_contact(site, (contact or {}).get("email") or to_email,
+                                      today, usage=usage)
     if not mb:
         return {"ok": False, "reporte": True,
                 "error": "aucune boîte disponible pour ce contact aujourd'hui"}
@@ -497,6 +512,18 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
         from sweego_backend import html_to_text
         text = html_to_text(html)
 
+    # Spintax AVANT la personnalisation : une variante peut contenir {{prenom}}, et le
+    # tirage doit être fait quand les accolades doubles sont encore intactes. Le tirage est
+    # déterministe par destinataire — sinon une relance serait rédigée autrement que le
+    # premier message reçu par la même personne.
+    try:
+        import qualite_message as qm
+        subject = qm.spintax(subject, to_email)
+        text = qm.spintax(text, to_email)
+        html = qm.spintax(html, to_email) if html else html
+    except ImportError:
+        pass
+
     # Personnalisation par destinataire ({{prenom}}, {{entreprise}}, {{expediteur_*}}, désinscription…)
     gabarits = [x for x in (subject, text, html) if x]
     subject = _apply_tokens(subject, contact, mb)
@@ -527,7 +554,8 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
     # redirection) — SMTP n'offre rien nativement, on utilise l'infra de tokens Genesis.
     if html and campaign_id:
         try:
-            html = _add_tracking(html, site, to_email, campaign_id)
+            html = _add_tracking(html, site, to_email, campaign_id,
+                                 suivi_ouverture=suivi_ouverture)
         except Exception:
             pass
 
@@ -666,7 +694,8 @@ def _cadence(restants: int) -> tuple[int, int]:
 def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[dict | str],
                site: str = SITE_DEFAULT, utm_campaign: str | None = None,
                pace: tuple[int, int] | None = None,
-               on_sent: Callable[[dict], None] | None = None) -> dict:
+               on_sent: Callable[[dict], None] | None = None,
+               suivi_ouverture: bool = True, usage: str | None = None) -> dict:
     """Lot de cold emails avec rotation des boîtes + pause aléatoire entre envois.
 
     `recipients` : emails (str) ou dicts contacts ({email, prenom?, nom?}).
@@ -718,6 +747,7 @@ def send_batch(campaign_id: str, subject: str, html_str: str, recipients: list[d
         # parce que c'est lui qui sait quelle boîte va servir.
         try:
             res = send_email(it["email"], subject, text=text, html=html_str, site=site,
+                             suivi_ouverture=suivi_ouverture, usage=usage,
                              campaign_id=campaign_id, contact=it,
                              to_name=f"{it.get('prenom', '')} {it.get('nom', '')}".strip() or None)
         except Exception as e:  # noqa: BLE001

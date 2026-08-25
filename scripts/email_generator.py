@@ -296,7 +296,13 @@ def generate_sequence(site: str, sector: str) -> dict:
     all_errors: dict[int, list[str]] = {}
     for i, em in enumerate(emails):
         corps = _clean_body(em.get("body_html", ""))            # 1. retire la fausse signature DeepSeek
-        corps = _ensure_sector_link(corps, site_link(sector))   # 2. garantit le lien secteur (sur corps propre)
+        # 2. Le lien secteur, mais PAS dans le premier message. Le guide de délivrabilité
+        # de Maildoso demande d'éviter les liens au tout premier contact, moment où le
+        # destinataire ne connaît pas l'expéditeur et où un lien ressemble à un appât.
+        # Le premier email garde donc son seul CTA de prise de rendez-vous ; les relances
+        # portent le lien vers la page du secteur.
+        if i > 0:
+            corps = _ensure_sector_link(corps, site_link(sector))
         errs = validate_email(em.get("subject", ""), corps)     # valide le corps SANS la signature (≤150 mots)
         em["body_html"] = corps + SIGNATURE_HTML                # 3. appose la vraie signature Juliette
         if errs:

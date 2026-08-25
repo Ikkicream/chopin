@@ -88,7 +88,13 @@ def lance() -> int:
     verifie("le taux global est renseigné", g["taux_ouverture"] is not None,
             f"({g['taux_ouverture']} % sur {g['envoyes']} envois)")
     import expediteur as ex
+    # Une adresse en chauffe n'a envoyé AUCUN email : elle n'a donc pas de taux, et c'est
+    # le comportement attendu, pas un défaut. Les quatre boîtes Mozart créées le 25/08
+    # n'enverront rien avant le 8 septembre.
     for b in ex.boites("lcr"):
+        if b.get("en_chauffe"):
+            print(f"  … {b['email'].split('@')[0]} en chauffe, pas encore de taux")
+            continue
         t = se.taux("lcr", mailbox=b["email"])
         verifie(f"{b['email'].split('@')[0]} : ouverture non nulle",
                 (t["taux_ouverture"] or 0) > 0,

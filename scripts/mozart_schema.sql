@@ -14,6 +14,11 @@ CREATE TABLE IF NOT EXISTS mozart_scenarios (
     cree_par    text,
     CONSTRAINT mozart_statut_chk CHECK (statut IN ('brouillon', 'actif', 'pause', 'archive'))
 );
+-- Le pixel d'ouverture, scénario par scénario. Le guide de délivrabilité de Maildoso le
+-- déconseille (Gmail le note), mais le couper partout priverait les commerciaux de la
+-- liste des ouvreurs. Défaut à vrai : on ne retire pas une mesure sans le demander.
+ALTER TABLE mozart_scenarios ADD COLUMN IF NOT EXISTS suivi_ouverture boolean NOT NULL DEFAULT true;
+
 CREATE INDEX IF NOT EXISTS idx_mozart_site ON mozart_scenarios (site_code, statut);
 
 -- Où en est CHAQUE contact dans CHAQUE scénario. C'est l'état d'exécution : sans lui, un

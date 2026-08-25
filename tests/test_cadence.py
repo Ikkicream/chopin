@@ -111,9 +111,13 @@ def lance() -> int:
     verifie("la moyenne récente est calculée", isinstance(moy, dict))
     for b in ex.boites("lcr"):
         if b["moyenne_recente"]:
+            # TROIS limites depuis le 2026-08-25, la plus basse gagnant : le plafond de
+            # la boîte, le plafond de progression, et la rampe de chauffe. En oublier une
+            # ici ferait passer le contrôle pour un défaut alors que la règle a changé.
             attendu = min(b["daily_cap"],
                           max(ex.PROGRESSION_PLANCHER,
-                              int(b["moyenne_recente"] * ex.PROGRESSION_MAX)))
+                              int(b["moyenne_recente"] * ex.PROGRESSION_MAX)),
+                          ex.plafond_rampe())
             verifie(f"{b['email'].split('@')[0]} : plafond du jour cohérent",
                     b["plafond_effectif"] == attendu,
                     f"(moyenne {b['moyenne_recente']} → {b['plafond_effectif']})")
@@ -121,6 +125,65 @@ def lance() -> int:
                     b["plafond_effectif"] <= b["daily_cap"])
     verifie("une boîte sans historique n'est pas bridée à zéro",
             ex.PROGRESSION_PLANCHER >= 10, f"(plancher {ex.PROGRESSION_PLANCHER})")
+
+    print("\nLa rampe de chauffe : +1 par jour, de 15 à 35")
+    # Décision de Camille le 2026-08-25, après le guide Maildoso (15/jour/boîte) et la
+    # réputation constatée chez Maildoso (Google « High », Microsoft « High »). Ce qui
+    # compte n'est pas le chiffre d'arrivée mais la PENTE : un email de plus par jour.
+    from datetime import timedelta as _td
+    verifie("le départ est à 15", ex.plafond_rampe(ex.RAMPE_DEBUT) == 15,
+            f"({ex.plafond_rampe(ex.RAMPE_DEBUT)})")
+    verifie("l'arrivée est à 35 le 20e jour",
+            ex.plafond_rampe(ex.RAMPE_DEBUT + _td(days=20)) == 35)
+    verifie("elle ne dépasse jamais 35",
+            ex.plafond_rampe(ex.RAMPE_DEBUT + _td(days=400)) == 35)
+    pentes = {ex.plafond_rampe(ex.RAMPE_DEBUT + _td(days=d + 1))
+              - ex.plafond_rampe(ex.RAMPE_DEBUT + _td(days=d)) for d in range(20)}
+    verifie("la marche est d'exactement +1 par jour", pentes == {1}, f"({sorted(pentes)})")
+    verifie("une date antérieure ne bloque pas les envois",
+            ex.plafond_rampe(ex.RAMPE_DEBUT - _td(days=5)) == ex.RAMPE_ARRIVEE)
+    # La rampe est un plafond DE PLUS : elle ne doit jamais relever une autre limite.
+    for b in ex.boites("lcr"):
+        verifie(f"{b['email'].split('@')[0]} : le reste respecte la rampe",
+                b["reste"] <= b["plafond_rampe"],
+                f"(reste {b['reste']} · rampe {b['plafond_rampe']})")
+
+    print("\nDeux pools d'adresses : ad hoc et Mozart ne se disputent pas le volume")
+    adhoc = ex.boites("lcr", usage="adhoc")
+    mozart = ex.boites("lcr", usage="mozart")
+    verifie("les deux pools existent", adhoc and mozart, f"({len(adhoc)} / {len(mozart)})")
+    verifie("aucune adresse dans les deux",
+            not ({b["email"] for b in adhoc} & {b["email"] for b in mozart}))
+    verifie("le filtre est bien appliqué",
+            all(b["usage"] == "adhoc" for b in adhoc)
+            and all(b["usage"] == "mozart" for b in mozart))
+
+    print("\nLa chauffe d'une adresse neuve : 14 jours à zéro")
+    from datetime import date as _d, timedelta as _t2
+    n = _d(2026, 8, 25)
+    verifie("le jour de création, elle n'envoie rien", ex.plafond_chauffe(n, n) == 0)
+    verifie("la veille du 14e jour, toujours rien",
+            ex.plafond_chauffe(n, n + _t2(days=13)) == 0)
+    verifie("le 14e jour, elle démarre à 15",
+            ex.plafond_chauffe(n, n + _t2(days=14)) == 15)
+    verifie("puis +1 par jour jusqu'à 35",
+            ex.plafond_chauffe(n, n + _t2(days=34)) == 35
+            and ex.plafond_chauffe(n, n + _t2(days=99)) == 35)
+    verifie("une date de chauffe inconnue ne bloque pas les envois",
+            ex.plafond_chauffe(None) == ex.RAMPE_ARRIVEE)
+    # Le point qui compte : une boîte en chauffe ne doit RIEN pouvoir envoyer, quels que
+    # soient les autres plafonds. C'est le cas d'école du domaine grillé.
+    for b in mozart:
+        if b["en_chauffe"]:
+            verifie(f"{b['email'].split('@')[0]} en chauffe : reste à zéro", b["reste"] == 0,
+                    f"(reste {b['reste']})")
+
+    print("\nL'affinité prime sur la séparation des pools")
+    src = (Path(__file__).resolve().parent.parent / "scripts" / "expediteur.py").read_text()
+    verifie("l'affinité se cherche parmi TOUTES les boîtes",
+            "toutes = disponibles if disponibles is not None else boites(site)" in src)
+    verifie("seule la première attribution respecte l'usage",
+            'b.get("usage") == usage' in src)
 
     print("\nL'alerte d'ouverture prévient sur la PENTE, pas sur le niveau")
     import sante_envoi as se

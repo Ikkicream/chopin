@@ -43,7 +43,10 @@ def capacite_du_jour(site: str) -> dict[str, dict]:
     technique — on la rend explicitement inconnue plutôt que de l'inventer.
     """
     import expediteur
-    boites = expediteur.boites(site)
+    # Seules les adresses ad hoc : cette capacité sert à PLANIFIER des campagnes, et les
+    # boîtes réservées à Mozart ne leur sont pas disponibles. Les compter promettrait un
+    # volume que le dispatch ne pourrait pas honorer.
+    boites = expediteur.boites(site, usage="adhoc")
     return {
         "maildoso": {
             "reste": sum(b["reste"] for b in boites if b["active"]),

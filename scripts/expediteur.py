@@ -23,6 +23,8 @@ fichier est verrouillé pendant un envoi — c'est exactement ce qui s'est produ
 """
 from __future__ import annotations
 
+from datetime import date as _date, timedelta as _timedelta
+
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -48,6 +50,67 @@ def _ecrire(sql: str, params=None) -> int:
 PROGRESSION_MAX = 1.5        # +50 % par rapport à la moyenne récente
 PROGRESSION_PLANCHER = 10    # en dessous, on ne bride pas : la règle n'a plus de sens
 JOURS_REFERENCE = 7
+
+# ── La rampe de chauffe ───────────────────────────────────────────────────────
+# Décision de Camille, 2026-08-25, sur la base du guide de délivrabilité de Maildoso
+# (« limit cold sending to 15 emails per day per mailbox, including follow-ups ») et de la
+# réputation constatée côté Maildoso le 24/08 : Google « High », Microsoft « High ».
+#
+# On repart de 15 et on monte d'UN email par jour pendant 20 jours, jusqu'à 35. Monter par
+# paliers d'un seul email est ce qui distingue une chauffe d'un à-coup : le 2026-08-24,
+# 29 emails sont partis d'une même adresse en 18 minutes parce que rien ne limitait le
+# saut d'un jour sur l'autre.
+#
+# La rampe est un PLAFOND de plus, jamais un plancher : elle s'ajoute au plafond de la
+# boîte et au plafond de progression, et c'est toujours le plus bas des trois qui gagne.
+# Une fois le 20e jour passé, elle reste à 35 et cesse d'être la contrainte active si le
+# plafond de la boîte est plus bas.
+RAMPE_DEBUT = _date(2026, 8, 25)   # premier jour à 15
+RAMPE_DEPART = 15
+RAMPE_ARRIVEE = 35
+RAMPE_PAS = 1                       # +1 par jour → 20 jours pour aller de 15 à 35
+
+
+# ── La chauffe PROPRE À CHAQUE BOÎTE ─────────────────────────────────────────
+# Le guide Maildoso : « Keep each new mailbox in warm-up for at least 14 days before
+# starting cold outreach. After that, limit cold sending to 15 emails per day per mailbox. »
+#
+# Pendant ces 14 jours, la boîte ne fait AUCUN cold email : elle ne reçoit que le trafic de
+# chauffe interne de Maildoso (Warmup Enabled, +4/jour jusqu'à 80). Une adresse neuve qui
+# démarche dès le premier jour est le cas d'école du domaine grillé.
+#
+# La rampe de flotte (`plafond_rampe`) et la chauffe individuelle sont DEUX règles
+# distinctes, et la plus basse gagne : une boîte de sept semaines suit la rampe décidée le
+# 25/08, une boîte née aujourd'hui attend d'abord ses 14 jours.
+CHAUFFE_JOURS = 14
+
+
+def plafond_chauffe(debut: _date | None, jour: _date | None = None) -> int:
+    """Ce qu'une boîte peut envoyer en COLD selon son âge propre.
+
+    Rend 0 pendant les 14 premiers jours — pas « un peu », zéro. Ensuite la même pente que
+    la flotte : 15 au premier jour utile, +1 par jour, 35 au plus.
+    """
+    if debut is None:
+        return RAMPE_ARRIVEE                    # âge inconnu : on ne bride pas au hasard
+    j = jour or _date.today()
+    age = (j - debut).days
+    if age < CHAUFFE_JOURS:
+        return 0
+    return min(RAMPE_ARRIVEE, RAMPE_DEPART + (age - CHAUFFE_JOURS) * RAMPE_PAS)
+
+
+def plafond_rampe(jour: _date | None = None) -> int:
+    """Le plafond du jour selon la rampe de chauffe.
+
+    Avant le début de la rampe, elle ne contraint rien (on rend l'arrivée) : une date
+    antérieure ne doit pas produire un plafond négatif ni bloquer les envois.
+    """
+    j = jour or _date.today()
+    if j < RAMPE_DEBUT:
+        return RAMPE_ARRIVEE
+    ecoules = (j - RAMPE_DEBUT).days
+    return min(RAMPE_ARRIVEE, RAMPE_DEPART + ecoules * RAMPE_PAS)
 
 
 # ── Volumes du jour, lus dans le journal ──────────────────────────────────────
@@ -97,7 +160,7 @@ def moyenne_recente(site: str, jours: int = JOURS_REFERENCE) -> dict[str, int]:
     return {k: v["moyenne"] for k, v in volumes(site, jours).items()}
 
 
-def boites(site: str) -> list[dict]:
+def boites(site: str, usage: str | None = None) -> list[dict]:
     """Les boîtes du site avec leur plafond, leur consommation du jour et leur reste.
 
     `reste` tient compte de DEUX limites, la plus basse gagnant : le plafond journalier
@@ -109,13 +172,15 @@ def boites(site: str) -> list[dict]:
     vol = volumes(site)
     out = []
     for (email, nom, cap, statut, domaine, hote, port, ident, secret,
-         pause, motif_pause) in _q("""
+         pause, motif_pause, usage_boite, debut_chauffe) in _q("""
             SELECT email::text, sender_name, daily_cap, status, domain,
                    smtp_host, smtp_port, username, password_ref,
-                   pause_jusqu_a, pause_motif
+                   pause_jusqu_a, pause_motif, usage, warmup_debut
             FROM mailboxes
-            WHERE site_code = %(site)s AND provider = 'maildoso' ORDER BY email""",
-            {"site": site}):
+            WHERE site_code = %(site)s AND provider = 'maildoso'
+              AND (%(usage)s IS NULL OR usage = %(usage)s)
+            ORDER BY email""",
+            {"site": site, "usage": usage}):
         v = vol.get(email) or {}
         envoyes = v.get("aujourdhui", 0)
         # Une boîte au repos (plainte, pic de rebonds) est inutilisable, exactement comme
@@ -135,7 +200,16 @@ def boites(site: str) -> list[dict]:
         # règle dans le seul cas où elle compte : une adresse qui n'a rien envoyé depuis
         # sept jours et repart à 40, c'est exactement le saut qu'on interdit ailleurs.
         progressif = max(PROGRESSION_PLANCHER, int(moyenne * PROGRESSION_MAX))
-        effectif = min(plafond_jour, progressif)
+        # Trois limites, la plus basse gagne : le plafond de la boîte, le plafond de
+        # progression (pas de saut d'un jour sur l'autre) et la rampe de chauffe (le
+        # calendrier). Aucune ne peut être contournée par les deux autres.
+        # QUATRE limites désormais, la plus basse gagnant : le plafond de la boîte (ce que
+        # Maildoso accepte réellement), le plafond de progression, la rampe de flotte, et
+        # la chauffe propre à cette adresse. Une boîte de moins de 14 jours rend 0 : elle
+        # est visible dans les écrans, mais elle n'envoie rien.
+        rampe = plafond_rampe()
+        chauffe = plafond_chauffe(debut_chauffe)
+        effectif = min(plafond_jour, progressif, rampe, chauffe)
         out.append({"email": email, "sender_name": nom, "daily_cap": plafond_jour,
                     "status": "au_repos" if au_repos else statut,
                     "domaine": domaine or email.split("@")[-1],
@@ -143,6 +217,11 @@ def boites(site: str) -> list[dict]:
                     "password_ref": secret,
                     "envoyes_aujourdhui": envoyes,
                     "moyenne_recente": moyenne,
+                    "plafond_rampe": rampe,
+                    "plafond_chauffe": chauffe,
+                    "usage": usage_boite,
+                    "warmup_debut": str(debut_chauffe) if debut_chauffe else None,
+                    "en_chauffe": chauffe == 0,
                     "plafond_effectif": effectif,
                     "reste": 0 if au_repos else max(0, effectif - envoyes),
                     "au_repos_jusqu_a": str(pause) if pause else None,
@@ -174,7 +253,8 @@ def confirmer(email_contact: str) -> bool:
         {"e": (email_contact or "").strip().lower()}) > 0
 
 
-def choisir(email_contact: str, site: str, disponibles: list[dict] | None = None) -> dict | None:
+def choisir(email_contact: str, site: str, disponibles: list[dict] | None = None,
+            usage: str | None = None) -> dict | None:
     """La boîte à utiliser pour ce contact, maintenant. None = ne pas lui écrire aujourd'hui.
 
     Trois cas, dans cet ordre :
@@ -186,10 +266,21 @@ def choisir(email_contact: str, site: str, disponibles: list[dict] | None = None
        n'est jamais réattribuée, même si la boîte est désactivée pour de bon.
     3. **Aucune affinité** → la boîte active la moins chargée du jour, puis on l'inscrit.
        L'équilibrage se fait donc à l'attribution, une fois par contact et pour toujours.
+
+    `usage` ('adhoc' ou 'mozart') sépare les PREMIÈRES attributions : depuis le 2026-08-25,
+    les scénarios Mozart ont leurs propres adresses pour ne pas se disputer le volume des
+    campagnes. **L'affinité prime sur cette séparation** : un contact déjà lié à une
+    adresse la garde, même si elle appartient à l'autre pool. Sans cette précédence, un
+    prospect déjà démarché par une campagne aurait attendu indéfiniment en entrant dans un
+    scénario — sa boîte n'étant pas dans la liste proposée — ou aurait changé
+    d'expéditeur, ce qui remet à zéro la réputation acquise auprès de LUI.
     """
     em = (email_contact or "").strip().lower()
-    dispo = disponibles if disponibles is not None else boites(site)
-    par_email = {b["email"]: b for b in dispo}
+    # L'affinité se cherche parmi TOUTES les boîtes du site, jamais dans le sous-ensemble.
+    toutes = disponibles if disponibles is not None else boites(site)
+    par_email = {b["email"]: b for b in toutes}
+    # La première attribution, elle, respecte l'usage demandé.
+    dispo = [b for b in toutes if usage is None or b.get("usage") == usage]
 
     a = affinite(em)
     if a:
@@ -258,3 +349,96 @@ def rattraper_historique(site: str) -> dict:
         {"site": site})
     return {"attribues": attribues, "confirmes": confirmes,
             "repartition": repartition(site)}
+
+
+# ── Le tableau des adresses, pour l'écran de configuration ───────────────────
+
+def tableau(site: str) -> dict:
+    """Toutes les adresses d'envoi, avec ce qu'elles ont réellement produit.
+
+    Les volumes sont lus dans `email_events` — le journal des envois RÉELLEMENT partis —
+    et jamais dans `mailboxes.sent_today` : ce compteur vit dans DuckDB, se perd sous
+    verrou, et les deux copies avaient déjà divergé de 40 à 12 le 2026-08-23.
+    """
+    volumes = _q("""
+        SELECT mailbox,
+               count(DISTINCT (email, campaign_id, (occurred_at AT TIME ZONE 'Europe/Paris')::date))
+                 AS total,
+               count(DISTINCT (email, campaign_id)) FILTER (
+                 WHERE (occurred_at AT TIME ZONE 'Europe/Paris')::date
+                       = (now() AT TIME ZONE 'Europe/Paris')::date)                AS aujourdhui,
+               count(DISTINCT (email, campaign_id)) FILTER (
+                 WHERE (occurred_at AT TIME ZONE 'Europe/Paris')::date
+                       = (now() AT TIME ZONE 'Europe/Paris')::date - 1)            AS hier,
+               count(DISTINCT (email, campaign_id)) FILTER (
+                 WHERE occurred_at >= now() - interval '7 days')                   AS sept_jours,
+               max(occurred_at)                                                    AS dernier
+          FROM email_events
+         WHERE site_code = %(site)s AND event_type = 'sent' AND mailbox IS NOT NULL
+         GROUP BY 1""", {"site": site})
+    par_boite = {v[0]: v for v in volumes}
+
+    # Engagement par boîte : une adresse qui n'obtient plus d'ouverture se voit ici avant
+    # de se voir dans les rebonds.
+    eng = {r[0]: {"ouvreurs": int(r[1]), "cliqueurs": int(r[2])} for r in _q("""
+        SELECT e.mailbox,
+               count(DISTINCT e.email) FILTER (WHERE o.email IS NOT NULL),
+               count(DISTINCT e.email) FILTER (WHERE c.email IS NOT NULL)
+          FROM email_events e
+          LEFT JOIN email_events o ON o.email = e.email AND o.event_type = 'open'
+                                  AND o.occurred_at >= e.occurred_at
+          LEFT JOIN email_events c ON c.email = e.email AND c.event_type = 'click'
+                                  AND c.occurred_at >= e.occurred_at
+         WHERE e.site_code = %(site)s AND e.event_type = 'sent'
+           AND e.mailbox IS NOT NULL AND e.occurred_at >= now() - interval '30 days'
+         GROUP BY 1""", {"site": site})}
+
+    lignes = []
+    for b in boites(site):
+        v = par_boite.get(b["email"])
+        e = eng.get(b["email"]) or {}
+        envoyes_30j = int(v[4]) if v else 0
+        lignes.append({
+            "email": b["email"],
+            "expediteur": b["sender_name"],
+            "usage": b.get("usage") or "adhoc",
+            "statut": b["status"],
+            "actif": b["active"],
+            "en_chauffe": b.get("en_chauffe", False),
+            "chauffe_debut": b.get("warmup_debut"),
+            "chauffe_fin": (str(_date.fromisoformat(b["warmup_debut"])
+                                + _timedelta(days=CHAUFFE_JOURS))
+                            if b.get("warmup_debut") else None),
+            "plafond_maildoso": b["daily_cap"],
+            "plafond_rampe": b.get("plafond_rampe"),
+            "plafond_chauffe": b.get("plafond_chauffe"),
+            "plafond_effectif": b["reste"] + b["envoyes_aujourdhui"],
+            "aujourdhui": int(v[2]) if v else 0,
+            "hier": int(v[3]) if v else 0,
+            "sept_jours": envoyes_30j,
+            "total": int(v[1]) if v else 0,
+            "reste": b["reste"],
+            "moyenne_recente": b.get("moyenne_recente", 0),
+            "dernier_envoi": str(v[5]) if v and v[5] else None,
+            "ouvreurs_30j": e.get("ouvreurs", 0),
+            "cliqueurs_30j": e.get("cliqueurs", 0),
+            "au_repos_jusqu_a": b.get("au_repos_jusqu_a"),
+            "motif_repos": b.get("motif_repos"),
+        })
+
+    lignes.sort(key=lambda x: (x["usage"], x["email"]))
+    return {
+        "boites": lignes,
+        "totaux": {
+            "adhoc": sum(1 for l in lignes if l["usage"] == "adhoc"),
+            "mozart": sum(1 for l in lignes if l["usage"] == "mozart"),
+            "en_chauffe": sum(1 for l in lignes if l["en_chauffe"]),
+            "envoyes_aujourdhui": sum(l["aujourdhui"] for l in lignes),
+            "envoyes_hier": sum(l["hier"] for l in lignes),
+            "envoyes_total": sum(l["total"] for l in lignes),
+            "capacite_restante": sum(l["reste"] for l in lignes),
+        },
+        "rampe": {"depart": RAMPE_DEPART, "arrivee": RAMPE_ARRIVEE, "pas": RAMPE_PAS,
+                  "debut": str(RAMPE_DEBUT), "aujourdhui": plafond_rampe(),
+                  "chauffe_jours": CHAUFFE_JOURS},
+    }
