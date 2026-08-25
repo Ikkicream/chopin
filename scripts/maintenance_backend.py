@@ -102,6 +102,40 @@ def set_status(enabled: bool, message: str = "", by: str = "", eta: str = "") ->
     return payload
 
 
+# Combien de temps demander à l'équipe d'attendre. Une durée ANNONCÉE vaut mieux qu'un
+# écran qui dit « revenez plus tard » : sans elle, chacun réessaie toutes les trente
+# secondes, ce qui fait exactement le bruit qu'on cherchait à éviter.
+DELAI_DEFAUT_MIN = 15
+
+
+def acces_autorise(role: str) -> bool:
+    """Ce rôle peut-il utiliser la plateforme MAINTENANT ?
+
+    `login_allowed` ne gardait que la porte d'entrée : une session déjà ouverte continuait
+    de naviguer pendant une correction, avec des menus qui répondent 500 et des appels qui
+    partent pour rien. C'est la plainte de Camille du 2026-08-25. Ce contrôle-ci s'applique
+    à CHAQUE appel, pas seulement au login.
+    """
+    if not get_status()["enabled"]:
+        return True
+    return (role or "") in BYPASS_ROLES
+
+
+def refus(role: str = "") -> dict:
+    """Le corps de réponse d'un appel refusé pour cause de maintenance.
+
+    Porte la durée à attendre : l'écran peut alors afficher un compte à rebours plutôt
+    qu'un message vague.
+    """
+    st = get_status()
+    return {"maintenance": True,
+            "error": "plateforme en maintenance",
+            "message": st.get("message") or DEFAULT_MESSAGE,
+            "eta": st.get("eta") or "",
+            "retry_minutes": DELAI_DEFAUT_MIN,
+            "since": st.get("since")}
+
+
 def login_allowed(role: str) -> bool:
     """Un login peut-il aboutir dans l'état courant ?
 

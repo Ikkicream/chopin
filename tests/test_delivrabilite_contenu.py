@@ -72,8 +72,14 @@ def lance() -> int:
     print("\nLe premier message reste sobre")
     deux = ('<p>Bonjour</p><p><a href="https://leclientroi.com">nous</a> — '
             '<a href="https://api.cheffer.email/api/book/lcr">un rendez-vous</a></p>')
-    verifie("deux liens au premier contact sont refusés",
-            not q.controler("x", deux, premier_contact=True)["ok"])
+    # Deux liens sont ACCEPTÉS depuis le 2026-08-25 : le lint impose le CTA de rendez-vous,
+    # et Camille a demandé que le lien vers leclientroi.com soit toujours présent. Le seuil
+    # reste bas pour que le troisième, lui, soit refusé — c'est lui qui ferait un tract.
+    verifie("les deux liens attendus passent",
+            q.controler("x", deux, premier_contact=True)["ok"])
+    trois = deux[:-4] + '<a href="https://exemple.fr/autre">et encore</a></p>'
+    verifie("un troisième lien au premier contact est refusé",
+            not q.controler("x", trois, premier_contact=True)["ok"])
     verifie("les mêmes deux liens passent en relance",
             q.controler("x", deux, premier_contact=False)["ok"])
     verifie("une image au premier contact est refusée",

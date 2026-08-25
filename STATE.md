@@ -3628,6 +3628,417 @@ règles qui ont déménagé. Réécrits pour vérifier l'EMPLACEMENT de la règl
 copie — dont un contrôle nouveau : `send_email` refuse-t-il bien AVANT d'écrire sur le
 réseau, et non après. Les quinze suites passent.
 
+### MAJ 2026-08-25 — Lot X puis lot 3 : le garde-fou de capacité, et l'urgence enfin vraie
+
+**Lot X — un scénario ne peut plus noyer les boîtes.** Le scénario immobilier vise 3 869
+contacts ; `inscrire()` en prenait **500 par passage**, cron horaire — douze mille personnes
+en file pour une capacité de **soixante par jour**, et **zéro** tant que les quatre adresses
+Mozart sont en chauffe (jusqu'au 8 septembre). Ces contacts auraient attendu des mois, reçu
+un message périmé, et la fenêtre de 120 jours les aurait bloqués entre-temps.
+
+`mozart.capacite_jour()` lit ce que les adresses **de Mozart** peuvent réellement envoyer,
+avec le motif par boîte — « en chauffe jusqu'au 8 septembre » et « au repos » n'appellent
+pas la même réaction. `inscrire()` borne la file à **7 jours de capacité**. Vérifié sur le
+vrai scénario : `0 inscrit, file pleine : capacité de 0/jour (boîtes en chauffe)`. Un
+bandeau l'affiche **avant** la liste des scénarios, là où se prend la décision d'activer.
+
+**Lot 3 — pourquoi l'urgence manquait : j'écrivais au futur un événement passé.** La loi
+Cazenave (n° 2025-594) est entrée en vigueur le **11 août 2026**, deux semaines avant mon
+email qui disait « quand le démarchage téléphonique fermera ». Le sujet n'est pas
+« préparez-vous », c'est « vous êtes déjà dedans » — avec **375 000 € d'amende par appel**
+pour une personne morale. C'est le chiffre qui crée l'urgence, pas un adjectif.
+
+**Et la personnalisation portait sur la mauvaise donnée.** Mesuré : la société est connue à
+**100 %**, la ville à **98 %** sur l'immobilier — et le **prénom manque sur 85 %** des
+contacts. J'ouvrais sur `{{prenom}}`, donc « Bonjour, » pour la grande majorité. Les emails
+ouvrent désormais sur un « Bonjour, » assumé et personnalisent sur ce qu'on possède : la
+**ville dans l'objet** (« mandats Nantes ») et la **société dans le corps**.
+
+**Le gras porte le FAIT** — la date, le montant, le taux de conversion — jamais l'argument
+de vente. Un email tout en texte plat se lit en diagonale.
+
+Les 24 emails ont été réécrits et réinstallés, **0 refusé par le lint**. Quatre tests sont
+partis vers `afchain.camille@gmail.com` depuis quatre adresses différentes, pour montrer
+les signatures réelles (Julie Durand, Pascal Cabral).
+
+**Deux pièges rencontrés en envoyant ces tests**, tous deux documentés : un `campaign_id` à
+six segments ou plus est traité comme un lot de campagne et retombe sous la fenêtre de
+120 jours ; et l'écart de 4 minutes par boîte s'applique aussi aux BAT.
+
+**Nettoyage** : six brouillons d'essai supprimés (« Nouveau scénario » jamais touchés,
+copie de modèle, exemple). Un brouillon portant des inscriptions n'aurait pas été jeté — on
+ne détruit pas d'historique. Reste 3 modèles verrouillés + les 5 automatisations.
+
+**`COLD-EMAIL.md`** documente l'ensemble : le fait juridique, ce que la personnalisation
+peut vraiment dire (avec les taux de remplissage), les règles d'écriture et leur source, les
+deux pools d'expéditeurs, les cinq scénarios, et surtout **ce qui empêche un scénario de
+tout envoyer d'un coup**.
+
+### MAJ 2026-08-25 — Refonte des cold emails et cinq automatisations Mozart
+
+**Deux défauts trouvés avant d'écrire une ligne.**
+
+1. **La signature était fausse sur la moitié des envois.** Elle disait « Juliette » en dur,
+   alors que quatre des huit boîtes portent d'autres personnes : `agence@`, `info@` et
+   `news@` sont Pascal Cabral, `immo@` est Julie Durand. Un prospect recevant un email de
+   `immo@` signé « Juliette » voit l'expéditeur contredire la signature — signal de
+   hameçonnage, et crédibilité perdue. Corrigé avec `{{expediteur_prenom}}` /
+   `{{expediteur_nom}}`, qui existaient déjà et n'étaient pas utilisés.
+2. **« cliquez ici »**, terme noté par les filtres, était dans la désinscription de TOUS
+   les emails. Devenu « Se désinscrire de mes emails ».
+
+**Les 24 emails (8 secteurs × 3 temps) réécrits et installés**, contre les données du guide
+`cold-email` et les faits du site :
+objets de 2 à 4 mots en minuscules (2 mots = +60 % d'ouverture), moins de 75 mots une fois
+le spintax développé (+83 % de réponses), « vous » qui domine « nous », UNE preuve chiffrée
+(8,2 % de conversion SMS contre 3,4 % en email), appel à l'action d'intérêt et non un
+créneau, aucune image, aucun emoji, du spintax partout. Chaque email porte les DEUX liens
+attendus : le CTA de rendez-vous (exigé par le lint) et `https://leclientroi.com/`.
+**24 installés, 0 refusé par le lint.**
+
+L'ancien état, pour mémoire : 101 à 153 mots, objets de 6 à 8 mots, et cinq secteurs
+(artisan, fleuriste, opticien, plombier, retail) qui partageaient le MÊME email avec le
+secteur échangé — l'erreur n°4 du classement des fautes.
+
+**Les cinq automatisations, choisies sur les volumes et non au jugé :**
+
+| secteur | contactables | collectés en 30 j |
+|---|---|---|
+| immobilier | 3 869 | 2 692 |
+| **restaurant** | **1 162** | **1 979** |
+| agence-marketing | 1 113 | 862 |
+| commerces de proximité (5 secteurs) | ~45 | ~1 |
+
+Deux enseignements. **Immobilier et agences portent tout** — 4 982 contacts contre une
+cinquantaine pour l'ensemble des commerces de proximité que je venais de réécrire. Et
+**restaurant est le premier gisement de la collecte, mais il dort** : 1 979 fiches en trente
+jours, aucun argumentaire (en attente depuis le 2026-08-23).
+
+1. Immobilier — nouveaux arrivants (3 messages, relances aux non-ouvreurs)
+2. Agences marketing — nouveaux arrivants (3 messages)
+3. Agences — celles qui LISENT mais ne cliquent pas (condition sur le clic, angle LeLead)
+4. Immobilier — reprise à froid 90 jours (le seul message de rupture : 10-15 % de réponses)
+5. Restaurant — **prêt mais sans message**, en attente de l'argumentaire
+
+**Tous en brouillon.** Mettre en route un envoi automatique n'est pas une décision d'outil.
+Les quatre premiers passent la vérification du moteur sans aucun problème ; le cinquième
+signale ses deux messages manquants, ce qui est exactement son rôle.
+
+**Une erreur de ma part, attrapée par mon propre document.** Le script de création
+utilisait `mozart._q()` — l'assistant de LECTURE, qui ne valide pas la transaction.
+L'`INSERT` s'exécutait, disparaissait au rollback, et le script annonçait « créé ». C'est le
+premier principe de `CONTROLES.md`, écrit ce matin : **un message de succès n'est pas une
+vérification**. Le script relit désormais la base et affiche « 5/5 en base ».
+
+**Livré aussi** : la duplication d'un secteur vers un autre dans l'écran Cold email —
+copie re-validée, en brouillon, et qui n'écrase jamais un email verrouillé.
+
+### MAJ 2026-08-25 — J'ai livré une page morte, et le build me disait qu'elle allait bien
+
+`Uncaught ReferenceError: STYLE_CADRE is not defined` — la sidebar plantait au rendu, donc
+toute la page. **Ma faute, et une faute de méthode :** un script de modification a levé une
+exception AVANT d'enregistrer le fichier ; le script suivant a quand même ajouté la
+RÉFÉRENCE à la constante. Le composant appelait donc quelque chose qui n'existait pas.
+
+**Pourquoi je ne l'ai pas vu.** `next.config.ts` porte `typescript: { ignoreBuildErrors:
+true }`. Le « ✓ Compiled successfully » sur lequel je me suis appuyé **ne prouve pas que le
+code s'exécute**. `npx tsc --noEmit` le disait en une seconde.
+
+**Corrigé, et vérifié autrement** : sur le fichier RÉELLEMENT livré (`.next/static/chunks`),
+pas sur le message de build — feuille de style présente, zéro référence orpheline.
+
+**Les onze écarts de typage hérités ont TOUS été corrigés dans la foulée**, et l'un était un
+vrai défaut : `campaign-wizard.tsx` appelait `refreshCount(sectors, zones, engagement)`
+avec **trois arguments sur cinq**. Sans `targetMode` ni `segmentId`, une campagne ciblée par
+SEGMENT était recomptée comme si elle ciblait des secteurs — **le nombre affiché juste avant
+l'envoi n'était pas celui qui allait partir**. Les dix autres étaient le même motif : un
+`Select` qui rend `string | null` passé à une fonction attendant `string`.
+
+`tests/test_interface_compile.py` bloque désormais sur **toute** erreur de type, la maison
+étant propre — une tolérance chiffrée serait fatalement remontée.
+
+**Et surtout : `CONTROLES.md`**, à la racine du dépôt. Vingt contrôles, tous nés d'une
+erreur réelle de cette semaine, rangés par domaine (interface, envois, données, chiffres
+affichés, API tierces, système). La règle qui les résume : **un message de succès n'est pas
+une vérification** — il faut interroger ce que le système FAIT, pas ce qu'un outil DIT avoir
+fait. C'est le fil commun du build vert sur du code mort, du compteur validé sur des données
+que j'avais réparées moi-même, et du correctif « posé » qu'aucun journal ne confirmait.
+
+### MAJ 2026-08-25 — Une correction ferme la plateforme, au lieu de la laisser à moitié cassée
+
+Demande de Camille : « quand tu fais des grosses corrections les users sont bloqués… au lieu
+de faire galérer tout le monde déconnecte les comptes et à la place du login mets une page
+de maintenance et demande de retenter dans 15 minutes ».
+
+**Ce qui existait, et ce qui manquait.** Le mode maintenance était en place depuis le 19/08
+— mais `login_allowed()` ne gardait que la PORTE D'ENTRÉE. Une session déjà ouverte
+continuait de naviguer pendant une correction : menus en 500, appels partis pour rien, et
+au bout du compte un téléphone qui sonne.
+
+**Ce qui a été ajouté.**
+- `maintenance_backend.acces_autorise(role)` — le même verdict, mais appliqué à CHAQUE
+  appel. Les administrateurs traversent, sinon plus personne ne pourrait lever la
+  maintenance.
+- `maintenance_backend.refus()` — le corps de réponse, avec `retry_minutes` (15 par
+  défaut). **Une durée annoncée vaut mieux qu'un « revenez plus tard »** : sans elle,
+  chacun réessaie toutes les trente secondes, ce qui fait exactement le bruit qu'on
+  cherchait à supprimer.
+- Le middleware refuse en **503** avec l'en-tête `Retry-After`, posé APRÈS
+  l'authentification (il faut le rôle) et AVANT la route (inutile de faire travailler une
+  plateforme qu'on ferme).
+- `apiFetch` intercepte le 503, **efface le jeton** et envoie sur `/maintenance` — pas sur
+  le login : un login affiché pendant une coupure fait ressaisir des identifiants qui
+  échoueront, puis recommencer.
+- Page `/maintenance` : message, **compte à rebours**, bouton « Réessayer maintenant ». Elle
+  ne fait AUCUN appel API — l'API est précisément ce qui refuse de répondre —, tout arrive
+  par l'URL.
+
+**Vérifié de bout en bout sur une session réelle** : 200 hors maintenance, **503 pendant**,
+`Retry-After: 900`, et l'appel administrateur toujours en 200. La session de test a été
+supprimée après coup.
+
+Pour l'activer : `python3 scripts/maintenance_backend.py on "message"`, puis `off`.
+
+**La CAUSE, trouvée au symptôme le plus parlant : ça marchait en navigation privée.** Ce
+n'était donc ni le serveur ni les cookies, mais le cache du navigateur. Next sert ses pages
+prérendues avec `cache-control: s-maxage=31536000` — un an. Le navigateur gardait un
+document HTML qui référence des fichiers JavaScript disparus au build suivant.
+
+Corrigé dans nginx, en deux règles complémentaires :
+- `location /_next/static/` garde le cache d'un an : ces fichiers portent un condensé dans
+  leur nom, ils sont immuables, et c'est le gros du poids ;
+- tout le reste (le document HTML) passe en **`no-store, must-revalidate`**, l'en-tête de
+  Next étant masqué. Aucune perte de performance : seul le document, quelques kilo-octets,
+  est revalidé.
+
+Vérifié : HTML en `no-store`, fichiers statiques toujours en `max-age=31536000, immutable`,
+et `/view`, le tableau de bord, l'API et les logos répondent tous.
+
+**L'autre moitié du problème, découverte dans la foulée.** Camille tombe sur une page morte
+(« This page couldn't load ») sur `/view`. Le serveur répondait 200 : c'est le NAVIGATEUR
+qui était périmé. J'avais reconstruit l'interface plusieurs fois dans la journée pendant
+qu'un onglet restait ouvert ; Next répond alors `Failed to find Server Action — this
+request might be from an older or newer deployment`, parce que les identifiants d'action
+de l'ancien JavaScript n'existent plus.
+
+`/api/version` ne pouvait pas le détecter : il vient de git, et ne bouge pas quand on
+reconstruit seulement l'écran. Ajout de **`/api/ui-build`**, qui rend le `BUILD_ID` de
+Next (vérifié : `LGFOta…` → `o9D-rD…` après reconstruction), lisible **sans session** — un
+écran déconnecté doit pouvoir détecter le décalage. Le composant `NouvelleVersion`,
+monté sur toutes les pages, compare toutes les minutes et affiche un bandeau.
+
+Il ne recharge **pas** d'autorité : quelqu'un peut être en train d'écrire un message ou de
+remplir une fiche, et perdre sa saisie serait pire que le bandeau. On propose, en disant
+pourquoi.
+
+`tests/test_maintenance.py` fige les trois exigences de la maintenance — dont celle qu'on
+oublie, rediriger vers la maintenance et non vers le login — plus la détection d'onglet
+périmé.
+
+### MAJ 2026-08-25 — 7 emails au lieu de 80, et un taux d'ouverture à 162 %
+
+**Ce qui s'est passé, et c'est ma faute.** J'ai inséré les quatre boîtes Mozart en base
+pendant qu'un dispatch tournait ; il en a happé une ; je l'ai arrêté pour l'empêcher ; le
+marqueur `last_dispatch_day` a alors bloqué toute reprise. Puis **j'ai attendu un accord
+pour relancer** pendant que la fenêtre d'envoi se vidait. À 16h02 : **7 emails partis**,
+contre 80 la veille et 160 le 22.
+
+Restaurer un envoi programmé que j'ai moi-même interrompu n'était pas une décision à
+demander. Verrou levé, dispatch relancé à 16h03 — les envois ont repris immédiatement.
+
+**Le défaut de fond, qui n'est pas de mon seul fait.** `last_dispatch_day` est posé AVANT
+l'envoi, délibérément : sans lui, le cron de 8h30 pourrait lancer un second dispatch en
+parallèle et doubler les envois. Mais rien ne prévoyait que le process MEURE en chemin —
+le marqueur restait, et la journée entière était perdue. **N'importe quel plantage du
+dispatch produisait le même résultat.**
+
+`_lot_abandonne()` rouvre la porte, et seulement si les TROIS conditions sont réunies :
+il reste des envois autorisés ; aucun email n'est parti pour cette campagne depuis
+**30 minutes** (le double de `ECART_MAX_LOT`, donc un lot lent n'est jamais pris pour
+mort) ; la campagne est toujours en cours. En cas de doute, on ne rouvre pas — un doublon
+coûte plus cher qu'un jour perdu. `journal_pg.dernier_envoi_campagne()` fournit le signal :
+`campaigns.last_dispatch_at` ne porte que l'heure de DÉBUT et reste identique deux heures.
+
+**Le taux d'ouverture à 162,5 %** (13 ouvreurs pour 8 envois). Le chiffre n'était pas faux,
+il était mal RAPPORTÉ : `contact_site_history.last_opened_at` compte « les personnes qui
+ont ouvert CE JOUR-LÀ », sans dire quel jour l'email est parti. Rapporté aux envois du même
+jour, on divisait deux populations sans rapport — et le jour où les envois chutent, le taux
+explose. Ce n'était donc pas un défaut nouveau : il dormait, et ma panne l'a révélé.
+
+`journal_pg.cohorte_par_jour()` calcule désormais une COHORTE : parmi les destinataires
+servis le jour J, combien ont ouvert ENSUITE (`o.occurred_at >= e.premier` — sinon une
+ouverture ancienne créditerait un envoi neuf). Numérateur et dénominateur portent sur les
+mêmes personnes, le taux ne peut plus dépasser 100 %. Vérifié sur 15 jours : 27 % à 54 %.
+
+Second symptôme corrigé au passage : le repli sur l'ancien comptage est désormais GLOBAL et
+non jour par jour — sinon un jour sans envoi affichait « 11 ouvreurs pour 0 envoi ».
+
+`tests/test_taux_ouverture.py` vérifie sur les données RÉELLES qu'aucun jour ne dépasse
+100 % et qu'un jour sans envoi n'a pas d'ouvreurs.
+
+### MAJ 2026-08-25 — Aucun appel déporté : sondé, pas déduit. Et qui détient quelle ligne.
+
+**Le sondage, autorisé par Camille sur son seul numéro.** La documentation Onoff s'était
+déjà révélée fausse (`status=USED` refusé, `used` accepté), il restait donc un doute sur un
+endpoint d'émission non documenté. Trois tentatives, ciblant `+33621040063` :
+
+```
+POST /api/v1/calls        → 404  "No static resource api/v1/calls"
+POST /api/v1/calls/dial   → 404  "No static resource api/v1/calls/dial"
+POST /api/v1/click2call    → 401
+```
+
+**Aucun endpoint d'appel n'existe.** Ce n'est plus une lecture de la documentation, c'est un
+fait mesuré — et aucun téléphone n'a sonné. L'appel déporté passe obligatoirement par
+l'extension Chrome « Click2Call » ou l'application Onoff.
+
+**Qui détient quelle ligne.** L'attribution ne se lit PAS sur le numéro : `GET /numbers` ne
+rend que `{id, phoneNumber, countryCode}`, et `GET /numbers/{id}` répond `invalid.id`. Elle
+vit du côté des MEMBRES, dans `numberIdRefs`. `onoff.lignes()` croise donc les deux listes.
+Résultat pour LCR : **+33 7 44 30 66 03 est attribuée à « LeclientRoi Com »
+(com+1@leclientroi.com)** ; « Leclientroi Paris » (camille@leclientroi.com) n'a **aucune
+ligne** — ce qui explique qu'elle n'apparaîtrait pas dans l'extension pour ce compte.
+
+**À l'écran.** Le badge du titre ne dit plus « bêta » mais la **disponibilité** :
+« indisponible — attribuée » (ambre), « ligne libre » (vert), « non connecté » ou « aucune
+ligne ». La mention bêta descend dans le sous-titre : elle reste vraie, mais ce n'est pas
+l'information utile ici. Sous la ligne, le titulaire est nommé, et les membres sans ligne
+listés — deux personnes qui croient disposer du même numéro, c'est un appel passé depuis
+une ligne que personne ne surveille.
+
+**Guide d'installation Click2Call**, en bas de la page Téléphonie : les cinq étapes
+(installer, se connecter, choisir la ligne, activer la détection, appeler), le lien du
+Chrome Web Store, et l'avertissement qui manquait — **sans l'extension, le lien d'appel
+ouvre FaceTime sur Mac, l'appel part du téléphone personnel et n'apparaît dans aucun
+journal**.
+
+### MAJ 2026-08-25 — « Appeler » ouvrait FaceTime : la promesse était mal tenue
+
+Camille clique sur **Appeler** et macOS propose FaceTime. C'est le comportement normal d'un
+lien `tel:` — le système passe la main à son gestionnaire par défaut — mais ce n'est ni ce
+qu'elle attendait, ni ce que l'écran laissait entendre. Et surtout : **l'appel ne serait
+alors pas parti de la ligne Onoff**, donc il n'aurait laissé aucune trace dans le journal.
+
+**Re-vérifié avant de répondre** : le sitemap complet de la documentation Onoff ne contient
+que `call-list`, `call-get-logs`, `call-recording-download`, `call-voicemail-download` et
+le webhook. **Aucune route d'émission d'appel.** Un appel « déporté », déclenché par le
+serveur, n'est pas possible avec cette API — la voie officielle est l'extension Chrome
+« Onoff Business Click2Call » ou l'application Onoff.
+
+**Correction.** Le bouton ne saute plus vers `tel:`. Il **prépare** l'appel — le numéro est
+normalisé et l'appel consigné au journal du contact — puis propose trois voies, dans
+l'ordre de ce qui marche :
+1. le numéro en gros, avec un bouton **Copier**, à coller dans l'application Onoff ;
+2. un lien vers **l'extension Click2Call**, qui rend les numéros de la page cliquables et
+   lance l'appel PAR Onoff, sans passer par le téléphone ;
+3. le lien `tel:` d'origine, conservé mais **explicitement étiqueté** : « sur Mac c'est
+   FaceTime ; l'appel ne partirait alors pas de votre ligne Onoff ».
+
+La leçon : une action qui délègue au système doit le DIRE, et laisser le choix. Un saut
+automatique fait porter à l'outil une promesse qu'il ne tient pas.
+
+### MAJ 2026-08-25 — Une fiche de test, épinglée et protégée
+
+Demande de Camille : une ligne de contact à son nom (`afchain.camille@gmail.com`,
+`0621040063`), en tête de la page Contacts, grisée, étiquetée « test », impossible à
+supprimer.
+
+**Ce que la demande a révélé.** La fiche EXISTAIT déjà, créée à la main le 2026-05-22 —
+avec `etat = 'ok'`, le secteur `immobilier` et un numéro de remplissage (`0612345678`).
+Autrement dit : **elle était éligible à toute campagne immobilier**. Ses 11 envois passés
+avaient tous `campaign_id = NULL` — des BAT, jamais une campagne — mais rien ne l'en
+protégeait, c'était une question de chance.
+
+**Trois protections, et la deuxième est celle qu'on oublie.**
+1. Colonne `contacts.est_test`. Les DEUX clauses d'éligibilité de `pool_pg` (`_ELIGIBLE`
+   pour la pioche, `_ELIGIBLE_SEGMENT` pour les segments) l'écartent.
+2. **`pg_reconcile` respecte le drapeau.** Son `UPDATE` de nuit réaligne `etat` DEPUIS le
+   pool, qui ignore tout de cette intention : une protection posée sur `etat` seul se
+   serait effacée d'elle-même au passage de 6h30. C'est le piège documenté dans
+   `pg_reconcile_colonnes_figees`, pris dans l'autre sens.
+3. La route `DELETE /pool/contacts/{id}` refuse en **409** avant toute écriture. Un
+   contrôle en panne journalise au lieu de bloquer — mais il s'entend, sinon on croirait
+   la protection active alors qu'elle dort.
+
+**À l'écran** : épinglée en tête (`ORDER BY est_test DESC`), ligne grisée avec un liseré,
+étiquette « test » devant la société, ni bouton Supprimer ni bouton Blacklister — remplacés
+par la mention « protégée » —, et **pas de case à cocher** : une action groupée l'aurait
+atteinte par la bande.
+
+**Dans « À rappeler », pour le SEUL superadmin.** La vue `v_a_rappeler` exige l'état
+`lead` ou `prm` ; la fiche est en `crm`, elle n'y entrait donc pas. Changer son état
+l'aurait montrée à toute l'équipe — elle est donc AJOUTÉE dans `followup_backend.lister()`
+quand le rôle est `superadmin`, et seulement là. Vérifié : superadmin 1 fiche en position 1,
+admin 0, commercial 0.
+
+Elle **ne gonfle pas la pastille du menu** : les compteurs viennent de `v_a_rappeler`, qui
+l'ignore. Un chiffre faux dans le menu ferait chercher un contact qui n'existe pas.
+Un échec de ce chargement est journalisé sans priver de la vraie liste.
+
+`tests/test_contact_test.py` fige les trois protections, l'affichage, et la visibilité par rôle.
+
+### MAJ 2026-08-25 — Webhook Onoff déclaré : la chaîne complète est vérifiée
+
+Camille a déclaré le webhook chez Onoff (« Connecté »). La charge de validation est arrivée
+et s'est rangée toute seule : `Tony Onoff` / `Sergey Brin`, un CDR entrant de test.
+
+**Chaîne validée de bout en bout** : Onoff → Cloudflare → `api.cheffer.email` → jeton en
+query → PostgreSQL. Un second essai depuis l'URL PUBLIQUE avec une messagerie vocale a
+produit `{"ok":true,"recus":1}`, le message est apparu en non lu, et la pastille verte
+compte bien 1. Les deux charges de test ont été retirées du journal.
+
+**Un défaut trouvé grâce à cette charge réelle.** Onoff horodate en
+`"2026-08-25 14:01:43 CEST"` — ni ISO, ni UTC, fuseau en toutes lettres. PostgreSQL le lit
+correctement (→ 12:01:43 UTC, vérifié), mais rien ne le garantissait : un format inattendu
+aurait fait échouer l'INSERT et **perdu l'appel entier**, silencieusement. `_horodatage()`
+valide désormais la partie DATE et laisse la conversion du fuseau à PostgreSQL ; une date
+illisible coûte la date, jamais l'événement.
+
+Au passage, ma première version de ce garde-fou utilisait `strptime` avec `%Z` — qui
+n'accepte PAS « CEST » : elle aurait jeté l'horodatage que PostgreSQL lisait parfaitement.
+Le contrôle qui l'a montré est dans `tests/test_onoff.py`, sur la chaîne réellement reçue.
+
+### MAJ 2026-08-25 — Clé Onoff branchée : trois écarts entre la doc et l'API réelle
+
+Camille a fourni la clé API. **Elle fonctionne** — Onoff répond en 406 ms, 2 membres
+remontent. Mais deux endpoints sur trois échouaient, et les messages d'erreur désignaient
+la mauvaise cause.
+
+| Écart constaté | Ce que la doc dit | Ce que l'API veut |
+|---|---|---|
+| `GET /numbers` | `status` = `USED` / `AVAILABLE` | **minuscules** : `used` / `available` — sinon `invalid.status` |
+| `GET /statistics` | paramètres non documentés | `startDate` **et** `endDate` OBLIGATOIRES |
+| `GET /calls` | filtrable « par dates, memberId, numberId » | `memberIdRef` **obligatoire**, en plus des dates |
+
+**Et un piège plus sournois** : les enveloppes de réponse s'appellent `callLogs` et
+`messagesLogs`, nommées nulle part dans la documentation. Mon extracteur ne les connaissait
+pas et rendait une liste vide **sans erreur** — le pire des cas : un écran qui affiche
+« aucun appel » alors que le fournisseur en a. Corrigé et figé par un test.
+
+**Ce que la connexion a révélé** : `voicemailReceived: 1` et `messageSent: 1` sur 30 jours
+côté Onoff, alors que notre journal local est vide — le **webhook n'est pas encore déclaré**
+chez eux. Les journaux d'appels par membre reviennent vides sur 120 jours : l'historique ne
+se rattrape donc pas par l'API, il faut poser le webhook pour que les prochains arrivent.
+
+**Le numéro de ligne.** `GET /numbers?status=used` rend **un** numéro : `33744306603`,
+pays `FR` — celui que Camille a donné. Il est désormais affiché avec son drapeau
+🇫🇷 **+33 7 44 30 66 03** sur la page Téléphonie et dans la carte de « Mon activité ».
+`numero_ligne()` lit la configuration (aucun appel réseau, pour la route interrogée en
+boucle) ; `numero_reel()` demande à Onoff (page ouverte à la demande). Le format
+international est distinct du national : `lisible()` rend `07 44 30 66 03` pour reconnaître
+un correspondant, `international()` rend `+33 7 44 30 66 03` pour annoncer NOTRE ligne.
+
+### MAJ 2026-08-25 — La configuration Onoff rejoint la page Configuration
+
+Demande de Camille : mettre la configuration de l'API Onoff dans `/site/lcr/setup` plutôt
+que sur son écran séparé. Faite sous la forme d'un composant `OnoffConfigCard`, sur le
+modèle de `MailnjoyConfigCard` déjà en place : clé API, adresse de webhook à copier, sonde
+vivante avec la cause de l'échec, et la liste franche de ce que le connecteur permet.
+
+**La page dédiée `/setup/onoff` est SUPPRIMÉE**, pas doublée. Deux endroits pour un même
+réglage est un endroit de trop : on finit par corriger l'un et pas l'autre. Les trois liens
+qui y menaient (page Téléphonie ×2, page Répondeur ×1) pointent désormais sur `/setup`.
+
 ### MAJ 2026-08-25 — La sidebar ne pouvait qu'enlever des entrées, jamais en ajouter
 
 **Symptôme.** Ni les pages Onoff ni « Adresses d'envoi » n'apparaissaient dans le menu,
@@ -3805,7 +4216,7 @@ ferait disparaître une messagerie non lue de l'écran.
   place) et `POST …/onoff/appel` qui rend l'URI `tel:` **et** consigne l'appel dans le suivi.
 - Trois pages : `/site/{code}/onoff` (état, chiffres 30 j, membres, numéros, derniers
   appels), `/site/{code}/onoff/messagerie` (répondeur, écoute, marquage), et
-  `/site/{code}/setup/onoff` (clé API + webhook, avec la liste franche de ce que le
+  `/site/{code}/setup` (clé API + webhook, avec la liste franche de ce que le
   connecteur permet et ne permet pas).
 - Action **Appeler** dans `ActionsAppel` : composition par `tel:`, SMS 1 à 1, et
   l'historique Onoff du numéro. Les deux pages sont en **bêta fermée** (compte `camille`).
@@ -3828,7 +4239,7 @@ la fenêtre d'envoi ouverte — hors fenêtre `_cadence` retombe au plancher, ce
 mais la suite passait au rouge tous les soirs après 17h59. Le contrôle suit désormais
 l'heure et vérifie les deux comportements. **18 suites au vert.**
 
-**Ce qui attend Camille** : la clé API dans `/site/lcr/setup/onoff` (plan Max requis), et
+**Ce qui attend Camille** : la clé API dans `/site/lcr/setup` (plan Max requis), et
 la déclaration du webhook côté Onoff avec l'URL que la page affiche. Le répondeur
 fonctionne avec le webhook SEUL.
 

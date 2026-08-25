@@ -33,6 +33,30 @@ from zoneinfo import ZoneInfo
 
 import duckdb
 
+# DuckDB s'accorde par défaut 80 % de la RAM — mesuré à **6 Gio sur une machine qui en a
+# 7,7**. Deux processus DuckDB simultanés suffisent alors à déclencher le tueur de mémoire
+# du noyau, qui abat n'importe quoi : un test, l'API, ou le dispatch d'envoi en cours.
+# C'est arrivé trois fois le 2026-08-25. Nos requêtes sont des agrégats sur des tables de
+# quelques dizaines de milliers de lignes : 1 Gio est large, et borne le risque.
+LIMITE_MEMOIRE_DUCKDB = "2GB"
+
+
+def _brider(c):
+    """Pose le plafond mémoire sur une connexion. Best-effort : une version de DuckDB qui
+    refuserait le réglage ne doit pas empêcher d'ouvrir la base."""
+    try:
+        c.execute(f"SET memory_limit = '{LIMITE_MEMOIRE_DUCKDB}'")
+        c.execute("SET threads = 2")
+        # Recommandé par DuckDB lui-même quand la mémoire serre : ne pas préserver l'ordre
+        # d'insertion divise nettement le besoin. Aucune de nos requêtes n'en dépend —
+        # toutes portent un ORDER BY explicite quand l'ordre compte.
+        c.execute("SET preserve_insertion_order = false")
+    except Exception:  # noqa: BLE001
+        pass
+    return c
+
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 GOD_DB = BASE_DIR / "data" / "god_mode.duckdb"
 POOL_DB = BASE_DIR / "data" / "contacts.duckdb"
@@ -133,7 +157,7 @@ def _connect(path, attempts: int = 8, sleep_s: float = 0.3):
     for i in range(attempts):
         for read_only in (False, True):
             try:
-                return duckdb.connect(str(path), read_only=read_only)
+                return _brider(duckdb.connect(str(path), read_only=read_only))
             except Exception as e:  # noqa: BLE001
                 last = e
         if i < attempts - 1:
@@ -188,6 +212,25 @@ def _campagnes_du_site(site: str) -> dict:
         return {}
     finally:
         c.close()
+
+
+def _prospects_du_site(site: str) -> set:
+    """Toutes les adresses prospectées par ce site.
+
+    Lue dans PostgreSQL et non dans le pool : **3,70 s côté DuckDB contre 0,06 s** sur la
+    même liste de 11 000 adresses, mesuré le 2026-08-25. C'était à elle seule toute la
+    lenteur restante du tableau de bord. Repli sur le pool si PostgreSQL ne répond pas.
+    """
+    try:
+        import pool_pg
+        return {r[0] for r in pool_pg._q(
+            "SELECT lower(ct.email::text) FROM contacts ct "
+            "JOIN contact_sites cs ON cs.contact_id = ct.id "
+            "WHERE cs.site_code = %(s)s AND ct.email IS NOT NULL", {"s": site})}
+    except Exception as e:  # noqa: BLE001
+        print(f"[stats] prospects via PostgreSQL indisponible ({type(e).__name__}: {e})",
+              flush=True)
+        return set()
 
 
 def daily_email_stats(site: str, days: int = 7) -> dict:
@@ -305,21 +348,46 @@ def daily_email_stats(site: str, days: int = 7) -> dict:
         cid = _campagne_du_dispatch(disp)
         _porter(k, cid, campagnes.get(cid or "", {}).get("canal") or "sweego", int(n or 0))
 
-    ouvreurs, cliqueurs, prospects = [], [], set()
+    # ── Les ouvertures, rapportées à la BONNE population ──────────────────────
+    # `contact_site_history.last_opened_at` dit « cette personne a ouvert CE JOUR-LÀ »,
+    # sans dire quel jour l'email était parti. Rapporté aux envois du même jour, cela
+    # compare deux populations différentes : le 2026-08-25, 13 personnes ont ouvert des
+    # emails partis les jours précédents alors que 8 seulement étaient partis ce jour-là
+    # — soit **162 % d'ouverture**, un chiffre impossible affiché à l'écran.
+    #
+    # On calcule donc une COHORTE : parmi les destinataires servis le jour J, combien ont
+    # ouvert ensuite. C'est la seule lecture qui ait un sens, et la seule qui ne puisse
+    # pas dépasser 100 %. `email_events` le permet depuis le Lot 1 — le pool, lui, ne
+    # gardait que la dernière ouverture par contact et ne pouvait pas répondre.
+    cohortes: dict[str, dict] = {}
+    try:
+        import journal_pg
+        for jour, ouv, cli in journal_pg.cohorte_par_jour(site, days):
+            cohortes[str(jour)] = {"ouvreurs": int(ouv or 0), "cliqueurs": int(cli or 0)}
+    except Exception as e:  # noqa: BLE001
+        print(f"[stats] cohorte d'ouverture indisponible ({type(e).__name__}: {e})", flush=True)
+
+    ouvreurs, cliqueurs = [], []
+    prospects = _prospects_du_site(site)
     emelia_rows: list = []
     try:
         pool = _connect(POOL_DB)
         try:
-            ouvreurs = pool.execute(
-                "SELECT last_opened_at FROM contact_site_history "
-                "WHERE site_code = ? AND last_opened_at >= ?", [site, depuis]).fetchall()
-            cliqueurs = pool.execute(
-                "SELECT last_clicked_at FROM contact_site_history "
-                "WHERE site_code = ? AND last_clicked_at >= ?", [site, depuis]).fetchall()
-            prospects = {r[0] for r in pool.execute(
-                "SELECT lower(c.email) FROM contacts c "
-                "JOIN contact_site_history h ON h.contact_id = c.id "
-                "WHERE h.site_code = ? AND c.email IS NOT NULL", [site]).fetchall()}
+            # Ces deux lectures ne servent QUE de repli : quand la cohorte a répondu,
+            # leurs résultats sont écrasés plus bas. Les faire quand même coûtait deux
+            # parcours de `contact_site_history` et l'attente du verrou DuckDB, pour rien.
+            if not cohortes:
+                ouvreurs = pool.execute(
+                    "SELECT last_opened_at FROM contact_site_history "
+                    "WHERE site_code = ? AND last_opened_at >= ?", [site, depuis]).fetchall()
+                cliqueurs = pool.execute(
+                    "SELECT last_clicked_at FROM contact_site_history "
+                    "WHERE site_code = ? AND last_clicked_at >= ?", [site, depuis]).fetchall()
+            if not prospects:
+                prospects = {r[0] for r in pool.execute(
+                    "SELECT lower(c.email) FROM contacts c "
+                    "JOIN contact_site_history h ON h.contact_id = c.id "
+                    "WHERE h.site_code = ? AND c.email IS NOT NULL", [site]).fetchall()}
             # Emelia n'a pas de journal d'envoi local : c'est lui qui étale les envois de
             # son côté, on ne connaît que le moment où on lui a remis les contacts. Le pool
             # ne garde que le DERNIER envoi par contact : un contact recontacté plus tard
@@ -354,7 +422,14 @@ def daily_email_stats(site: str, days: int = 7) -> dict:
         d = idx[k]
         envoyes = d.get("envoyes", 0)
         destinataires = len(vus.get(k, ()))
-        ouv = d.get("ouvreurs", 0)
+        # La cohorte fait autorité ; l'ancien comptage ne sert plus que de repli quand
+        # PostgreSQL ne répond pas.
+        # Le repli est GLOBAL, pas jour par jour : si la cohorte a répondu, un jour absent
+        # du résultat vaut zéro ouvreur (aucun email n'est parti ce jour-là), il ne
+        # retombe pas sur l'ancien comptage. Mélanger les deux définitions dans une même
+        # colonne redonnait « 11 ouvreurs pour 0 envoi » le 23 août.
+        coh = cohortes.get(k) or ({"ouvreurs": 0, "cliqueurs": 0} if cohortes else None)
+        ouv = coh["ouvreurs"] if coh else d.get("ouvreurs", 0)
         lignes.append({
             "jour": k,
             "libelle": _day_label(j),
@@ -362,7 +437,10 @@ def daily_email_stats(site: str, days: int = 7) -> dict:
             "destinataires": destinataires,
             "redites": max(0, envoyes - destinataires) if destinataires else 0,
             "ouvreurs": ouv,
-            "cliqueurs": d.get("cliqueurs", 0),
+            "cliqueurs": coh["cliqueurs"] if coh else d.get("cliqueurs", 0),
+            # Dit à l'écran d'où vient le chiffre : une cohorte ne se lit pas comme un
+            # comptage d'activité du jour.
+            "base_ouverture": "cohorte" if coh else "activite_du_jour",
             "echecs": d.get("echecs", 0),
             # Par où c'est parti, et pour quelle campagne. Sans ça, « 100 envoyés » ne dit
             # ni sur quel routeur ni pour quelle cible.
@@ -441,15 +519,16 @@ def performance_par_canal(site: str) -> dict:
         finally:
             c.close()
 
-    prospects: set = set()
+    prospects: set = _prospects_du_site(site)
     engagement: dict = {}
     try:
         pool = _connect(POOL_DB)
         try:
-            prospects = {r[0] for r in pool.execute(
-                "SELECT lower(c.email) FROM contacts c "
-                "JOIN contact_site_history h ON h.contact_id = c.id "
-                "WHERE h.site_code = ? AND c.email IS NOT NULL", [site]).fetchall()}
+            if not prospects:
+                prospects = {r[0] for r in pool.execute(
+                    "SELECT lower(c.email) FROM contacts c "
+                    "JOIN contact_site_history h ON h.contact_id = c.id "
+                    "WHERE h.site_code = ? AND c.email IS NOT NULL", [site]).fetchall()}
             for canal, n in pool.execute(
                     "SELECT COALESCE(last_open_channel, 'inconnu'), count(*) "
                     "FROM contact_site_history WHERE site_code = ? AND last_opened_at IS NOT NULL "

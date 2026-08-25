@@ -111,6 +111,9 @@ _AUTH_OPEN_PATHS = {
     # État de maintenance : lu par la page de login AVANT toute authentification. En lecture
     # seule, sans donnée sensible (un booléen et un message d'accueil).
     "/api/maintenance",
+    # Identifiant de build de l'interface : lu pour détecter un onglet resté sur une
+    # version périmée. Aucune donnée sensible, et il doit répondre même sans session.
+    "/api/ui-build",
 }
 # Préfixes ouverts SANS authentification. La plaquette est un document commercial destiné
 # à des prospects qui n'ont évidemment pas de compte : le lien de l'email doit s'ouvrir.
@@ -189,6 +192,22 @@ async def auth_middleware(request: Request, call_next):
     if not sess:
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=401, content={"error": "Bearer token required"})
+
+    # ── Maintenance : on ferme pour TOUT LE MONDE, pas seulement à la porte ─────
+    # `login_allowed` ne gardait que le login : une session déjà ouverte continuait de
+    # naviguer pendant une correction, avec des menus qui répondent 500 et des appels qui
+    # partent pour rien. Ici le refus s'applique à chaque appel, avec un 503 et une durée
+    # d'attente — l'écran peut alors montrer une page de maintenance au lieu d'un login.
+    # Les administrateurs traversent, sinon plus personne ne pourrait lever la maintenance.
+    try:
+        import maintenance_backend as _maint
+        if not _maint.acces_autorise(sess.get("role") or ""):
+            from fastapi.responses import JSONResponse
+            corps = _maint.refus(sess.get("role") or "")
+            return JSONResponse(status_code=503, content=corps,
+                                headers={"Retry-After": str(corps["retry_minutes"] * 60)})
+    except ImportError:
+        pass
 
     # Rôles disposant de tous les accès (bypass admin-only + isolation site)
     _SUPER = ("admin", "superadmin")
@@ -2094,6 +2113,26 @@ async def api_versions(limit: int = 50):
     }
 
 
+@app.get("/api/ui-build")
+def api_ui_build():
+    """L'identifiant de build de l'interface Next.js.
+
+    `/api/version` vient de git : il ne bouge PAS quand on reconstruit seulement l'écran.
+    Or c'est précisément une reconstruction qui casse un onglet resté ouvert — le
+    navigateur garde le JavaScript de l'ancienne version, dont les identifiants d'action
+    n'existent plus. Next répond alors « Failed to find Server Action », et la page meurt.
+    Constaté le 2026-08-25 sur `/view`.
+
+    PUBLIC et sans authentification : l'écran doit pouvoir détecter le décalage même quand
+    sa session vient d'être invalidée.
+    """
+    try:
+        p = BASE_DIR.parent / "genesis-ui" / ".next" / "BUILD_ID"
+        return {"build": p.read_text().strip() if p.exists() else ""}
+    except Exception:  # noqa: BLE001
+        return {"build": ""}
+
+
 @app.get("/api/version")
 def api_version():
     """Version courante (rapide, sans réseau) — pour l'affichage sidebar.
@@ -3237,9 +3276,11 @@ Chaque email a : subject, body_html, delay_days (0 pour le premier, {relance_del
     # Post-process HTML: ensure proper paragraphs + append signature
     # Signature en TEXTE : une image distante dans la signature est un marqueur fort
     # pour les filtres, et elle n'apporte rien qu'un texte ne fasse (guide Maildoso).
-    signature = ('<p>Juliette<br>LeClientROI</p>'
+    # Le prénom vient de la BOÎTE qui envoie : les huit adresses ne portent pas la même
+    # personne, et une signature figée contredisait l'expéditeur sur la moitié des envois.
+    signature = ('<p>{{expediteur_prenom}} {{expediteur_nom}}<br>LeClientROI</p>'
                  '<p><a href="{{UNSUBSCRIBE_LINK}}" rel="noopener noreferrer" target="_blank">'
-                 "Si vous ne souhaitez plus recevoir d'email de ma part, cliquez ici</a></p>")
+                 "Se désinscrire de mes emails</a></p>")
 
     # Remove any signature DeepSeek might have generated
     for em in emails:
@@ -4844,6 +4885,81 @@ async def api_logo_upload(site: str, file: UploadFile = File(...)):
         return {"error": str(e)}
 
 
+# ── Avatar d'un compte (dossier séparé des logos de site) ────────────────────
+# Un dossier à part, et pas un préfixe dans `logos/` : ce sont deux choses différentes —
+# un logo appartient à une marque, un avatar à une personne. Les mélanger rendrait une
+# purge des logos capable d'effacer les photos de l'équipe.
+AVATARS_DIR = BASE_DIR / "dashboard" / "assets" / "avatars"
+AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _nom_avatar(username: str) -> str:
+    """Un nom de fichier sûr, dérivé du compte. Empêche `../` de sortir du dossier."""
+    return re.sub(r"[^a-z0-9_-]", "", (username or "").strip().lower())[:64]
+
+
+@app.get("/api/avatars/{username}")
+def api_avatar_status(username: str):
+    nom = _nom_avatar(username)
+    p = AVATARS_DIR / f"{nom}.png"
+    if nom and p.exists():
+        return {"has_avatar": True, "url": f"/assets/avatars/{nom}.png",
+                "size_bytes": p.stat().st_size}
+    return {"has_avatar": False, "url": None}
+
+
+@app.post("/api/avatars/{username}")
+async def api_avatar_upload(username: str, request: Request, file: UploadFile = File(...)):
+    """Photo d'un compte : recadrage carré + 256x256.
+
+    Chacun pose la sienne ; seul un administrateur peut poser celle d'un autre — une photo
+    est une identité, on ne la change pas à la place de quelqu'un.
+    """
+    nom = _nom_avatar(username)
+    if not nom:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=400, content={"error": "compte invalide"})
+    role, moi = _qui(request)
+    if _nom_avatar(moi) != nom and role not in ("admin", "superadmin"):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=403,
+                            content={"error": "seul un administrateur peut changer la photo d'un autre compte"})
+    try:
+        from PIL import Image
+        import io as _io
+        raw = await file.read()
+        if len(raw) > 5 * 1024 * 1024:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=413, content={"error": "image trop lourde (5 Mo maximum)"})
+        img = Image.open(_io.BytesIO(raw)).convert("RGBA")
+        w, h = img.size
+        cote = min(w, h)
+        img = img.crop(((w - cote) // 2, (h - cote) // 2,
+                        (w - cote) // 2 + cote, (h - cote) // 2 + cote))
+        img = img.resize((256, 256), Image.LANCZOS)
+        sortie = AVATARS_DIR / f"{nom}.png"
+        img.save(sortie, format="PNG", optimize=True)
+        return {"ok": True, "url": f"/assets/avatars/{nom}.png",
+                "size_bytes": sortie.stat().st_size}
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=400, content={"error": str(e)[:200]})
+
+
+@app.delete("/api/avatars/{username}")
+def api_avatar_delete(username: str, request: Request):
+    nom = _nom_avatar(username)
+    role, moi = _qui(request)
+    if _nom_avatar(moi) != nom and role not in ("admin", "superadmin"):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=403, content={"error": "non autorisé"})
+    p = AVATARS_DIR / f"{nom}.png"
+    if nom and p.exists():
+        p.unlink()
+        return {"ok": True, "supprime": True}
+    return {"ok": True, "supprime": False}
+
+
 @app.delete("/api/sites/{site}/logo")
 def api_logo_delete(site: str):
     p = LOGOS_DIR / f"{site}.png"
@@ -5013,7 +5129,43 @@ def api_onoff_etat(site: str):
            "capacites": {"appeler": False, "envoyer_sms": False, "credit": False,
                          "lire_journaux": True, "messagerie": True}}
     out["verification"] = o.verifier(site) if out["configure"] else {"status": "missing_key"}
+    # Ici on peut payer un appel réseau : la page de téléphonie s'ouvre à la demande, pas
+    # toutes les deux minutes. On annonce le numéro que le FOURNISSEUR déclare.
+    reel = o.numero_reel(site) if out["configure"] else {"numero": o.numero_ligne(site),
+                                                         "pays": "FR", "source": "config"}
+    out["ligne"] = {**reel, "affichage": o.international(reel["numero"]),
+                    "drapeau": o.drapeau(reel["numero"])}
+    # Qui détient quelle ligne. L'attribution ne se lit pas sur le numéro mais sur le
+    # MEMBRE (`numberIdRefs`) : sans ce croisement, l'écran affiche un numéro sans dire
+    # qui s'en sert, et deux personnes croient pouvoir l'utiliser.
+    if out["configure"]:
+        try:
+            out["lignes"] = o.lignes(site)
+        except Exception as e:  # noqa: BLE001
+            out["lignes"] = {"ok": False, "lignes": [], "erreur": str(e)[:200]}
     return out
+
+
+@app.get("/api/sites/{site}/onoff/pastille")
+def api_onoff_pastille(site: str):
+    """Les chiffres de téléphonie, SANS toucher à l'API Onoff.
+
+    La sidebar interroge cette route en boucle : elle ne doit lire que le journal local.
+    `/onoff/etat` fait une sonde vivante vers Onoff — parfait pour un écran de réglage,
+    ruineux pour un rafraîchissement toutes les minutes.
+    """
+    o = _onoff()
+    try:
+        r = o.resume(site)
+        r["messages"] = o.messagerie(site, seulement_non_lus=True, limite=20)["messages"]
+        # La ligne, telle qu'on doit l'annoncer aux commerciaux. Lue en configuration, donc
+        # sans appel réseau : cette route est interrogée en boucle par la sidebar.
+        tel = o.numero_ligne(site)
+        r["ligne"] = {"numero": tel, "affichage": o.international(tel), "drapeau": o.drapeau(tel)}
+        return r
+    except Exception as e:  # noqa: BLE001
+        # Le connecteur absent ou la table pas encore créée ne doit rien casser à l'écran.
+        return {"non_lus": 0, "messages": [], "erreur": str(e)[:200]}
 
 
 @app.get("/api/sites/{site}/onoff/membres")
@@ -6588,6 +6740,29 @@ async def api_templates_generate(site: str, request: Request):
         return {"ok": False, "error": f"generation failed: {e}"}
 
 
+@app.post("/api/sites/{site}/templates/dupliquer")
+async def api_templates_dupliquer(site: str, request: Request):
+    """Copie les emails d'un secteur vers un autre. Body : {source, cible}.
+
+    La cible reçoit des BROUILLONS déverrouillés, re-validés : un email conforme pour un
+    secteur ne l'est pas forcément ailleurs. Un email verrouillé côté cible n'est jamais
+    écrasé — le verrou vaut approbation.
+    """
+    d = await request.json()
+    _scripts_dans_le_chemin()
+    import email_templates_backend as etb
+    role, user = _qui(request)
+    try:
+        r = etb.dupliquer(site, d.get("source") or "", d.get("cible") or "", by=user or "ui")
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=500, content={"ok": False, "error": str(e)[:200]})
+    if not r.get("ok"):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=400, content=r)
+    return r
+
+
 @app.get("/api/sites/{site}/templates")
 async def api_templates_list(site: str):
     """Récap par secteur (nb d'emails + nb verrouillés) + secteurs supportés (pour l'UI)."""
@@ -7035,6 +7210,35 @@ def _mozart_du_site(site: str, sid: str):
 def _introuvable():
     from fastapi.responses import JSONResponse
     return JSONResponse(status_code=404, content={"error": "scénario introuvable"})
+
+
+@app.get("/api/sites/{site}/mozart-capacite")
+def api_mozart_capacite(site: str):
+    """Ce que les adresses de Mozart peuvent réellement envoyer, et la file en attente.
+
+    Sans ce chiffre à l'écran, on active un scénario sur 3 869 contacts en croyant qu'ils
+    partiront — alors que quatre boîtes en chauffe rendent zéro jusqu'au 8 septembre, puis
+    soixante par jour. Le nombre de contacts d'un secteur ne dit RIEN de ce qui partira.
+    """
+    _scripts_dans_le_chemin()
+    import mozart
+    try:
+        cap = mozart.capacite_jour(site)
+        scenarios = mozart.scenarios(site)
+        files = {}
+        for sc in scenarios:
+            if sc.get("statut") == "actif":
+                files[sc["id"]] = mozart.file_en_attente(sc["id"])
+        cap["files"] = files
+        cap["file_totale"] = sum(files.values())
+        cap["plafond_file"] = cap["capacite"] * cap["horizon_jours"]
+        # Combien de jours pour vider ce qui attend déjà, au rythme du jour.
+        cap["jours_pour_vider"] = (round(cap["file_totale"] / cap["capacite"], 1)
+                                   if cap["capacite"] else None)
+        return cap
+    except Exception as e:  # noqa: BLE001
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"error": f"capacité indisponible: {e}"[:200]})
 
 
 @app.get("/api/sites/{site}/mozart-expediteurs")
@@ -8712,7 +8916,31 @@ async def api_pool_contact_update(site: str, contact_id: str, request: Request):
 
 @app.delete("/api/sites/{site}/pool/contacts/{contact_id}")
 async def api_pool_contact_delete(site: str, contact_id: str, hard: bool = False):
-    """Supprime la row contact_site_history pour ce site (ou hard delete tout)."""
+    """Supprime la row contact_site_history pour ce site (ou hard delete tout).
+
+    Un contact de TEST est refusé : c'est la fiche qui sert à éprouver un envoi, un rendu
+    ou une prise de rendez-vous. La supprimer par mégarde se paie en la recréant à la main
+    avec ses réglages — et en s'en apercevant au moment où on en a besoin.
+    """
+    _scripts_dans_le_chemin()
+    try:
+        import pool_pg
+        ligne = pool_pg._q("SELECT COALESCE(est_test, false), email::text FROM contacts "
+                           "WHERE id::text = %(id)s", {"id": contact_id})
+        if ligne and ligne[0][0]:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=409, content={
+                "ok": False, "est_test": True,
+                "error": "contact de test — suppression refusée",
+                "detail": f"{ligne[0][1]} sert aux essais d'envoi et de rendu. "
+                          f"Pour l'écarter d'une liste, changez son état ; pour le retirer "
+                          f"définitivement, retirez d'abord son drapeau de test en base."})
+    except Exception as e:  # noqa: BLE001
+        # Un contrôle en panne ne doit pas bloquer une suppression légitime, mais il doit
+        # s'entendre : sans ce message, on croirait la protection active alors qu'elle dort.
+        print(f"[api] contrôle « contact de test » indisponible ({type(e).__name__}: {e})",
+              flush=True)
+
     import duckdb as _dd
     c = _dd.connect(str(BASE_DIR / "data" / "contacts.duckdb"))
     try:

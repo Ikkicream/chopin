@@ -89,7 +89,7 @@ _COLONNES = ["contact_id", "email", "site_code", "prenom", "nom", "societe", "te
              "statut", "assigned_to", "assigned_at", "next_action_at", "last_call_at",
              "outcome", "notes", "last_open_at", "last_click_at", "opens", "clicks",
              "nb_interactions", "flash", "flash_at", "secteur", "blacklisted",
-             "opportunite"]
+             "opportunite", "est_test"]
 
 
 def _ligne(r) -> dict:
@@ -136,7 +136,8 @@ def lister(site: str, role: str, username: str, vue: str = "mes") -> dict:
                -- rappellerait un prospect dont un collègue a déjà obtenu l'accord — le
                -- pire appel qu'on puisse passer.
                (SELECT o.statut FROM opportunites o
-                 WHERE o.site_code = v.site_code AND o.email = v.email) AS opportunite
+                 WHERE o.site_code = v.site_code AND o.email = v.email) AS opportunite,
+               false AS est_test
         FROM v_a_rappeler v
         WHERE {' AND '.join(where)}
         ORDER BY
@@ -149,11 +150,43 @@ def lister(site: str, role: str, username: str, vue: str = "mes") -> dict:
             next_action_at ASC NULLS LAST,
             last_click_at DESC NULLS LAST
     """
+    # La fiche de test, réservée au superadmin. Elle n'entre pas dans `v_a_rappeler` — la
+    # vue exige l'état `lead` ou `prm`, et cette fiche est en `crm`. Plutôt que de changer
+    # son état (ce qui la montrerait à toute l'équipe), on l'ajoute ici, pour ce rôle seul.
+    # C'est ce qui permet d'éprouver le module d'appel sans déranger personne.
+    SQL_TEST = """
+        SELECT ct.id, ct.email, cs.site_code, ct.prenom, ct.nom, ct.societe, ct.tel,
+               ct.website, ct.city, ct.dept_code, ct.prenom_source, cs.state,
+               f.id, COALESCE(f.statut, 'a_faire'), f.assigned_to, f.assigned_at,
+               f.next_action_at, f.last_call_at, f.outcome, f.notes,
+               NULL::timestamptz, NULL::timestamptz, 0, 0,
+               (SELECT count(*) FROM followup_events fe
+                 WHERE fe.email = ct.email AND fe.site_code = cs.site_code),
+               COALESCE(f.flash, false), f.flash_at,
+               (SELECT sectors[1] FROM contacts x WHERE x.id = ct.id),
+               false, NULL::text,
+               true AS est_test
+          FROM contacts ct
+          JOIN contact_sites cs ON cs.contact_id = ct.id
+          LEFT JOIN contact_followup f ON f.email = ct.email AND f.site_code = cs.site_code
+         WHERE cs.site_code = %(site)s AND COALESCE(ct.est_test, false)
+           AND f.retire_at IS NULL
+    """
+
     c = _conn()
     try:
         with c.cursor() as cur:
             cur.execute(sql, params)
             lignes = [_ligne(r) for r in cur.fetchall()]
+            # En TÊTE, comme sur la page Contacts : c'est une fiche qu'on cherche, pas une
+            # qu'on parcourt. Un échec ici ne doit pas priver de la vraie liste.
+            if (role or "") == "superadmin":
+                try:
+                    cur.execute(SQL_TEST, {"site": site})
+                    lignes = [_ligne(r) for r in cur.fetchall()] + lignes
+                except Exception as e:  # noqa: BLE001
+                    print(f"[followup] fiche de test non chargée ({type(e).__name__}: {e})",
+                          flush=True)
             # Compteurs de tous les onglets, pour que l'interface n'ait pas à deviner ce
             # qu'elle affichera avant de cliquer.
             cpt = _compteurs(cur, site, username)

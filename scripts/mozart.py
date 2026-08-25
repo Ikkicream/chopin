@@ -300,6 +300,52 @@ def _candidats(site: str, declencheur: dict, limite: int = 500) -> list[tuple]:
         {"site": site, "j": jours, "secteurs": secteurs, "lim": int(limite)})
 
 
+# ── Ce que les boîtes peuvent RÉELLEMENT absorber ────────────────────────────
+# Un scénario n'envoie pas ce qu'il veut : il envoie ce que les adresses Maildoso
+# autorisent. Au 2026-08-25 les quatre boîtes réservées à Mozart sont en chauffe — elles
+# rendent ZÉRO jusqu'au 8 septembre — puis montent de 15 à 35 par jour et par boîte.
+#
+# Sans garde-fou, `inscrire()` prenait 500 contacts par passage et le cron tourne toutes
+# les heures : de quoi mettre douze mille personnes en file pour une capacité de soixante
+# par jour. Ces contacts attendraient des mois, recevraient un message périmé, et la
+# fenêtre de non-recontact de 120 jours les bloquerait entre-temps. On n'inscrit donc pas
+# plus que ce qui peut partir dans un horizon raisonnable.
+HORIZON_FILE_JOURS = 7
+
+
+def capacite_jour(site: str) -> dict:
+    """Ce que les adresses de Mozart peuvent envoyer aujourd'hui, et pourquoi.
+
+    Rend aussi le détail par boîte : « 0 parce qu'en chauffe » n'est pas la même chose que
+    « 0 parce que le plafond du jour est atteint », et l'écran doit pouvoir le dire.
+    """
+    try:
+        import expediteur as ex
+        boites = ex.boites(site, usage="mozart")
+    except Exception as e:  # noqa: BLE001
+        return {"capacite": 0, "boites": [], "erreur": str(e)[:200]}
+
+    detail = []
+    for b in boites:
+        motif = ("en chauffe jusqu'au " + str(b.get("chauffe_fin") or "")
+                 if b.get("en_chauffe") else
+                 "au repos" if b.get("au_repos_jusqu_a") else
+                 "inactive" if not b.get("active") else "")
+        detail.append({"email": b["email"], "reste": b["reste"],
+                       "plafond": b.get("plafond_chauffe"), "motif": motif})
+    return {"capacite": sum(b["reste"] for b in boites),
+            "boites": detail,
+            "en_chauffe": sum(1 for b in boites if b.get("en_chauffe")),
+            "horizon_jours": HORIZON_FILE_JOURS}
+
+
+def file_en_attente(scenario_id: str) -> int:
+    """Combien de contacts attendent déjà leur tour dans ce scénario."""
+    r = _q("""SELECT count(*) FROM mozart_inscriptions
+               WHERE scenario_id = %(s)s AND statut = 'en_cours'""", {"s": scenario_id})
+    return int(r[0][0]) if r else 0
+
+
 def inscrire(sc: dict, dry_run: bool = False, limite: int = 500) -> dict:
     noeuds, liens = _graphe(sc)
     decl = next((n for n in noeuds.values() if n.get("type") == "declencheur"), None)
@@ -310,7 +356,21 @@ def inscrire(sc: dict, dry_run: bool = False, limite: int = 500) -> dict:
     if not premier:
         return {"inscrits": 0, "note": "le déclencheur ne mène nulle part"}
 
-    cands = _candidats(sc["site_code"], decl, limite)
+    # La file ne doit jamais dépasser ce que les boîtes peuvent envoyer sur l'horizon.
+    # On calcule la place restante AVANT de piocher : inutile de lire cinq cents contacts
+    # pour en jeter quatre cent quatre-vingts.
+    cap = capacite_jour(sc["site_code"])
+    plafond_file = max(0, cap["capacite"] * HORIZON_FILE_JOURS)
+    deja = file_en_attente(sc["id"])
+    place = max(0, plafond_file - deja)
+    if place <= 0:
+        return {"inscrits": 0, "candidats": 0, "bride": True,
+                "note": (f"file pleine : {deja} contact(s) en attente pour une capacité de "
+                         f"{cap['capacite']}/jour"
+                         + (" (boîtes en chauffe)" if cap.get("en_chauffe") else "")),
+                "capacite_jour": cap["capacite"], "file": deja}
+
+    cands = _candidats(sc["site_code"], decl, min(limite, place))
     if dry_run:
         return {"inscrits": 0, "candidats": len(cands), "dry_run": True,
                 "exemples": [c[1] for c in cands[:5]]}
@@ -327,7 +387,9 @@ def inscrire(sc: dict, dry_run: bool = False, limite: int = 500) -> dict:
         ON CONFLICT (scenario_id, email) DO NOTHING""",
         {"s": sc["id"], "n": premier,
          "emails": [c[1] for c in cands], "cids": [str(c[0]) for c in cands]})
-    return {"inscrits": n, "candidats": len(cands)}
+    return {"inscrits": n, "candidats": len(cands),
+            "capacite_jour": cap["capacite"], "file": deja + n,
+            "plafond_file": plafond_file}
 
 
 # ── Exécution d'un pas ────────────────────────────────────────────────────────

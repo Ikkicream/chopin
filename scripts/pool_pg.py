@@ -101,6 +101,11 @@ _ELIGIBLE = f"""
     -- recalculent depuis les faits bruts : elles restent, en second rideau, pour qu'un
     -- état momentanément périmé ne puisse jamais faire partir un email de travers.
     ct.etat = 'ok'
+    -- Un contact de TEST n'entre jamais dans une campagne. Le contrôle porte sur
+    -- `est_test` et NON sur `etat` : `etat` est réaligné depuis le pool par
+    -- `pg_reconcile` à chaque nuit, une protection posée là se serait effacée
+    -- toute seule au premier passage.
+    AND NOT COALESCE(ct.est_test, false)
     -- L'enrichissement data.gouv reste EXIGÉ pour envoyer (porte d'entrée « option C ») :
     -- il l'était implicitement via `etat`, il l'est désormais explicitement ici, à sa
     -- place. L'état dit si l'adresse est bonne ; c'est cette clause qui dit si on a le
@@ -331,6 +336,11 @@ _PRESSION_SQL = f"""
 # de 120 jours est remplacée par la pression mensuelle.
 _ELIGIBLE_SEGMENT = f"""
     ct.etat = 'ok'
+    -- Un contact de TEST n'entre jamais dans une campagne. Le contrôle porte sur
+    -- `est_test` et NON sur `etat` : `etat` est réaligné depuis le pool par
+    -- `pg_reconcile` à chaque nuit, une protection posée là se serait effacée
+    -- toute seule au premier passage.
+    AND NOT COALESCE(ct.est_test, false)
     AND e.contact_id IS NOT NULL
     AND NOT ct.global_blacklisted
     AND NOT COALESCE(e.excluded, false)
@@ -643,6 +653,11 @@ ETAPES_CLES = ("blacklisted", "ecarte", "repos", "a_verifier", "verifie", "pret"
 _ETAPE_SQL = """
 CASE
     WHEN COALESCE(ct.global_blacklisted, FALSE) THEN 'blacklisted'
+    -- Un contact REJETÉ à la collecte est écarté, pas « à vérifier ». Sans cette ligne il
+    -- retombait plus bas sur `mailnjoy_decision IS NULL` — vrai, puisqu'on ne l'a jamais
+    -- vérifié et qu'on ne le fera pas : il s'affichait alors comme une vérification en
+    -- attente qui n'arriverait jamais. 64 fiches dans ce cas le 2026-08-25.
+    WHEN ct.etat = 'ko' THEN 'ecarte'
     WHEN ct.mailnjoy_decision IS NOT NULL AND ct.mailnjoy_decision <> 'valid' THEN 'ecarte'
     WHEN COALESCE(e.excluded, FALSE) THEN 'ecarte'
     WHEN sup.release_at IS NOT NULL THEN 'repos'
@@ -759,7 +774,8 @@ _ACQ_SELECT = """
            eng.last_sent_at, eng.last_reply_at, eng.last_bounce_at, eng.last_unsub_at,
            eng.last_open_at, eng.last_click_at, eng.open_channel, eng.click_channel,
            ct.mailnjoy_check, e.siret, e.match_quality, e.excluded, e.exclusion_reason,
-           sup.release_at, """ + _ETAPE_SQL + """ AS etape
+           sup.release_at, """ + _ETAPE_SQL + """ AS etape,
+           COALESCE(ct.est_test, false)
 """
 
 _ACQ_COLS = [
@@ -773,6 +789,8 @@ _ACQ_COLS = [
     "last_opened_at", "last_clicked_at", "last_open_channel", "last_click_channel",
     "mailnjoy_check", "siret", "match_quality", "enrichissement_exclu",
     "enrichissement_motif", "en_repos_jusquau", "etape",
+    # La fiche de test se signale à l'écran : épinglée en tête, grisée, étiquetée.
+    "est_test",
 ]
 
 # Champs que l'écran attend encore et que PostgreSQL ne porte pas : les identifiants
@@ -790,7 +808,8 @@ def list_contacts_for_site(site_code: str, state=None, sectors_in=None, source=N
     p["lim"] = int(limit)
     p["off"] = int(offset)
     rows = _q(_ACQ_SELECT + q +
-              " ORDER BY cs.last_action_at DESC NULLS LAST LIMIT %(lim)s OFFSET %(off)s", p)
+              " ORDER BY COALESCE(ct.est_test, false) DESC,"
+              " cs.last_action_at DESC NULLS LAST LIMIT %(lim)s OFFSET %(off)s", p)
 
     import contacts_pool_backend as _cpb   # pour ETAPES, le vocabulaire d'affichage
     out = []

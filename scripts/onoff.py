@@ -77,6 +77,39 @@ def cle(site: str) -> str:
     return e.get(f"ONOFF_API_KEY_{site.upper()}", "") or e.get("ONOFF_API_KEY", "")
 
 
+# Le numéro de la ligne, tel qu'il s'affiche aux commerciaux. Il vit en configuration et
+# non en dur : c'est un numéro de téléphone, il changera avant le code qui l'affiche.
+# Quand l'API Onoff est branchée (plan Max), `numeros()` fait autorité ; sinon on retombe
+# sur cette valeur, pour que l'écran sache toujours quoi annoncer.
+NUMERO_DEFAUT = "+33744306603"
+
+
+def numero_ligne(site: str) -> str:
+    """Le numéro à annoncer. La configuration d'abord — elle est instantanée et ne coûte
+    aucun appel réseau —, le défaut ensuite. `numero_reel()` interroge Onoff quand on veut
+    la vérité du fournisseur."""
+    e = _env()
+    return (e.get(f"ONOFF_NUMERO_{site.upper()}", "")
+            or e.get("ONOFF_NUMERO", "")
+            or NUMERO_DEFAUT)
+
+
+def numero_reel(site: str) -> dict:
+    """Le premier numéro attribué selon Onoff, avec son pays. Repli sur la configuration.
+
+    Sert à vérifier qu'on annonce le bon numéro : le jour où la ligne change chez Onoff,
+    l'écran doit le suivre sans qu'on édite un fichier.
+    """
+    r = numeros(site, "used")
+    for n in r.get("numeros") or []:
+        brut = str(n.get("phoneNumber") or "")
+        if brut:
+            tel = brut if brut.startswith("+") else "+" + brut
+            return {"numero": tel, "pays": n.get("countryCode") or "FR", "source": "onoff"}
+    tel = numero_ligne(site)
+    return {"numero": tel, "pays": "FR" if tel.startswith("+33") else "", "source": "config"}
+
+
 def configure(site: str) -> bool:
     return bool(cle(site))
 
@@ -186,6 +219,27 @@ def lisible(tel: str) -> str:
     return n or tel
 
 
+def international(tel: str) -> str:
+    """`+33744306603` → `+33 7 44 30 66 03`.
+
+    Le format que Camille veut voir affiché : l'indicatif détaché, puis le numéro par
+    paires. `lisible()` rend la forme NATIONALE (`07 44 …`), utile pour reconnaître un
+    correspondant ; celle-ci annonce NOTRE ligne, et un numéro qu'on donne se donne en
+    international.
+    """
+    n = e164(tel)
+    if n.startswith("+33") and len(n) == 12:
+        reste = n[3:]                      # 9 chiffres, sans le 0
+        return "+33 " + reste[0] + " " + " ".join(reste[i:i + 2] for i in range(1, 9, 2))
+    return n or tel
+
+
+def drapeau(tel: str) -> str:
+    """L'émoji du pays d'un numéro. Seule la France est reconnue pour l'instant — inventer
+    une table complète pour un numéro qu'on possède serait du travail pour personne."""
+    return "🇫🇷" if e164(tel).startswith("+33") else "🌍"
+
+
 # ── Lectures API ─────────────────────────────────────────────────────────────
 
 def _liste(r: dict) -> list[dict]:
@@ -197,7 +251,12 @@ def _liste(r: dict) -> list[dict]:
     if isinstance(d, list):
         return d
     if isinstance(d, dict):
-        for k in ("data", "items", "results", "content", "members", "numbers", "calls", "messages"):
+        # `callLogs` et `messagesLogs` sont les enveloppes RÉELLES, constatées sur l'API le
+        # 2026-08-25 — la documentation ne les nomme nulle part. Sans elles on lisait une
+        # liste vide sans erreur : le pire des cas, un écran qui affiche « aucun appel »
+        # alors que le fournisseur en a.
+        for k in ("data", "items", "results", "content", "members", "numbers", "calls",
+                  "messages", "callLogs", "messagesLogs", "numberList"):
             v = d.get(k)
             if isinstance(v, list):
                 return v
@@ -210,18 +269,73 @@ def membres(site: str) -> dict:
             "raison": r.get("raison")}
 
 
-def numeros(site: str) -> dict:
-    r = _requete(site, "/api/v1/numbers")
+def numeros(site: str, statut: str = "used") -> dict:
+    """Les numéros de l'organisation.
+
+    `status` est OBLIGATOIRE et **en minuscules** : `used` (attribués) ou `available`
+    (libres). La documentation les écrit en majuscules (`USED`, `AVAILABLE`) — l'API les
+    refuse sous cette forme avec `invalid.status`. Vérifié le 2026-08-25 : sans paramètre
+    du tout, elle rend la même erreur, ce qui fait croire à un problème de clé.
+    """
+    r = _requete(site, "/api/v1/numbers", {"status": (statut or "used").lower()})
     return {"ok": r.get("ok", False), "numeros": _liste(r), "erreur": r.get("error"),
             "raison": r.get("raison")}
 
 
+def lignes(site: str) -> dict:
+    """Les numéros de l'organisation ET à qui chacun est attribué.
+
+    L'attribution ne se lit PAS sur le numéro : `GET /numbers` ne rend que
+    `{id, phoneNumber, countryCode}`, et `GET /numbers/{id}` répond `invalid.id`. Elle vit
+    du côté des MEMBRES, dans `numberIdRefs`. Il faut donc croiser les deux listes — sans
+    quoi on affiche un numéro sans savoir qui le détient, et deux personnes croient
+    pouvoir s'en servir.
+    """
+    lm = membres(site)
+    ln = numeros(site, "used")
+    if not ln.get("ok"):
+        return {"ok": False, "lignes": [], "erreur": ln.get("erreur"), "raison": ln.get("raison")}
+
+    # id de numéro → membre qui le détient.
+    par_numero: dict[str, dict] = {}
+    for m in lm.get("membres") or []:
+        for ref in m.get("numberIdRefs") or []:
+            par_numero[str(ref)] = m
+
+    out = []
+    for n in ln.get("numeros") or []:
+        brut = str(n.get("phoneNumber") or "")
+        tel = brut if brut.startswith("+") else "+" + brut
+        m = par_numero.get(str(n.get("id")))
+        out.append({
+            "id": n.get("id"),
+            "numero": tel,
+            "affichage": international(tel),
+            "drapeau": drapeau(tel),
+            "pays": n.get("countryCode") or "",
+            "attribue": bool(m),
+            "titulaire": (f"{m.get('firstName','')} {m.get('lastName','')}".strip() or None) if m else None,
+            "titulaire_email": (m.get("email") if m else None),
+            "titulaire_id": (m.get("id") if m else None),
+        })
+    return {"ok": True, "lignes": out,
+            "membres_sans_ligne": [
+                {"nom": f"{m.get('firstName','')} {m.get('lastName','')}".strip(),
+                 "email": m.get("email")}
+                for m in (lm.get("membres") or []) if not (m.get("numberIdRefs") or [])],
+            "erreur": None}
+
+
 def statistiques(site: str, depuis: str = "", jusqu_a: str = "") -> dict:
-    params = {}
-    if depuis:
-        params["startDate"] = depuis
-    if jusqu_a:
-        params["endDate"] = jusqu_a
+    """Statistiques agrégées sur une période.
+
+    `startDate` et `endDate` sont OBLIGATOIRES : sans elles l'API rend
+    `startDate.invalid` — un message qui ressemble à un défaut de paramètre alors que
+    c'est une absence. On prend donc les 30 derniers jours par défaut.
+    """
+    from datetime import date as _d, timedelta as _td
+    params = {"startDate": depuis or str(_d.today() - _td(days=30)),
+              "endDate": jusqu_a or str(_d.today())}
     r = _requete(site, "/api/v1/statistics", params)
     return {"ok": r.get("ok", False), "stats": r.get("data") or {}, "erreur": r.get("error"),
             "raison": r.get("raison")}
@@ -287,6 +401,36 @@ def _texte(d: dict, *cles: str) -> str:
     return ""
 
 
+def _horodatage(valeur: str) -> str | None:
+    """Une date d'Onoff, ou None — jamais une exception.
+
+    Onoff envoie `"2026-08-25 14:01:43 CEST"` : ni ISO, ni UTC, avec un fuseau en toutes
+    lettres. PostgreSQL sait le lire — `strptime` NON, son `%Z` n'accepte que UTC/GMT et le
+    fuseau local. On valide donc la partie DATE, et on laisse la conversion du fuseau à
+    PostgreSQL, qui la fait bien (14:01:43 CEST → 12:01:43 UTC, vérifié le 2026-08-25).
+
+    Le but de ce filtre n'est pas de convertir : c'est d'empêcher qu'une date exotique
+    fasse échouer l'INSERT et PERDE l'appel qu'elle horodate. Une date illisible ne doit
+    coûter que la date.
+    """
+    v = (valeur or "").strip()
+    if not v:
+        return None
+    from datetime import datetime
+    # On isole la partie « AAAA-MM-JJ[ ou T]HH:MM:SS », le reste étant un fuseau que
+    # PostgreSQL saura interpréter (ou ignorer).
+    m = re.match(r"^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}(?::\d{2})?))?", v)
+    if not m:
+        print(f"[onoff] date illisible, événement conservé sans horodatage : {v!r}", flush=True)
+        return None
+    try:
+        datetime.strptime(m.group(1), "%Y-%m-%d")
+    except ValueError:
+        print(f"[onoff] date invalide, événement conservé sans horodatage : {v!r}", flush=True)
+        return None
+    return v
+
+
 def enregistrer_evenement(site: str, charge: dict) -> dict:
     """Range un log Onoff (webhook) dans le journal local. Idempotent sur `id`.
 
@@ -341,8 +485,8 @@ def enregistrer_evenement(site: str, charge: dict) -> dict:
         "next": e164(_texte(charge, "externalNumber")) or None,
         "nom": _texte(charge, "externalName") or None,
         "societe": _texte(charge, "externalCompanyName") or None,
-        "debut": _texte(charge, "callStarted", "sentAt", "createdAt") or None,
-        "fin": _texte(charge, "callEnded") or None,
+        "debut": _horodatage(_texte(charge, "callStarted", "sentAt", "createdAt")),
+        "fin": _horodatage(_texte(charge, "callEnded")),
         "duree": int(duree) if isinstance(duree, (int, float)) else None,
         "texte": _texte(charge, "text", "smsText", "message") or None,
         "audio": audio or None,

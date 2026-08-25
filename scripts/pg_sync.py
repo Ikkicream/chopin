@@ -220,6 +220,31 @@ def retirer_par_email(email: str) -> bool:
                      (em,), {"email": em})
 
 
+def sync_rejet(email: str, decision: str = "", reason: str = "") -> bool:
+    """Un contact REJETÉ est marqué `ko`, tout de suite.
+
+    `god_mode_backend.mark_email_rejected` n'écrivait que dans DuckDB : le contact
+    disparaissait du pool, et PostgreSQL le gardait avec `etat = 'a_verifier'` — un état
+    qui affirme « il reste à le vérifier » alors qu'il vient précisément d'être refusé.
+    Constaté le 2026-08-25 : **64 contacts rejetés affichés « À vérifier »** dans
+    Acquisition, sur 1 561 rejets de la journée, en attendant la réconciliation du
+    lendemain matin.
+
+    Même raisonnement que `sync_blacklist` : on marque, on ne fait pas disparaître — la
+    mémoire du refus est ce qui évite de re-scraper la même adresse la semaine suivante.
+    """
+    em = (email or "").strip().lower()
+    if not em:
+        return False
+    motif = " / ".join(x for x in ((decision or "").strip(), (reason or "").strip()) if x)
+    return _executer("rejet_contact", """
+        UPDATE contacts SET etat = 'ko',
+                            etat_motif = COALESCE(NULLIF(%s, ''), 'rejeté à la collecte'),
+                            etat_at = now(), updated_at = now()
+        WHERE email = %s AND etat IS DISTINCT FROM 'ko'
+    """, (motif[:200], em), {"email": em, "decision": decision})
+
+
 def sync_blacklist(email: str, reason: str = "") -> bool:
     """Un contact blacklisté est MARQUÉ, jamais retiré.
 

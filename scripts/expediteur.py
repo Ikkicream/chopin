@@ -221,6 +221,10 @@ def boites(site: str, usage: str | None = None) -> list[dict]:
                     "plafond_chauffe": chauffe,
                     "usage": usage_boite,
                     "warmup_debut": str(debut_chauffe) if debut_chauffe else None,
+                    # La DATE de fin, pas seulement le fait d'être en chauffe : « en chauffe »
+                    # sans échéance laisse croire à une panne.
+                    "chauffe_fin": (str(debut_chauffe + _timedelta(days=CHAUFFE_JOURS))
+                                    if debut_chauffe else None),
                     "en_chauffe": chauffe == 0,
                     "plafond_effectif": effectif,
                     "reste": 0 if au_repos else max(0, effectif - envoyes),

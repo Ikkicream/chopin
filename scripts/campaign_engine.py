@@ -559,6 +559,46 @@ def _drop_recently_emailed(contacts: list[dict],
     return kept, len(contacts) - len(kept)
 
 
+# Combien de temps sans le moindre envoi avant de considérer un lot comme MORT. L'écart
+# maximum entre deux envois d'un lot vivant est `ECART_MAX_LOT` (15 min) ; on prend le
+# double, pour ne jamais confondre un lot lent avec un lot abandonné.
+SILENCE_LOT_MORT_MIN = 30
+
+
+def _lot_abandonne(camp: dict, today) -> bool:
+    """Le lot du jour a-t-il été interrompu au lieu d'aller au bout ?
+
+    Le marqueur `last_dispatch_day` est posé AVANT l'envoi, pour qu'un second cron ne
+    puisse pas doubler un lot en cours. C'est juste — mais il ne prévoyait pas que le
+    process MEURE en chemin : le marqueur restait, et la journée entière était perdue.
+    C'est arrivé le 2026-08-25 (7 emails partis au lieu de 80) parce que le dispatch a été
+    arrêté à la main.
+
+    On ne rouvre la porte que si les TROIS conditions sont réunies :
+      - il reste des envois autorisés aujourd'hui ;
+      - aucun email n'est parti pour cette campagne depuis 30 minutes — soit le double de
+        l'écart maximum d'un lot vivant, donc un lot qui tourne encore n'est jamais pris
+        pour mort ;
+      - la campagne est toujours en cours.
+    Sans ces trois-là, on préfère perdre une journée que d'envoyer deux fois.
+    """
+    try:
+        reste = (camp.get("target_size") or 0) - (camp.get("sent_count") or 0)
+        if reste <= 0:
+            return False
+        import journal_pg
+        dernier = journal_pg.dernier_envoi_campagne(camp.get("id") or camp.get("legacy_id"))
+        if dernier is None:
+            return True                       # rien n'est parti du tout : le lot a échoué
+        from datetime import datetime, timezone, timedelta
+        silence = datetime.now(timezone.utc) - dernier
+        return silence > timedelta(minutes=SILENCE_LOT_MORT_MIN)
+    except Exception as e:  # noqa: BLE001
+        # Dans le doute, on NE rouvre PAS : un doublon coûte plus cher qu'un jour perdu.
+        print(f"[campaign_engine] reprise non évaluable ({type(e).__name__}: {e})", flush=True)
+        return False
+
+
 def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = False) -> dict:
     """Exécute le lot du jour pour une campagne. Idempotent par jour."""
     today = today or _date.today()
@@ -567,7 +607,7 @@ def dispatch_campaign(cid: str, today: _date | None = None, dry_run: bool = Fals
         return {"ok": False, "error": "introuvable"}
     if camp["status"] not in ACTIVE_STATUSES:
         return {"ok": False, "error": f"statut {camp['status']} (pas dispatchable)"}
-    if camp.get("last_dispatch_day") == today.isoformat():
+    if camp.get("last_dispatch_day") == today.isoformat() and not _lot_abandonne(camp, today):
         return {"ok": False, "error": "déjà dispatché aujourd'hui", "skipped": True}
     if str(camp.get("schedule_start", ""))[:10] > today.isoformat():
         return {"ok": False, "error": "pas encore commencé", "skipped": True}

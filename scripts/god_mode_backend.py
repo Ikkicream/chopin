@@ -17,6 +17,30 @@ import time
 
 import duckdb
 
+# DuckDB s'accorde par défaut 80 % de la RAM — mesuré à **6 Gio sur une machine qui en a
+# 7,7**. Deux processus DuckDB simultanés suffisent alors à déclencher le tueur de mémoire
+# du noyau, qui abat n'importe quoi : un test, l'API, ou le dispatch d'envoi en cours.
+# C'est arrivé trois fois le 2026-08-25. Nos requêtes sont des agrégats sur des tables de
+# quelques dizaines de milliers de lignes : 1 Gio est large, et borne le risque.
+LIMITE_MEMOIRE_DUCKDB = "2GB"
+
+
+def _brider(c):
+    """Pose le plafond mémoire sur une connexion. Best-effort : une version de DuckDB qui
+    refuserait le réglage ne doit pas empêcher d'ouvrir la base."""
+    try:
+        c.execute(f"SET memory_limit = '{LIMITE_MEMOIRE_DUCKDB}'")
+        c.execute("SET threads = 2")
+        # Recommandé par DuckDB lui-même quand la mémoire serre : ne pas préserver l'ordre
+        # d'insertion divise nettement le besoin. Aucune de nos requêtes n'en dépend —
+        # toutes portent un ORDER BY explicite quand l'ordre compte.
+        c.execute("SET preserve_insertion_order = false")
+    except Exception:  # noqa: BLE001
+        pass
+    return c
+
+
+
 BASE_DIR = Path(__file__).parent.parent
 GOD_DB = BASE_DIR / "data" / "god_mode.duckdb"
 AUTH_DB = BASE_DIR / "data" / "auth.duckdb"
@@ -44,7 +68,7 @@ def _conn(retries: int = 8, delay: float = 0.4):
     """Ouvre une connexion write en retrying sur lock conflict (API concurrente)."""
     for attempt in range(retries):
         try:
-            return duckdb.connect(str(GOD_DB))
+            return _brider(duckdb.connect(str(GOD_DB)))
         except Exception as e:
             if "Conflicting lock" in str(e) and attempt < retries - 1:
                 time.sleep(delay)
@@ -624,6 +648,18 @@ def mark_email_rejected(email: str, decision: str, reason: str = "", site_code: 
             c.close()
     except Exception:
         pass
+
+    # Le rejet se répercute IMMÉDIATEMENT dans PostgreSQL. Sans ça, le contact disparaît
+    # du pool et reste « à vérifier » côté PostgreSQL jusqu'à la réconciliation du
+    # lendemain — affiché à l'écran comme une tâche en attente qui n'en est pas une.
+    # Best-effort, comme le reste : un incident PostgreSQL ne doit pas empêcher d'écarter
+    # une adresse.
+    try:
+        import pg_sync
+        pg_sync.sync_rejet(email, decision, reason)
+    except Exception as e:  # noqa: BLE001
+        print(f"[god_mode] rejet non répercuté dans PostgreSQL : {type(e).__name__}: {e}",
+              flush=True)
 
 
 def list_prospects(site_code: str, status: str = None, sector: str = None, limit: int = 500):

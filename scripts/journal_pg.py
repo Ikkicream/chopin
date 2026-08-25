@@ -265,3 +265,68 @@ def totaux_masse(site: str) -> tuple[int, object]:
     r = _q("""SELECT COALESCE(sum(recipients_count), 0), min(created_at)
               FROM mass_sends WHERE site_code = %(site)s""", {"site": site})
     return (int(r[0][0] or 0), r[0][1]) if r else (0, None)
+
+
+def dernier_envoi_campagne(campagne) -> "datetime | None":
+    """Quand cette campagne a-t-elle envoyé son dernier email ? None si jamais.
+
+    Sert à distinguer un lot qui TOURNE d'un lot MORT : un lot vivant envoie au moins
+    toutes les quinze minutes. Le journal est la seule source qui le sache — `campaigns`
+    ne porte que l'heure de DÉBUT du lot, identique pendant deux heures.
+    """
+    cid = str(campagne or "").strip()
+    if not cid:
+        return None
+    lignes = _q("""
+        SELECT max(occurred_at) FROM email_events
+         WHERE event_type = 'sent'
+           AND (campaign_id::text = %(c)s OR campaign_id::text LIKE %(prefixe)s)
+    """, {"c": cid, "prefixe": cid.split("-")[0] + "-%"})
+    return lignes[0][0] if lignes and lignes[0][0] else None
+
+
+def cohorte_par_jour(site: str, jours: int = 7) -> list[tuple]:
+    """Par jour d'ENVOI : combien de destinataires ont ensuite ouvert, puis cliqué.
+
+    C'est une COHORTE, et c'est la différence qui compte. Compter « les personnes qui ont
+    ouvert ce jour-là » et le rapporter aux envois du même jour compare deux populations
+    sans rapport : le 2026-08-25, cela donnait **162 % d'ouverture** (13 ouvreurs pour
+    8 envois, les ouvertures portant sur des emails des jours précédents).
+
+    Ici, le dénominateur et le numérateur portent sur les MÊMES personnes : celles servies
+    le jour J. Le taux ne peut donc pas dépasser 100 %. Une ouverture n'est comptée que si
+    elle survient APRÈS l'envoi — sinon une ouverture ancienne créditerait un envoi neuf.
+    """
+    # Deux agrégats joints, et non deux EXISTS corrélés : la première écriture relisait
+    # `email_events` une fois PAR destinataire et par jour — 76 secondes pour sept jours,
+    # soit la lenteur du tableau de bord signalée le 2026-08-25. Ici chaque table n'est
+    # parcourue qu'une fois.
+    #
+    # On compare au DERNIER open/click et non au premier : une personne peut avoir ouvert
+    # un email ancien AVANT cet envoi-ci, puis celui-ci après. Prendre le premier la ferait
+    # disparaître de la cohorte à tort.
+    return _q("""
+        WITH envois AS (
+            SELECT ev.email,
+                   (ev.occurred_at AT TIME ZONE 'Europe/Paris')::date AS jour,
+                   min(ev.occurred_at) AS premier
+              FROM email_events ev
+             WHERE ev.site_code = %(site)s AND ev.event_type = 'sent'
+               AND ev.occurred_at >= now() - make_interval(days => %(j)s)
+             GROUP BY 1, 2
+        ),
+        reactions AS (
+            SELECT email,
+                   max(occurred_at) FILTER (WHERE event_type = 'open')  AS ouvert,
+                   max(occurred_at) FILTER (WHERE event_type = 'click') AS clique
+              FROM email_events
+             WHERE site_code = %(site)s AND event_type IN ('open', 'click')
+             GROUP BY 1
+        )
+        SELECT e.jour,
+               count(*) FILTER (WHERE r.ouvert IS NOT NULL AND r.ouvert >= e.premier) AS ouvreurs,
+               count(*) FILTER (WHERE r.clique IS NOT NULL AND r.clique >= e.premier) AS cliqueurs
+          FROM envois e
+          LEFT JOIN reactions r ON r.email = e.email
+         GROUP BY 1 ORDER BY 1
+    """, {"site": site, "j": int(jours)})

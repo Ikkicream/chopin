@@ -225,6 +225,46 @@ def update(site: str, sector: str, kind: str, subject: str, body_html: str, by: 
     return {"ok": True, "valid": not errs, "validation_errors": errs, "email": _get_one(site, sector, kind)}
 
 
+def dupliquer(site: str, source: str, cible: str, by: str = "ui") -> dict:
+    """Recopie les trois emails d'un secteur vers un autre, en brouillon déverrouillé.
+
+    Sert au cas le plus fréquent : un secteur proche existe déjà et fonctionne, on part de
+    lui plutôt que de la page blanche. La copie est RE-VALIDÉE — un email conforme pour un
+    secteur peut ne plus l'être ailleurs (le lint exige un lien de prise de rendez-vous, et
+    le corps peut nommer le métier d'origine).
+
+    Un email VERROUILLÉ de la cible n'est jamais écrasé : le verrou vaut approbation, et
+    une duplication ne doit pas défaire une validation.
+    """
+    from email_generator import validate_email
+    source, cible = (source or "").strip(), (cible or "").strip()
+    if not source or not cible:
+        return {"ok": False, "error": "secteur source et cible requis"}
+    if source == cible:
+        return {"ok": False, "error": "la source et la cible sont le même secteur"}
+
+    copies, ignores = [], []
+    for kind in KINDS:
+        origine = _get_one(site, source, kind)
+        if not origine or not (origine.get("body_html") or "").strip():
+            continue
+        existant = _get_one(site, cible, kind)
+        if existant and existant.get("locked"):
+            ignores.append(kind)
+            continue
+        corps = normalize_greeting(origine.get("body_html") or "")
+        errs = validate_email(origine.get("subject") or "", corps)
+        _upsert(site, cible, kind, origine.get("subject") or "", corps,
+                not errs, errs, by=by, locked=False)
+        copies.append({"kind": kind, "valid": not errs, "validation_errors": errs})
+
+    if not copies and not ignores:
+        return {"ok": False, "error": f"aucun email à copier depuis « {source} »"}
+    return {"ok": True, "source": source, "cible": cible,
+            "copies": copies, "ignores_car_verrouilles": ignores,
+            "emails": get_sector(site, cible)}
+
+
 def set_lock(site: str, sector: str, kind: str, locked: bool, by: str = "ui") -> dict:
     """Verrouille (= approuve) ou déverrouille un email. Verrouiller refuse si non conforme."""
     t = _get_one(site, sector, kind)

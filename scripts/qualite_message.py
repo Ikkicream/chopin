@@ -141,8 +141,16 @@ def spintax(gabarit: str, graine: str = "") -> str:
 
 # ── Contrôle d'ensemble ──────────────────────────────────────────────────────
 
+# Deux liens au premier contact, et pas un de plus. Le guide en conseille ZÉRO — un lien
+# dans un premier message ressemble à un appât. Mais deux sont imposés par ailleurs : le
+# lint exige un CTA de prise de rendez-vous, et Camille a demandé le 2026-08-25 que le lien
+# vers leclientroi.com soit toujours présent. C'est un arbitrage assumé, pas un oubli : le
+# seuil reste bas pour que le TROISIÈME lien, lui, soit refusé.
+LIENS_MAX_PREMIER = 2
+
+
 def controler(sujet: str, corps_html: str, premier_contact: bool = False,
-              liens_max_premier: int = 1) -> dict:
+              liens_max_premier: int = LIENS_MAX_PREMIER) -> dict:
     """Le verdict complet. `bloquants` justifie un refus, `avertissements` une alerte.
 
     `premier_contact` durcit la règle sur les liens : le guide Maildoso demande de les

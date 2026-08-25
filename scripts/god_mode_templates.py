@@ -32,9 +32,15 @@ DEEPSEEK_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 # email chargeait un fichier sur un domaine tiers, ce qui se voit et ne rapportait rien
 # qu'un texte ne fasse. Le lien de désinscription reste : il est obligatoire.
 SIGNATURE_HTML = (
-    '<p>Juliette<br>LeClientROI</p>'
+    # Le prénom vient de la BOÎTE qui envoie, pas d'un nom écrit en dur. Les huit adresses
+    # ne portent pas la même personne : « Juliette Bernard » côté campagnes, mais
+    # « Pascal Cabral » et « Julie Durand » côté Mozart. Une signature figée à « Juliette »
+    # contredisait l'expéditeur affiché sur la moitié des envois — un écart entre le From
+    # et la signature est exactement ce que cherchent les filtres, et ce que remarque un
+    # prospect. `expediteur_nom` est toléré à vide, la ponctuation orpheline est nettoyée.
+    '<p>{{expediteur_prenom}} {{expediteur_nom}}<br>LeClientROI</p>'
     '<p><a href="{{UNSUBSCRIBE_LINK}}" rel="noopener noreferrer" target="_blank">'
-    "Si vous ne souhaitez plus recevoir d'email de ma part, cliquez ici"
+    "Se désinscrire de mes emails"
     "</a></p>"
 )
 

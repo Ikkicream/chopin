@@ -17,6 +17,30 @@ from pathlib import Path
 
 import duckdb
 
+# DuckDB s'accorde par défaut 80 % de la RAM — mesuré à **6 Gio sur une machine qui en a
+# 7,7**. Deux processus DuckDB simultanés suffisent alors à déclencher le tueur de mémoire
+# du noyau, qui abat n'importe quoi : un test, l'API, ou le dispatch d'envoi en cours.
+# C'est arrivé trois fois le 2026-08-25. Nos requêtes sont des agrégats sur des tables de
+# quelques dizaines de milliers de lignes : 1 Gio est large, et borne le risque.
+LIMITE_MEMOIRE_DUCKDB = "2GB"
+
+
+def _brider(c):
+    """Pose le plafond mémoire sur une connexion. Best-effort : une version de DuckDB qui
+    refuserait le réglage ne doit pas empêcher d'ouvrir la base."""
+    try:
+        c.execute(f"SET memory_limit = '{LIMITE_MEMOIRE_DUCKDB}'")
+        c.execute("SET threads = 2")
+        # Recommandé par DuckDB lui-même quand la mémoire serre : ne pas préserver l'ordre
+        # d'insertion divise nettement le besoin. Aucune de nos requêtes n'en dépend —
+        # toutes portent un ORDER BY explicite quand l'ordre compte.
+        c.execute("SET preserve_insertion_order = false")
+    except Exception:  # noqa: BLE001
+        pass
+    return c
+
+
+
 BASE_DIR = Path(__file__).parent.parent
 POOL_DB = BASE_DIR / "data" / "contacts.duckdb"
 
@@ -154,7 +178,7 @@ def _connect_with_retry(read_only: bool = False, attempts: int = 8, sleep_s: flo
     last = None
     for i in range(attempts):
         try:
-            return duckdb.connect(str(POOL_DB), read_only=read_only)
+            return _brider(duckdb.connect(str(POOL_DB), read_only=read_only))
         except Exception as e:  # noqa: BLE001
             last = e
             msg = str(e).lower()
@@ -165,7 +189,7 @@ def _connect_with_retry(read_only: bool = False, attempts: int = 8, sleep_s: flo
             # c'est le même fichier, et l'instance déjà ouverte décide.
             if "different configuration" in msg:
                 try:
-                    return duckdb.connect(str(POOL_DB), read_only=not read_only)
+                    return _brider(duckdb.connect(str(POOL_DB), read_only=not read_only))
                 except Exception as e2:  # noqa: BLE001
                     last = e2
             if ("lock" in msg or "conflicting" in msg) and i < attempts - 1:

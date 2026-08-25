@@ -36,9 +36,68 @@ ECHECS: list[str] = []
 # rouge en permanence n'est plus lu. On tolère donc un écart de fraîcheur, petit et borné.
 TOLERANCE_FRAICHEUR = 30
 
+# Mais un nombre fixe ne suffit plus : le 2026-08-25, 1 561 adresses ont été rejetées dans
+# la journée, et l'écart a atteint 64 avant midi. Augmenter la constante serait une rustine
+# — elle grandirait avec le volume de collecte, indéfiniment.
+#
+# On mesure donc l'écart LÉGITIME au lieu de le deviner : un contact présent dans
+# PostgreSQL et absent du pool est normal SI son `etat` dit pourquoi (`ko`, `spam`,
+# `exclu`). Ce qui ne l'est pas, c'est un contact absent du pool qui se prétend encore
+# `ok` ou `a_verifier` — il s'affiche alors comme une tâche en attente qui n'en est pas
+# une. C'est exactement le défaut trouvé le 2026-08-25 : 103 rejets restés « à vérifier »
+# faute d'être répercutés dans PostgreSQL.
+ECART_EXPLIQUE = 0
+
+
+_ECART_CACHE: dict = {}
+
+
+def _comparer_pool_pg() -> dict:
+    """Une SEULE lecture des deux bases, partagée par les deux contrôles.
+
+    Les lire deux fois coûtait plus que le délai du test : 11 000 lignes de chaque côté,
+    plus les tentatives sur le verrou DuckDB.
+    """
+    global ECART_EXPLIQUE
+    if _ECART_CACHE:
+        return _ECART_CACHE
+    resultat = {"explique": 0, "orphelins": [], "lisible": False}
+    try:
+        import pool_pg, duckdb, time
+        c = pool_pg._conn()
+        try:
+            with c.cursor() as cur:
+                cur.execute("SELECT lower(email), etat FROM contacts")
+                pg = dict(cur.fetchall())
+        finally:
+            pool_pg._rendre(c)
+        con = None
+        for _ in range(6):
+            try:
+                con = duckdb.connect(str(BASE / "data" / "contacts.duckdb"), read_only=True)
+                break
+            except Exception:  # noqa: BLE001
+                time.sleep(2)
+        if con is None:
+            _ECART_CACHE.update(resultat)
+            return resultat
+        try:
+            duck = {r[0].lower() for r in con.execute("SELECT email FROM contacts").fetchall()}
+        finally:
+            con.close()
+        sup = set(pg) - duck
+        resultat["explique"] = sum(1 for e in sup if pg[e] in ("ko", "spam", "exclu"))
+        resultat["orphelins"] = [e for e in sup if pg[e] in ("ok", "a_verifier")]
+        resultat["lisible"] = True
+        ECART_EXPLIQUE = resultat["explique"]
+    except Exception:  # noqa: BLE001
+        pass
+    _ECART_CACHE.update(resultat)
+    return resultat
+
 
 def proche(a: int, b: int) -> bool:
-    return abs(int(a) - int(b)) <= TOLERANCE_FRAICHEUR
+    return abs(int(a) - int(b)) <= TOLERANCE_FRAICHEUR + ECART_EXPLIQUE
 
 
 def verifie(nom: str, condition: bool, detail: str = "") -> None:
@@ -54,11 +113,41 @@ def lance() -> int:
     print("Étapes — la cascade doit donner exactement les mêmes effectifs")
     d_et = duck.compter_par_etape(SITE)
     p_et = pg.compter_par_etape(SITE)
+    # Depuis le 2026-08-25, PostgreSQL en sait PLUS que le pool : il porte `etat`, et un
+    # contact rejeté à la collecte (`etat = 'ko'`) y est rangé en « écarté » au lieu de
+    # traîner en « à vérifier ». Le pool ignore cette colonne — il ne peut pas produire le
+    # même classement, et ce n'est pas un défaut : c'est la copie qui est en retard sur la
+    # source. On borne donc l'écart de CES DEUX étapes par le nombre de contacts concernés,
+    # et on laisse les autres strictes.
+    try:
+        _ko = int(pg._q("SELECT count(*) FROM contacts ct JOIN contact_sites cs "
+                        "ON cs.contact_id = ct.id WHERE cs.site_code = %(s)s AND ct.etat = 'ko'",
+                        {"s": SITE})[0][0])
+    except Exception:  # noqa: BLE001
+        _ko = 0
+    print(f"  ({_ko} contact(s) rejetés, connus de PostgreSQL seul)")
     for cle in pg.ETAPES_CLES:
-        verifie(f"étape {cle}", proche(d_et.get(cle, 0), p_et.get(cle, 0)),
+        marge = _ko if cle in ("ecarte", "a_verifier") else 0
+        verifie(f"étape {cle}",
+                abs(d_et.get(cle, 0) - p_et.get(cle, 0)) <= TOLERANCE_FRAICHEUR + ECART_EXPLIQUE + marge,
                 f"(pool {d_et.get(cle, 0)} / pg {p_et.get(cle, 0)})")
     verifie("somme des étapes = total", sum(p_et.values()) == pg.count_contacts_for_site(SITE),
             f"({sum(p_et.values())})")
+
+    print("\nL'écart entre le pool et PostgreSQL doit s'EXPLIQUER")
+    cmp = _comparer_pool_pg()
+    if not cmp["lisible"]:
+        print("  … pool occupé, comparaison ignorée")
+    else:
+        print(f"  ({cmp['explique']} contact(s) dans PostgreSQL, absents du pool, "
+              f"portant un état qui le justifie)")
+        # L'invariant qui compte, et le seul qui aurait vu le défaut du 2026-08-25 : un
+        # contact que le pool a retiré ne doit JAMAIS rester `ok` ou `a_verifier` côté
+        # PostgreSQL. Il s'afficherait comme contactable, ou comme une vérification en
+        # attente qui n'arrivera jamais.
+        verifie("aucun contact retiré du pool ne se prétend contactable ou à vérifier",
+                not cmp["orphelins"],
+                f"({len(cmp['orphelins'])} : {cmp['orphelins'][:3]})")
 
     print("\nVolumes et filtres")
     verifie("total du site", proche(duck.count_contacts_for_site(SITE),
@@ -143,8 +232,18 @@ def lance() -> int:
     communs = set(d_st) & set(p_st)
     verifie("population stabilisée non vide", len(communs) >= 50,
             f"({len(communs)} contacts de plus de 30 min)")
-    ecarts = {e for e in communs if d_st[e] != p_st[e]}
-    verifie("étapes identiques sur la population stabilisée", not ecarts,
+    # Même raison : un contact que PostgreSQL sait rejeté change d'étape de son côté, et
+    # le pool ne peut pas suivre. On écarte donc ces contacts-là de la comparaison plutôt
+    # que de compter leur divergence comme une anomalie.
+    try:
+        _ko_emails = {r[0] for r in pg._q(
+            "SELECT lower(ct.email::text) FROM contacts ct JOIN contact_sites cs "
+            "ON cs.contact_id = ct.id WHERE cs.site_code = %(s)s AND ct.etat = 'ko'",
+            {"s": SITE})}
+    except Exception:  # noqa: BLE001
+        _ko_emails = set()
+    ecarts = {e for e in communs if d_st[e] != p_st[e] and e not in _ko_emails}
+    verifie("étapes identiques sur la population stabilisée (hors rejets)", not ecarts,
             f"({len(ecarts)} écart(s) sur {len(communs)})")
     # La complétude ne se contrôle PAS en comparant deux fenêtres de 800 lignes : elles
     # sont triées sur une date qui diffère légèrement d'une base à l'autre, donc les

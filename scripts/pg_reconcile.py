@@ -124,6 +124,10 @@ def reconcilier(dry_run: bool = False) -> dict:
                                 mailnjoy_decision = %s, mailnjoy_checked_at = %s,
                                 mailnjoy_check = %s
             WHERE lower(email::text) = %s
+              -- Un contact de TEST garde l'état qu'on lui a donné à la main : il est
+              -- délibérément écarté des campagnes, et le pool ne connaît pas cette
+              -- intention. Sans cette clause, le passage de 6h30 le remettrait « ok ».
+              AND NOT COALESCE(est_test, false)
               AND (etat IS DISTINCT FROM %s
                    OR global_blacklisted IS DISTINCT FROM %s
                    OR mailnjoy_decision IS DISTINCT FROM %s)
