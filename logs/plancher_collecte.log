@@ -2448,3 +2448,517 @@
   "plancher atteint (905/500)"
  ]
 }
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 905,
+ "par_source": {
+  "serper": 630,
+  "basile": 275
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (905/500)"
+ ]
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 960,
+ "par_source": {
+  "serper": 660,
+  "basile": 300
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "start",
+  "pourquoi": "nouvelle cible"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (960/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1040,
+ "par_source": {
+  "serper": 703,
+  "basile": 337
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "un scrape tourne déjà"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1040/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1077,
+ "par_source": {
+  "serper": 716,
+  "basile": 361
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1028/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1077/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1124,
+ "par_source": {
+  "serper": 716,
+  "basile": 361,
+  "sweego": 47
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1075/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1124/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1125,
+ "par_source": {
+  "serper": 716,
+  "basile": 361,
+  "sweego": 48
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1076/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1125/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1125,
+ "par_source": {
+  "serper": 716,
+  "basile": 361,
+  "sweego": 48
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1076/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1125/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1125,
+ "par_source": {
+  "serper": 716,
+  "basile": 361,
+  "sweego": 48
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1076/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1125/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1125,
+ "par_source": {
+  "serper": 716,
+  "basile": 361,
+  "sweego": 48
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1076/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1125/500)"
+ ]
+}
+{
+ "site": "lcr",
+ "plancher": 500,
+ "collectes": 1125,
+ "par_source": {
+  "serper": 716,
+  "basile": 361,
+  "sweego": 48
+ },
+ "manque": 0,
+ "atteint": true,
+ "scrape_en_cours": false,
+ "scrape_bloque": false,
+ "fenetre_ouverte": true,
+ "fenetre": "",
+ "decision": {
+  "action": "skip",
+  "pourquoi": "plafond journalier atteint (1076/1000 contacts collectés)"
+ },
+ "appliquer": true,
+ "actions": [
+  "plancher atteint (1125/500)"
+ ]
+}

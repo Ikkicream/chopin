@@ -111,9 +111,21 @@ PAGES = [
      "aide": "La galerie des messages : cold emails ET newsletters dans une seule table, "
              "filtrable par secteur, avec ce que chacun a réellement produit.",
      "url": "/site/{site}/cold-email", "api": ["/api/sites/{site}/cold-email"]},
-    {"cle": "newsletters", "label": "Newsletters", "groupe": "Campagnes",
-     "aide": "L'éditeur par blocs des emailings : bannière, titre, images, pied de page.",
-     "url": "/site/{site}/newsletters", "api": ["/api/sites/{site}/newsletters"]},
+    # « Newsletters » retirée du menu le 2026-08-26, sur décision de Camille : « cette page
+    # fait doublon avec cold-email ». Elle l'était devenue en effet — la galerie liste les
+    # deux types depuis la fusion, et porte désormais les QUATRE gestes qui vivaient ici :
+    # importer un .html, éditer par blocs, renommer, supprimer. La retirer avant ce port
+    # aurait été une perte, pas une simplification.
+    #
+    # L'entrée reste au catalogue, sans URL de menu : les routes `/api/sites/{site}/html/`
+    # continuent de servir l'éditeur, qui a simplement changé d'écran. La supprimer
+    # d'ici rendrait ces routes non gardées — cf. règle 2 en tête de fichier.
+    {"cle": "newsletters", "label": "Newsletters (fusionné dans Cold email)",
+     "groupe": "Campagnes", "masque_menu": True,
+     "aide": "Fusionné dans Cold email le 2026-08-26 : la galerie liste les deux types et "
+             "porte l'import, l'éditeur par blocs, le renommage et la suppression.",
+     "url": "/site/{site}/cold-email",
+     "api": ["/api/sites/{site}/newsletters", "/api/sites/{site}/html/"]},
     {"cle": "campagnes", "label": "Campagnes", "groupe": "Campagnes",
      "aide": "Décider QUI reçoit QUOI, et à quel rythme. Créer une campagne reste une "
              "décision humaine : la machine prolonge, elle n'invente pas.",

@@ -14453,3 +14453,278 @@
   "ok": true,
   "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
 }
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "86 Vienne",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T10:00:05+00:00 start restaurant / dept 86 Vienne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1159 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 86",
+    "valid": 60,
+    "current_city": "Buxerolles"
+  }
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3355650) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3355650) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3355650) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3355650) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3355650) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 99 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 99 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 100 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 100 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 60,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:86",
+    "runs": 1,
+    "valid_total": 60,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "40 Landes",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T10:30:05+00:00 start restaurant / dept 40 Landes — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1129 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3404416) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3404416) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3404416) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3405623) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3408151) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3411203) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 40",
+    "valid": 52,
+    "current_city": "Dax"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 40",
+    "valid": 83,
+    "current_city": "Saint-Paul-lès-Dax"
+  }
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3411203) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3412890) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3417371) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3417371) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 100 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 100 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 101 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 101 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 83,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:40",
+    "runs": 1,
+    "valid_total": 83,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "79 Deux-Sèvres",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T11:15:05+00:00 start restaurant / dept 79 Deux-Sèvres — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (1084 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 101 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 101 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[daily] 2026-08-26T11:25:40+00:00 passe non terminée (status=quota) — reprise au prochain tick
+{
+  "ok": true,
+  "status": "quota",
+  "valid": 37
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1028/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1075/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1076/1000 contacts collectés)"
+}

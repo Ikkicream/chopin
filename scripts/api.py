@@ -5942,11 +5942,22 @@ def api_mon_guide(request: Request):
 
 
 @app.get("/api/mes-pages")
-def api_mes_pages(request: Request):
+def api_mes_pages(request: Request, apercu: str = ""):
     """Les pages que MON rôle a le droit de voir — lu de la session, pas du navigateur.
 
-    C'est cette route que la sidebar interroge. Elle ne prend aucun paramètre : impossible
-    de demander « les pages du rôle superadmin » en changeant un argument.
+    C'est cette route que la sidebar interroge. On ne peut pas s'ÉLARGIR les droits en
+    changeant un argument : `apercu` n'est honoré que pour un superadmin, et lui sert à
+    regarder l'interface avec les yeux d'un autre rôle.
+
+    Sans ce paramètre, la simulation de rôle était défaite deux secondes après son
+    affichage (constaté le 2026-08-26) : le menu se dessinait bien avec le rôle simulé,
+    puis cette réponse arrivait avec les pages du rôle RÉEL et le bloc de fusion du
+    catalogue les rajoutait toutes. Le superadmin retrouvait son propre menu.
+
+    Cela reste un APERÇU, pas une restriction : le jeton envoyé demeure celui du
+    superadmin, et toutes les autres routes continuent de répondre selon le vrai rôle.
+    Voir le menu d'un commercial ne prouve donc pas qu'un commercial n'a pas accès aux
+    données — cette garantie-là est ailleurs, et ne se teste pas d'ici.
     """
     sess = getattr(request.state, "session", None) or {}
     sys.path.insert(0, str(BASE_DIR / "scripts"))
@@ -5971,9 +5982,12 @@ def api_mes_pages(request: Request):
         # groupe, l'écran peut AJOUTER ce qu'il ne connaît pas.
         # `menu_lateral` voyage jusqu'à la barre : c'est elle qui décide d'afficher une
         # page globale (hors `/site/{site}/`), qu'elle écarte sinon.
+        # `masque_menu` : la page existe encore (ses routes restent gardées) mais n'a plus
+        # d'entrée propre — elle a été fusionnée ailleurs. La retirer du catalogue
+        # laisserait ses routes sans garde.
         catalogue = [{"cle": p["cle"], "label": p["label"], "groupe": p.get("groupe") or "",
                       "url": p["url"], "menu_lateral": bool(p.get("menu_lateral"))}
-                     for p in rbk.PAGES]
+                     for p in rbk.PAGES if not p.get("masque_menu")]
         beta = sorted(rbk.pages_beta())
         beta_ok = (sess.get("username") or "").strip().lower() in rbk.beta_testeurs()
     except Exception as e:  # noqa: BLE001
@@ -5981,9 +5995,13 @@ def api_mes_pages(request: Request):
     # La sidebar a besoin de savoir DEUX choses de plus : quelles pages sont en bêta, et
     # si ce compte y a droit. Elle les affiche grisées et étiquetées plutôt que de les
     # cacher — une fonctionnalité qui apparaît un jour sans prévenir surprend.
+    role_reel = sess.get("role") or ""
+    # `apercu` ne peut que RESTREINDRE, et seul un superadmin peut le demander.
+    role_vu = apercu if (apercu and role_reel == "superadmin") else role_reel
     try:
-        return {"role": sess.get("role") or "",
-                "pages": rbk.pages_autorisees(sess.get("role") or ""), "urls": urls,
+        return {"role": role_reel, "role_vu": role_vu,
+                "apercu": role_vu != role_reel,
+                "pages": rbk.pages_autorisees(role_vu), "urls": urls,
                 "catalogue": catalogue, "beta": beta, "beta_autorise": beta_ok}
     except Exception:  # noqa: BLE001
         return {"role": sess.get("role") or "",
@@ -6860,7 +6878,7 @@ def api_template_rendu(site: str, sector: str, kind: str):
 
 
 @app.get("/api/sites/{site}/messages/rendu")
-def api_message_rendu(site: str, modele: str = ""):
+def api_message_rendu(site: str, modele: str = "", brut: bool = False):
     """Le même aperçu, pour N'IMPORTE QUEL message — cold email OU newsletter.
 
     La galerie montre désormais les deux dans une seule table (décision du 2026-08-26 :
@@ -6878,9 +6896,15 @@ def api_message_rendu(site: str, modele: str = ""):
     if not modele:
         return _introuvable("message")
     resolu = htb.resolve_campaign_message(site, modele)
-    brut = (resolu or {}).get("html") or ""
-    if not brut:
+    source = (resolu or {}).get("html") or ""
+    if not source:
         return _introuvable("message")
+
+    # `brut=1` : le HTML TEL QU'IL EST STOCKÉ, pour l'éditeur par blocs. Lui donner le
+    # message développé (spintax tiré, variables remplacées) écraserait les variables à
+    # la première sauvegarde — chaque destinataire recevrait alors « Bonjour Marc ».
+    if brut:
+        return {"modele": modele, "nom": (resolu or {}).get("name") or modele, "html": source}
 
     try:
         boites = ex.boites(site)
@@ -6891,9 +6915,9 @@ def api_message_rendu(site: str, modele: str = ""):
     ct = {"email": "m.dupont@exemple.fr", "prenom": "Marc", "nom": "Dupont",
           "societe": "Agence Dupont", "city": "Nantes"}
     try:
-        h = md._apply_tokens(qm.conditionnel(qm.spintax(brut, ct["email"]), ct), ct, boite)
+        h = md._apply_tokens(qm.conditionnel(qm.spintax(source, ct["email"]), ct), ct, boite)
     except Exception as e:  # noqa: BLE001
-        h = brut
+        h = source
         print(f"[messages] rendu impossible ({type(e).__name__}: {e})", flush=True)
     return {"modele": modele, "nom": (resolu or {}).get("name") or modele,
             "rendus": [{"cas": "aperçu", "objet": (resolu or {}).get("name") or "", "html": h,

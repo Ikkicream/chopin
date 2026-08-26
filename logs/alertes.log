@@ -1382,3 +1382,124 @@ PermissionError: [Errno 13] Permission denied: '/home/autoblog/genesis/memory/al
     "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 2.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
   }
 }
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 3.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 4.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 5.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 6.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 7.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 8.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 9.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 10.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 11.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 12.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
+{
+  "ok": true,
+  "problemes": 1,
+  "nouveaux": [],
+  "regles": [],
+  "rappels": [],
+  "notifie": false,
+  "detail": {
+    "tache:rattrapage du pool:echec": "💥 *rattrapage du pool* : dernier passage TERMINÉ EN ERREUR (il y a 13.9 h).\n   _duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  }
+}
