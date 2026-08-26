@@ -91,10 +91,19 @@ def lance() -> int:
     import mozart
     src_send = inspect.getsource(md.send_email)
     verifie("`send_email` porte l'écart minimum par boîte",
-            "ECART_MIN_BOITE" in src_send and "_DERNIER_ENVOI" in src_send)
+            "ECART_MIN_BOITE" in src_send
+            and "_secondes_depuis_dernier_envoi" in src_send)
     verifie("il refuse AVANT d'écrire, pas après",
-            src_send.index("_DERNIER_ENVOI.get") < src_send.index("smtplib.SMTP("),
+            src_send.index("_secondes_depuis_dernier_envoi(") < src_send.index("smtplib.SMTP("),
             "(posé après, il ne retardait que l'envoi suivant)")
+    # Le 2026-08-26, l'écart est sorti de la mémoire du process : il tenait à l'intérieur
+    # d'un lot, jamais ENTRE le dispatch des campagnes (cron 8h30) et le tick de Mozart
+    # (cron horaire), qui ne partagent aucun dictionnaire.
+    src_md = (Path(__file__).resolve().parent.parent / "scripts" / "maildoso_backend.py").read_text()
+    verifie("l'écart se lit dans le journal, que TOUS les process voient",
+            "FROM email_events" in src_md and "mailbox = %(m)s" in src_md)
+    verifie("la mémoire du process ne sert plus que de repli",
+            "repli sur la mémoire du process" in src_md)
     src_moz = (Path(__file__).resolve().parent.parent / "scripts" / "mozart.py").read_text()
     verifie("Mozart ne la recopie plus", "ECART_MIN_BOITE" not in src_moz)
     verifie("… mais il sait traiter le report qu'elle produit",

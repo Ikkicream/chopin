@@ -32,20 +32,14 @@ def within_send_window(now=None) -> tuple[bool, str]:
     Ne concerne que les campagnes de prospection. Les emails transactionnels
     (confirmation de rendez-vous) et les BAT ne passent PAS par ici : ils doivent
     partir immédiatement, dimanche compris.
+
+    Depuis le 2026-08-26, la mécanique vit dans `fenetre_envoi` — une seule fois, pour les
+    campagnes ET les scénarios, et surtout appelée depuis `send_email` afin qu'un nouveau
+    chemin d'appel ne puisse plus envoyer à 3 h du matin. Cette fonction reste pour ses
+    appelants ; les constantes ci-dessus restent la référence documentaire du profil.
     """
-    from datetime import datetime as _dt
-    if now is None:
-        try:
-            from zoneinfo import ZoneInfo
-            now = _dt.now(ZoneInfo(SEND_TZ))
-        except Exception:  # noqa: BLE001
-            now = _dt.now()
-    if now.weekday() not in SEND_DAYS:
-        return False, "dimanche — aucun envoi ce jour"
-    hhmm = now.strftime("%H:%M")
-    if hhmm < SEND_START or hhmm > SEND_END:
-        return False, f"hors plage {SEND_START}–{SEND_END} (il est {hhmm} à Paris)"
-    return True, ""
+    import fenetre_envoi
+    return fenetre_envoi.ouverte("campagne", now)
 
 # Plafonds d'envoi/jour PLATS par canal (validés user 2026-06-24).
 # Maildoso : cap DYNAMIQUE = somme des daily_cap des boîtes actives (table mailboxes),

@@ -49,18 +49,23 @@ TYPES_NOEUDS = ("declencheur", "delai", "email", "condition", "fin")
 MAX_PAS_PAR_PASSAGE = 20
 
 # ── La fenêtre d'envoi des scénarios ─────────────────────────────────────────
-# Demande de Camille (2026-08-24) : aucun email le dimanche, et rien entre 18h30 et 9h01,
-# heure de Paris. Elle est PLUS ÉTROITE que celle des campagnes (08:01–17:59, cf.
-# `deliverability_agent`) et c'est délibéré : un scénario part tout seul, à l'heure où un
-# contact atteint son nœud. Personne ne le regarde partir. Mieux vaut donc qu'il vise le
-# cœur de la journée de bureau plutôt que ses bords.
+# ALIGNÉE sur celle des campagnes le 2026-08-26, sur décision de Camille. Elle valait
+# 09:01–18:30 depuis le 24/08, plus étroite le matin et plus tardive le soir, pour une
+# raison qui se défendait : un scénario part tout seul, à l'heure où un contact atteint
+# son nœud, et personne ne le regarde partir. Mais deux fenêtres pour une même question,
+# c'est deux vérités — et la règle du projet reste « lun-sam, 08:01–17:59, heure de Paris ».
+#
+# Les valeurs vivent maintenant dans `fenetre_envoi`, appelé depuis `send_email`. Ce qui
+# est repris ici n'est qu'un miroir pour les appelants qui lisent ces constantes.
 #
 # L'heure est TOUJOURS calculée en Europe/Paris, jamais en heure serveur : le serveur vit
 # en UTC, et en été un envoi « à 18h00 » y serait déclenché à 20h00 chez le destinataire.
-FENETRE_JOURS = (0, 1, 2, 3, 4, 5)     # lundi → samedi
-FENETRE_DEBUT = "09:01"
-FENETRE_FIN = "18:30"
-FUSEAU = "Europe/Paris"
+import fenetre_envoi as _fen
+
+FENETRE_JOURS = _fen.PROFILS["scenario"]["jours"]
+FENETRE_DEBUT = _fen.PROFILS["scenario"]["debut"]
+FENETRE_FIN = _fen.PROFILS["scenario"]["fin"]
+FUSEAU = _fen.FUSEAU
 
 
 def maintenant_paris():
@@ -226,6 +231,37 @@ def dupliquer(sid: str, nom: str | None = None, par: str = "") -> dict | None:
 
 
 # ── Contrôle d'un graphe avant activation ─────────────────────────────────────
+def _secteurs_sans_modele(graphe: dict, kind: str):
+    """Les secteurs visés par le déclencheur qui n'ont pas ce message.
+
+    Rend `None` si l'étape elle-même n'existe pas, `[]` si tout est couvert. Un déclencheur
+    sans filtre de secteur vise TOUS les secteurs : on contrôle alors ceux qui portent au
+    moins un modèle, faute de savoir qui entrera demain.
+    """
+    try:
+        import email_templates_backend as etb
+    except Exception:  # noqa: BLE001
+        return []
+    if kind not in etb.KINDS:
+        return None
+
+    site = ""
+    vises: list[str] = []
+    for n in (graphe.get("nodes") or []):
+        if n.get("type") == "declencheur":
+            d = n.get("data") or {}
+            vises = [s for s in (d.get("secteurs") or []) if s]
+            site = (d.get("site_code") or "").strip()
+            break
+    site = site or "lcr"
+    try:
+        connus = {s["sector"] for s in etb.list_sectors(site)}
+    except Exception:  # noqa: BLE001
+        return []
+    a_verifier = vises or sorted(connus)
+    return [s for s in a_verifier if not etb._get_one(site, s, kind)]
+
+
 def verifier(graphe: dict) -> list[str]:
     """Ce qui empêche un scénario de partir. Vide = il peut être activé.
 
@@ -249,6 +285,18 @@ def verifier(graphe: dict) -> list[str]:
         etiquette = d.get("nom") or n.get("id")
         if t == "email" and not d.get("message_id"):
             pbs.append(f"l'email « {etiquette} » n'a pas de message choisi")
+        if t == "email" and (d.get("message_id") or "").startswith(PREFIXE_AUTO):
+            kind = (d["message_id"][len(PREFIXE_AUTO):] or "").strip()
+            manquants = _secteurs_sans_modele(graphe, kind)
+            if manquants is None:
+                pbs.append(f"l'email « {etiquette} » vise l'étape « {kind} », "
+                           f"qui n'existe pas")
+            elif manquants:
+                # Pas bloquant serait tentant — mais un scénario qui refuse la moitié de
+                # ses inscrits sans le dire ne se découvre qu'en lisant le journal.
+                pbs.append(f"l'email « {etiquette} » suit le secteur du contact, mais "
+                           f"{', '.join(manquants)} n'a pas de message « {kind} » : "
+                           f"ces contacts seraient refusés")
         if t == "email" and (d.get("canal") or "maildoso") not in CANAUX_AUTORISES:
             pbs.append(f"l'email « {etiquette} » utilise le canal "
                        f"« {d.get('canal')} », qu'un scénario ne sait pas jouer — "
@@ -426,6 +474,47 @@ def _a_reagi(email: str, site: str, depuis, quoi: str) -> bool:
 # produit des scénarios qui échouent au premier contact.
 CANAUX_AUTORISES = ("maildoso", "sweego")
 
+# ── Le routage par secteur ────────────────────────────────────────────────────
+# Un nœud email portait UN message figé. Avec sept secteurs, il fallait donc sept
+# scénarios en parallèle — et une correction de tuyauterie à faire sept fois. Or le
+# principe posé pour Mozart est que **le graphe affiché est celui qui s'exécute** : sept
+# copies divergentes le trahissent au premier correctif.
+#
+# Un nœud peut donc porter `auto:first`, `auto:relance1`, `auto:relance2` : « le cold
+# email de CE contact, à cette étape ». Le secteur est lu sur la fiche au moment de
+# l'envoi, pas à l'enregistrement du graphe : un contact requalifié entre-temps reçoit le
+# bon message.
+#
+# **Aucun repli sur un autre secteur.** Si le secteur du contact n'a pas ce message, le
+# nœud REFUSE. Envoyer l'email « immobilier » à un plombier parce qu'il fallait bien
+# envoyer quelque chose est pire que ne rien envoyer : c'est un message hors sujet, donc
+# un signalement pour spam, sur une adresse qu'on cherche justement à chauffer.
+PREFIXE_AUTO = "auto:"
+
+
+def _secteur_du_contact(email: str) -> str:
+    """Le secteur porté par la fiche. `sectors` est un tableau, on prend le premier."""
+    r = _q("SELECT ct.sectors[1] FROM contacts ct WHERE lower(ct.email::text) = %(e)s",
+           {"e": (email or "").strip().lower()})
+    return (r[0][0] if r and r[0] and r[0][0] else "") or ""
+
+
+def _modele_du_secteur(site: str, email: str, kind: str) -> tuple[str, str]:
+    """(secteur du contact, identifiant du modèle) — l'identifiant est vide si rien ne colle."""
+    secteur = _secteur_du_contact(email)
+    if not secteur:
+        return "", ""
+    try:
+        import email_templates_backend as etb
+        if kind not in etb.KINDS:
+            return secteur, ""
+        if not etb._get_one(site, secteur, kind):
+            return secteur, ""
+    except Exception as e:  # noqa: BLE001
+        print(f"[mozart] modèles indisponibles ({type(e).__name__}: {e})", flush=True)
+        return secteur, ""
+    return secteur, f"cold:{secteur}:{kind}"
+
 
 def expediteurs(site: str) -> list[dict]:
     """Les canaux d'envoi et, pour chacun, les expéditeurs réellement disponibles.
@@ -498,6 +587,16 @@ def _envoyer(sc: dict, noeud: dict, insc: dict, dry_run: bool = False) -> tuple[
     if canal not in CANAUX_AUTORISES:
         return "refuse", (f"canal « {canal} » non utilisable par un scénario — "
                           f"choisir {' ou '.join(CANAUX_AUTORISES)}")
+
+    # « Le cold email du secteur de ce contact » — résolu maintenant, sur la fiche à jour.
+    if mid.startswith(PREFIXE_AUTO):
+        kind = mid[len(PREFIXE_AUTO):].strip() or "first"
+        secteur, resolu = _modele_du_secteur(site, insc["email"], kind)
+        if not resolu:
+            return "refuse", (f"pas de cold email « {kind} » pour le secteur "
+                              f"« {secteur or 'non renseigné'} » de ce contact — "
+                              f"aucun repli sur un autre secteur")
+        mid = resolu
 
     msg = htb.resolve_campaign_message(site, mid)
     if not msg or not msg.get("html"):

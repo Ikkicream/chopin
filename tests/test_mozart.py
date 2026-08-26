@@ -191,12 +191,16 @@ def lance() -> int:
     from datetime import datetime as _dt
     from zoneinfo import ZoneInfo
     P = ZoneInfo("Europe/Paris")
+    # Bornes ALIGNÉES sur les campagnes le 2026-08-26, sur décision de Camille : les
+    # scénarios visaient 09:01–18:30, les campagnes 08:01–17:59. Deux fenêtres pour une
+    # même question, c'était deux vérités. Voir `tests/test_fenetre_unique.py`, qui vérifie
+    # que les deux chemins répondent désormais la même chose à la minute près.
     cas = [
-        ((2026, 8, 24, 9, 0),  False, "lundi 09:00 — une minute trop tôt"),
-        ((2026, 8, 24, 9, 1),  True,  "lundi 09:01 — ouverture"),
+        ((2026, 8, 24, 8, 0),  False, "lundi 08:00 — une minute trop tôt"),
+        ((2026, 8, 24, 8, 1),  True,  "lundi 08:01 — ouverture"),
         ((2026, 8, 24, 13, 0), True,  "lundi 13:00"),
-        ((2026, 8, 24, 18, 30), True, "lundi 18:30 — dernière minute"),
-        ((2026, 8, 24, 18, 31), False, "lundi 18:31 — fermé"),
+        ((2026, 8, 24, 17, 59), True, "lundi 17:59 — dernière minute"),
+        ((2026, 8, 24, 18, 0), False, "lundi 18:00 — fermé"),
         ((2026, 8, 24, 3, 0),  False, "lundi 03:00 — la nuit"),
         ((2026, 8, 29, 12, 0), True,  "samedi midi — jour ouvré"),
         ((2026, 8, 23, 12, 0), False, "DIMANCHE midi"),
