@@ -366,7 +366,12 @@ def record_send(email: str, site_code: str, contact_id: str | None = None,
     return record_event(email, "sent", site_code, channel, contact_id=contact_id,
                         campaign_legacy_id=court, mailbox=mailbox,
                         provider_msg_id=provider_msg_id,
-                        meta={"modele": modele} if modele else None)
+                        # `attribution` dit d'OÙ vient l'information. `envoi` = écrite au
+                        # moment de l'envoi, source directe — à distinguer des reprises
+                        # d'historique (`reprise-campagne`, `reprise-dernier-envoi`) posées
+                        # par `journal_attribution.py`, qui sont des déductions. Sans ce
+                        # champ, un chiffre déduit et un chiffre constaté se ressemblent.
+                        meta={"modele": modele, "attribution": "envoi"} if modele else None)
 
 
 # ── Campagnes ─────────────────────────────────────────────────────────────────
