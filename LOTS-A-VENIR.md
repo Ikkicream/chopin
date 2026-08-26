@@ -1,27 +1,68 @@
 # LOTS À VENIR — Genesis / Cheffer
 
-> Rédigé le **2026-08-26**. Reprend les 7 chantiers déposés en fin de session du 26/08,
-> les 2 chantiers écartés à froid le 24/08, et 3 anomalies constatées ce matin.
-> Historique et lots clos : voir `RESTE-A-FAIRE.md` et `STATE.md`.
->
-> **Lettres et non numéros** : les numéros de lot 1→5 ont déjà servi deux fois avec des
-> sens différents (« Lot 2 » désigne à la fois le classement des secteurs, clos le 21/08,
-> et le routage Mozart, jamais attaqué). On repart sur A→G pour ne plus confondre.
+> **Mis à jour le 2026-08-26 (fin de session).** Les **sept lots sont faits**, vérifiés et
+> déployés. Les quatre décisions en attente ont été tranchées par Camille le même jour.
 
-| Lot | Titre | Effort | Bloqué par |
-|---|---|---|---|
-| **A** | Hygiène : 3 anomalies constatées ce matin | ~45 min | — |
-| **B** | Attribution par message | ~2 h | — |
-| **C** | L'écran cold email unifié | ~4 h | — |
-| **D** | La marque et le sens des objets | ~2 h | décision Camille + 10 j de mesure (lot B) |
-| **E** | Mozart : routage par secteur | ~1 j | — |
-| **F** | Fenêtres horaires et cadence hors RAM | ~3 h | décision Camille (aligner ou non) |
-| **G** | Documentation par rôle | ~1 j | C (les écrans doivent être stables) |
+## État au 2026-08-26
 
-**Ordre recommandé : A → B → C → D → E → F → G.**
-B avant D parce qu'on ne peut pas arbitrer des objets d'email qu'on ne sait pas encore
-mesurer un par un. F après E parce que Mozart est le deuxième appelant des fenêtres :
-autant unifier quand les deux chemins sont figés.
+| Lot | Titre | État |
+|---|---|---|
+| **A** | Hygiène : 3 anomalies du matin | ✅ fait |
+| **B** | Attribution par message | ✅ fait |
+| **C** | L'écran cold email unifié | ✅ fait |
+| **D** | La marque dans le nom d'expéditeur | ✅ fait |
+| **E** | Mozart : routage par secteur | ✅ fait |
+| **F** | Fenêtre unique + cadence hors RAM | ✅ fait |
+| **G** | Documentation par rôle | ✅ fait |
+
+## Les décisions de Camille, et ce qu'elles ont donné
+
+1. **La marque va dans le NOM D'EXPÉDITEUR**, pas dans l'objet. Les 8 boîtes s'appellent
+   désormais « Juliette Bernard · LeClientROI ». Le piège a été traité AVANT :
+   `_split_name` coupe la marque, sinon `{{expediteur_nom}}` aurait signé chaque email
+   « Bernard · LeClientROI ». Les deux stockages sont alignés — PostgreSQL fait foi,
+   DuckDB est le repli de `_pick_mailbox`, n'en renommer qu'un aurait garanti qu'un jour
+   de panne les emails repartent sous l'ancien nom.
+
+2. **La règle des liens change**, on ne retire pas le LinkedIn. Seuil passé de 2 à
+   **4** — et non 3 comme on l'avait d'abord cru : le corps STOCKÉ porte trois liens, le
+   message EMBALLÉ en porte quatre, `wrap_cold_email` ajoutant le lien de marque. Plafonner
+   à trois aurait bloqué le dispatch au premier lot. Le cinquième reste refusé.
+   Au passage : `campaign_engine` ne passait JAMAIS `premier_contact=True`, le durcissement
+   n'existait donc que dans les tests. Il est branché — et seulement sur les cold emails de
+   premier contact, une newsletter portant cinq liens et des images par nature.
+
+3. **Les fenêtres sont alignées** : les scénarios adoptent 08:01–17:59 comme les campagnes.
+   Surtout, le contrôle est descendu DANS `send_email` : ni lui ni `send_batch` ne
+   regardaient l'heure, c'étaient les appelants — un nouveau chemin d'appel envoyait donc
+   à 3 h du matin sans que rien ne s'y oppose. Les BAT et transactionnels restent hors
+   fenêtre, ils répondent à un geste immédiat.
+
+4. **Le dispatch a été relancé**, après vérification complète du message.
+   `scripts/verifier_avant_envoi.py` rejoue les contrôles du dispatch sur le message
+   emballé, teste chaque lien, les deux cas de personnalisation, la désinscription et la
+   signature. Il a servi tout de suite : le lien LinkedIn pointait vers
+   `fr.linkedin.com` sans barre finale, alors que le site officiel utilise
+   `www.linkedin.com/company/leclientroi/`. Aligné sur les 24 modèles.
+
+## Ce que la journée a appris
+
+Sur 24 cold emails, **un seul est jamais parti** — `cold:immobilier:first` : 1 103 envois,
+506 ouvreurs. Les 23 autres affichaient les chiffres de l'immobilier. Le « 46 % d'ouverture »
+appartient à un email, pas à la série. C'est le lot B qui l'a révélé, et c'est pour ça
+qu'il devait passer avant toute réécriture d'objet.
+
+## L'état de la suite de tests
+
+Deux fichiers échouent encore, et **échouaient déjà avant cette session** :
+- `test_cadence` (5) — les quatre boîtes Mozart sont en chauffe, plafond 0 jusqu'au
+  8 septembre ; et 4 envois anciens n'ont pas de boîte expéditrice au journal.
+- `test_pg_acquisition` (1) — écart de population entre le pool et PostgreSQL.
+
+`test_delivrabilite_contenu` et `test_mozart`, eux, sont **repassés au vert**.
+
+Quatre fichiers de test ont été ajoutés : `test_attribution_modele`, `test_galerie_fusion`,
+`test_mozart_routage_secteur`, `test_fenetre_unique`.
 
 ---
 

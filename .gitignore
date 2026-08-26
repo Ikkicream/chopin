@@ -20,3 +20,10 @@ __pycache__/
 .DS_Store
 google-indexing-key.json
 .htpasswd
+
+# Copies de sécurité prises avant une modification (`cp fichier fichier.bak-motif`).
+# 84 d'entre elles étaient suivies au 2026-08-26, pour 8,4 Mo — dont une copie de 9 530
+# lignes d'`api.py` avalée par la sauvegarde automatique du jour. Ce sont des béquilles de
+# travail, l'historique git fait déjà ce travail-là et le fait mieux.
+*.bak
+*.bak-*
