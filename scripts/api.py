@@ -5969,8 +5969,11 @@ def api_mes_pages(request: Request):
         # absente de son code restait invisible pour toujours — c'est arrivé à Mozart le
         # 24/08, puis à Onoff et aux adresses d'envoi le 25/08. Avec le libellé et le
         # groupe, l'écran peut AJOUTER ce qu'il ne connaît pas.
+        # `menu_lateral` voyage jusqu'à la barre : c'est elle qui décide d'afficher une
+        # page globale (hors `/site/{site}/`), qu'elle écarte sinon.
         catalogue = [{"cle": p["cle"], "label": p["label"], "groupe": p.get("groupe") or "",
-                      "url": p["url"]} for p in rbk.PAGES]
+                      "url": p["url"], "menu_lateral": bool(p.get("menu_lateral"))}
+                     for p in rbk.PAGES]
         beta = sorted(rbk.pages_beta())
         beta_ok = (sess.get("username") or "").strip().lower() in rbk.beta_testeurs()
     except Exception as e:  # noqa: BLE001

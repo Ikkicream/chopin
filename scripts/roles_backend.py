@@ -205,7 +205,19 @@ PAGES = [
     # la trouver sans connaître son URL. Troisième fois que ce piège se referme — Mozart
     # le 24/08, Onoff et les adresses d'envoi le 25/08 : **une page qui n'est pas ici
     # n'est pas « ouverte à tous », elle est invisible.**
-    {"cle": "versions", "label": "Nouveautés et versions", "groupe": "Administration",
+    # `menu_lateral` : une page GLOBALE (hors `/site/{site}/`) que la barre de gauche doit
+    # tout de même afficher. Sans ce drapeau, la barre écarte tout ce qui n'appartient pas
+    # au site courant — à raison, un menu de site n'est pas un menu d'exploitation — et la
+    # page finit dans le tiroir sous l'avatar, où Camille ne l'a pas trouvée le 26/08.
+    # Le drapeau est explicite plutôt que déduit du groupe : « Administration » compte huit
+    # pages, et les remonter toutes noierait le menu.
+    # Groupe « Pilotage » et non « Administration », après essai : dans Administration
+    # l'entrée sortait seule, tout en bas d'une barre de vingt lignes — sous la ligne de
+    # flottaison, donc aussi introuvable que dans le tiroir d'où on la sortait. Savoir ce
+    # qui a changé relève d'ailleurs du pilotage, pas d'un pouvoir d'administration : on
+    # consulte cette page, on n'y règle rien.
+    {"cle": "versions", "label": "Nouveautés", "groupe": "Pilotage",
+     "menu_lateral": True,
      "aide": "Ce qui a changé et quand : corrections, ajouts, sauvegardes, et l'écart "
              "entre ce qui tourne ici et le dépôt distant.",
      "url": "/versions", "api": ["/api/versions"]},
@@ -218,12 +230,8 @@ GROUPES = ["Pilotage", "Acquisition", "Ventes", "Campagnes", "Contenu & SEO",
 # change le jour de la mise en service : on rend explicite un comportement existant avant
 # de le modifier.
 DEFAUT = {
-    # `versions` est ajouté explicitement : il vit dans « Administration », donc la
-    # compréhension par groupe l'exclurait. Savoir ce qui a changé et quand n'est pas un
-    # pouvoir d'administration — c'est ce qui permet de comprendre pourquoi un écran ne
-    # ressemble plus à hier.
     "admin": [p["cle"] for p in PAGES if p["groupe"] != "Administration"]
-             + ["admin_secteurs", "admin_pression", "admin_etat_technique", "versions"],
+             + ["admin_secteurs", "admin_pression", "admin_etat_technique"],
     "user": ["dashboard", "vision", "statistiques", "contacts", "a_rappeler", "booking", "mon_activite",
              "campagnes", "segments", "cold_email", "newsletters", "articles",
              "opportunites", "ventes"],
