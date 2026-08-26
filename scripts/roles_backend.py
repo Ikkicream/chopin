@@ -57,44 +57,69 @@ ROLES = [
 # `api` = les préfixes de routes qui SERVENT cette page. C'est ce qui est réellement gardé.
 # Une page sans préfixe (`api: []`) n'est qu'un écran : on la retire du menu, mais aucune
 # donnée n'est à protéger derrière.
+#
+# `aide` = à quoi sert la page, en une phrase. Posé ICI et pas dans le guide, parce que la
+# documentation était un texte unique qui décrivait des pages que la moitié des comptes ne
+# voit pas — un commercial y lisait comment lancer un scraping. La même table décide donc
+# désormais ce qu'on VOIT et ce qu'on LIT : ajouter une page sans sa phrase se remarque,
+# et le guide ne peut plus parler d'un écran qui n'existe plus.
 PAGES = [
     # — Pilotage —
     {"cle": "dashboard", "label": "Tableau de bord", "groupe": "Pilotage",
+     "aide": "L'état du jour en un écran : ce qui est parti, ce qui est entré, ce qui alerte.",
      "url": "/site/{site}/dashboard", "api": ["/api/sites/{site}/marketing/overview"]},
     {"cle": "vision", "label": "Vision", "groupe": "Pilotage",
+     "aide": "La vue d'ensemble du site : volumes, tendances, santé de la base.",
      "url": "/site/{site}/vision", "api": ["/api/sites/{site}/vision"]},
     {"cle": "statistiques", "label": "Statistiques", "groupe": "Pilotage",
+     "aide": "Les résultats mesurés : envois, ouvertures, clics, par campagne et par jour. "
+             "C'est l'outil d'arbitrage — sans lui on décide à l'intuition.",
      "url": "/site/{site}/statistiques", "api": ["/api/sites/{site}/statistiques"]},
 
     # — Acquisition —
     {"cle": "contacts", "label": "Contacts", "groupe": "Acquisition",
+     "aide": "Le fichier : chercher, filtrer, ouvrir une fiche, voir l'historique d'un contact.",
      "url": "/site/{site}/acquisition",
      "api": ["/api/sites/{site}/acquisition", "/api/sites/{site}/pool/"]},
     {"cle": "a_rappeler", "label": "À rappeler", "groupe": "Acquisition",
+     "aide": "Ta liste d'appels du jour, avec le script et la fiche à portée de main.",
      "url": "/site/{site}/a-rappeler", "api": ["/api/sites/{site}/a-rappeler"]},
     {"cle": "mon_activite", "label": "Mon activité (commercial)", "groupe": "Acquisition",
+     "aide": "Ce que TU as fait : appels passés, rendez-vous pris, contacts qui te sont attribués.",
      "url": "/site/{site}/mon-activite", "api": ["/api/sites/{site}/mon-activite"]},
     {"cle": "opportunites", "label": "Opportunités", "groupe": "Ventes",
+     "aide": "Les affaires en cours, de la prise de contact à la décision.",
      "url": "/site/{site}/opportunites", "api": ["/api/sites/{site}/opportunites"]},
     {"cle": "ventes", "label": "Ventes", "groupe": "Ventes",
+     "aide": "Ce qui est signé, et ce que ça représente.",
      "url": "/site/{site}/ventes", "api": ["/api/sites/{site}/ventes"]},
     {"cle": "booking", "label": "Rendez-vous", "groupe": "Acquisition",
+     "aide": "L'agenda des rendez-vous pris, et par qui.",
      "url": "/site/{site}/booking", "api": ["/api/sites/{site}/booking"]},
     {"cle": "scrapper", "label": "Scraping", "groupe": "Acquisition",
+     "aide": "Aller chercher de nouveaux contacts. Attention : chaque passe coûte des "
+             "crédits, et la collecte tourne déjà toute seule la nuit.",
      "url": "/site/{site}/scrapper",
      "api": ["/api/sites/{site}/autoscrape", "/api/sites/{site}/scrape/",
              "/api/sites/{site}/stephane/", "/api/god-mode/{site}"]},
     {"cle": "scrapper_activite", "label": "Activité des scrapes", "groupe": "Acquisition",
+     "aide": "Ce que la collecte a fait cette nuit : cibles, retenus, écartés et pourquoi.",
      "url": "/site/{site}/scrapper/activite", "api": []},
 
     # — Campagnes —
     {"cle": "cold_email", "label": "Cold email", "groupe": "Campagnes",
+     "aide": "La galerie des messages : cold emails ET newsletters dans une seule table, "
+             "filtrable par secteur, avec ce que chacun a réellement produit.",
      "url": "/site/{site}/cold-email", "api": ["/api/sites/{site}/cold-email"]},
     {"cle": "newsletters", "label": "Newsletters", "groupe": "Campagnes",
+     "aide": "L'éditeur par blocs des emailings : bannière, titre, images, pied de page.",
      "url": "/site/{site}/newsletters", "api": ["/api/sites/{site}/newsletters"]},
     {"cle": "campagnes", "label": "Campagnes", "groupe": "Campagnes",
+     "aide": "Décider QUI reçoit QUOI, et à quel rythme. Créer une campagne reste une "
+             "décision humaine : la machine prolonge, elle n'invente pas.",
      "url": "/site/{site}/campaigns", "api": ["/api/sites/{site}/campaigns"]},
     {"cle": "segments", "label": "Segments", "groupe": "Campagnes",
+     "aide": "Composer une cible par règles (ET / OU / exclusion) et la réutiliser.",
      "url": "/site/{site}/segments", "api": ["/api/sites/{site}/segments"]},
     # Mozart doit figurer ICI pour exister aux yeux de la matrice des droits. Une page
     # absente de ce registre n'est pas « ouverte à tous » : elle est invisible du réglage
@@ -105,10 +130,15 @@ PAGES = [
     # cachée, parce qu'une fonctionnalité qui apparaît un jour sans prévenir surprend, et
     # qu'une équipe qui la voit arriver pose ses questions avant, pas après.
     {"cle": "mozart", "label": "Mozart (scénarios)", "groupe": "Campagnes", "beta": True,
+     "aide": "Des scénarios qui s'exécutent tout seuls : déclencheur, délai, email, "
+             "condition. Un nœud peut suivre le secteur du contact. Le graphe affiché est "
+             "celui qui tourne.",
      "url": "/site/{site}/mozart",
      "api": ["/api/sites/{site}/mozart", "/api/sites/{site}/mozart-expediteurs"]},
 
     {"cle": "expediteurs", "label": "Adresses d'envoi", "groupe": "Configuration",
+     "aide": "Les boîtes qui envoient, leur plafond du jour et leur montée en charge. "
+             "Un contact garde SON adresse à vie : y toucher se paie en réputation.",
      "url": "/site/{site}/setup/expediteurs", "api": ["/api/sites/{site}/expediteurs"]},
 
     # — Téléphonie (Onoff Business) —
@@ -116,41 +146,69 @@ PAGES = [
     # l'API, et la partie appel repose sur l'application Onoff installée côté poste.
     # Autant l'éprouver sur un compte avant de l'ouvrir à l'équipe.
     {"cle": "onoff", "label": "Téléphonie (ON/OFF)", "groupe": "Acquisition", "beta": True,
+     "aide": "Le suivi des appels ON/OFF. Lecture seule : ni appel ni SMS depuis ici, "
+             "c'est l'application Onoff qui les passe.",
      "url": "/site/{site}/onoff",
      "api": ["/api/sites/{site}/onoff", "/api/sites/{site}/onoff/etat"]},
     {"cle": "onoff_messagerie", "label": "Répondeur", "groupe": "Acquisition", "beta": True,
+     "aide": "Les messages laissés sur le répondeur, transmis par webhook.",
      "url": "/site/{site}/onoff/messagerie",
      "api": ["/api/sites/{site}/onoff/messagerie"]},
 
     # — Contenu & SEO —
     {"cle": "articles", "label": "Articles", "groupe": "Contenu & SEO",
+     "aide": "Les articles du blog : file de rédaction, relecture, publication.",
      "url": "/site/{site}/articles", "api": ["/api/articles"]},
     {"cle": "seo", "label": "Analyse SEO", "groupe": "Contenu & SEO",
+     "aide": "Les positions et les liens, tirés d'Ahrefs. Les données arrivent par un cron "
+             "quotidien : rafraîchir ici ne va pas plus vite.",
      "url": "/site/{site}/seo", "api": ["/api/seo-ahrefs/{site}"]},
     {"cle": "seo_strategy", "label": "Stratégie SEO", "groupe": "Contenu & SEO",
+     "aide": "Ce qu'il faudrait écrire, et pourquoi : mots-clés visés, trous à combler.",
      "url": "/site/{site}/seo-strategy", "api": ["/api/seo-strategy/{site}"]},
     {"cle": "tag", "label": "Plan de taggage", "groupe": "Contenu & SEO",
+     "aide": "L'organisation des étiquettes du site, pour que le contenu se range tout seul.",
      "url": "/site/{site}/tag", "api": ["/api/sites/{site}/tag"]},
     {"cle": "agents", "label": "Agents IA", "groupe": "Contenu & SEO",
+     "aide": "Les agents qui écrivent et analysent, leur planning et leur dernier passage.",
      "url": "/site/{site}/agents", "api": ["/api/agents/{site}"]},
 
     # — Administration —
     {"cle": "admin_users", "label": "Utilisateurs", "groupe": "Administration",
+     "aide": "Les comptes, leur rôle, et la matrice qui décide qui voit quoi.",
      "url": "/admin/users", "api": ["/api/auth/users", "/api/auth/logs", "/api/admin/roles"]},
     {"cle": "admin_secteurs", "label": "Secteurs", "groupe": "Administration",
+     "aide": "Quels métiers on démarche, dans quel ordre, et lesquels sont interdits.",
      "url": "/admin/secteurs", "api": ["/api/admin/secteurs"]},
     {"cle": "admin_pression", "label": "Pression marketing", "groupe": "Administration",
+     "aide": "À quelle fréquence une même personne peut être sollicitée. Un email reçu "
+             "vaut 120 jours de silence — cette règle ne s'assouplit pas.",
      "url": "/admin/pression", "api": ["/api/admin/pression"]},
     {"cle": "admin_database", "label": "Bases de données", "groupe": "Administration",
+     "aide": "L'état des bases et leur volume. À regarder avant de conclure qu'un compteur "
+             "ment : une base occupée n'est pas une base en panne.",
      "url": "/admin/database", "api": ["/api/admin/database"]},
     {"cle": "admin_maintenance", "label": "Maintenance", "groupe": "Administration",
+     "aide": "Nettoyages, purges et tâches de fond, avec ce qu'elles ont fait la dernière fois.",
      "url": "/admin/maintenance", "api": ["/api/admin/maintenance"]},
     {"cle": "admin_etat_technique", "label": "État technique", "groupe": "Administration",
+     "aide": "Ce qui tourne, ce qui est tombé, et depuis quand.",
      "url": "/admin/etat-technique", "api": ["/api/admin/etat-technique"]},
     {"cle": "admin_logs", "label": "Logs système", "groupe": "Administration",
+     "aide": "Les journaux bruts, quand le reste ne suffit plus à comprendre.",
      "url": "/admin/logs", "api": ["/api/admin/logs"]},
     {"cle": "couts", "label": "Coûts LLM", "groupe": "Administration",
+     "aide": "Ce que consomment les modèles, par agent et par jour.",
      "url": "/costs", "api": ["/api/costs"]},
+    # La page existait depuis mai et n'était dans AUCUN registre : donc absente de la
+    # barre de gauche, absente du réglage par rôle, absente du guide. Personne ne pouvait
+    # la trouver sans connaître son URL. Troisième fois que ce piège se referme — Mozart
+    # le 24/08, Onoff et les adresses d'envoi le 25/08 : **une page qui n'est pas ici
+    # n'est pas « ouverte à tous », elle est invisible.**
+    {"cle": "versions", "label": "Nouveautés et versions", "groupe": "Administration",
+     "aide": "Ce qui a changé et quand : corrections, ajouts, sauvegardes, et l'écart "
+             "entre ce qui tourne ici et le dépôt distant.",
+     "url": "/versions", "api": ["/api/versions"]},
 ]
 
 GROUPES = ["Pilotage", "Acquisition", "Ventes", "Campagnes", "Contenu & SEO",
@@ -160,8 +218,12 @@ GROUPES = ["Pilotage", "Acquisition", "Ventes", "Campagnes", "Contenu & SEO",
 # change le jour de la mise en service : on rend explicite un comportement existant avant
 # de le modifier.
 DEFAUT = {
+    # `versions` est ajouté explicitement : il vit dans « Administration », donc la
+    # compréhension par groupe l'exclurait. Savoir ce qui a changé et quand n'est pas un
+    # pouvoir d'administration — c'est ce qui permet de comprendre pourquoi un écran ne
+    # ressemble plus à hier.
     "admin": [p["cle"] for p in PAGES if p["groupe"] != "Administration"]
-             + ["admin_secteurs", "admin_pression", "admin_etat_technique"],
+             + ["admin_secteurs", "admin_pression", "admin_etat_technique", "versions"],
     "user": ["dashboard", "vision", "statistiques", "contacts", "a_rappeler", "booking", "mon_activite",
              "campagnes", "segments", "cold_email", "newsletters", "articles",
              "opportunites", "ventes"],
@@ -207,16 +269,29 @@ def matrice(force: bool = False) -> dict:
         return _CACHE["matrice"]
     try:
         _assurer_table()
-        lignes = _pool()._q("SELECT role, page FROM role_pages WHERE autorise")
+        lignes = _pool()._q("SELECT role, page, autorise FROM role_pages")
         enregistre: dict = {}
-        for role, page in lignes:
-            enregistre.setdefault(role, set()).add(page)
+        connues_du_role: dict = {}
+        for role, page, autorise in lignes:
+            connues_du_role.setdefault(role, set()).add(page)
+            if autorise:
+                enregistre.setdefault(role, set()).add(page)
         # Un rôle absent de la table n'a jamais été réglé : il prend le défaut. Un rôle
         # présent mais vide est un CHOIX (tout décoché) et doit le rester.
-        roles_regles = {r for (r,) in _pool()._q("SELECT DISTINCT role FROM role_pages")}
+        roles_regles = set(connues_du_role)
+        toutes = {p["cle"] for p in PAGES}
         out = {}
         for r in (x["cle"] for x in ROLES if x["cle"] != SUPER):
-            out[r] = enregistre.get(r, set()) if r in roles_regles else set(DEFAUT.get(r, []))
+            if r not in roles_regles:
+                out[r] = set(DEFAUT.get(r, []))
+                continue
+            droits = set(enregistre.get(r, set()))
+            # Une page que ce rôle n'a JAMAIS vue passer — donc ajoutée après son réglage —
+            # n'a pas été refusée : elle n'existait pas. Elle prend le défaut, sinon toute
+            # page nouvelle resterait invisible pour toujours et en silence.
+            nouvelles = toutes - connues_du_role.get(r, set())
+            droits |= (nouvelles & set(DEFAUT.get(r, [])))
+            out[r] = droits
     except Exception:  # noqa: BLE001 — règle 3 : on ne coupe pas la plateforme
         out = {r: set(v) for r, v in DEFAUT.items()}
     _CACHE["matrice"], _CACHE["ts"] = out, time.time()
@@ -244,11 +319,22 @@ def enregistrer(role: str, pages: list, par: str = "") -> dict:
             with c.cursor() as cur:
                 cur.execute(SCHEMA)
                 cur.execute("DELETE FROM role_pages WHERE role = %s", (role,))
-                if pages:
-                    cur.executemany(
-                        "INSERT INTO role_pages (role, page, autorise, maj_par) "
-                        "VALUES (%s, %s, true, %s)", [(role, pg, par or None) for pg in pages])
-                else:
+                # On enregistre les pages REFUSÉES autant que les autorisées. Avant, seules
+                # les autorisées étaient écrites : impossible ensuite de distinguer « on a
+                # décoché cette page » de « cette page n'existait pas encore ». Conséquence
+                # concrète : le jour où un rôle est réglé, toute page ajoutée PLUS TARD lui
+                # reste invisible à jamais — et personne ne s'en aperçoit, puisque rien
+                # n'apparaît. C'est ce qui est arrivé quatre fois : Mozart le 24/08, Onoff
+                # et les adresses d'envoi le 25/08, la page Nouveautés le 26/08.
+                #
+                # Avec la trace du refus, `matrice()` sait qu'une page absente des lignes
+                # d'un rôle réglé est NOUVELLE, et lui applique le défaut.
+                choisies = set(pages)
+                cur.executemany(
+                    "INSERT INTO role_pages (role, page, autorise, maj_par) "
+                    "VALUES (%s, %s, %s, %s)",
+                    [(role, pg, pg in choisies, par or None) for pg in sorted(connues)])
+                if not pages:
                     # Trace du choix « aucune page » : sans elle, le rôle repasserait au
                     # défaut au prochain chargement et le décochage serait sans effet.
                     cur.execute("INSERT INTO role_pages (role, page, autorise, maj_par) "
