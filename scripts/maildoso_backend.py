@@ -389,8 +389,28 @@ def already_sent_emails(campaign_id: str) -> set[str]:
 
 
 # ── Envoi SMTP ───────────────────────────────────────────────────────────────────
+# Le nom d'expéditeur porte désormais la marque : « Juliette Durand · LeClientROI ».
+# C'est la seule façon qu'un inconnu sache de qui vient l'email AVANT de l'ouvrir, sans
+# consommer un caractère d'objet — les données déconseillant le nom d'entreprise en objet.
+#
+# Mais ce champ sert aussi à signer le message, via `{{expediteur_nom}}`. Sans découpe, le
+# nom de famille deviendrait « Durand · LeClientROI » et signerait chaque email. On coupe
+# donc la marque avant de séparer prénom et nom.
+_SEPARATEURS_MARQUE = ("·", "|", "—", "–", " - ")
+
+
+def _sans_marque(full: str) -> str:
+    """« Juliette Durand · LeClientROI » → « Juliette Durand »."""
+    s = (full or "").strip()
+    for sep in _SEPARATEURS_MARQUE:
+        if sep in s:
+            s = s.split(sep, 1)[0]
+    return s.strip()
+
+
 def _split_name(full: str) -> tuple[str, str]:
-    parts = (full or "").split()
+    """(prénom, nom) de la PERSONNE — la marque accolée au nom d'expéditeur est écartée."""
+    parts = _sans_marque(full).split()
     return (parts[0] if parts else "", " ".join(parts[1:]) if len(parts) > 1 else "")
 
 
@@ -486,6 +506,30 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
     if not mb:
         return {"ok": False, "reporte": True,
                 "error": "aucune boîte disponible pour ce contact aujourd'hui"}
+
+    # ── L'HEURE, au point de passage (2026-08-26) ───────────────────────────────
+    # Elle était contrôlée par les APPELANTS : `campaign_engine` avant son lot,
+    # `mozart._envoyer` avant son nœud. Ni `send_email` ni `send_batch` ne la regardaient.
+    # Un nouveau chemin d'appel — un script de rattrapage, un bouton d'écran, un cron
+    # ajouté un soir — envoyait donc en pleine nuit sans que rien ne s'y oppose. C'est la
+    # même leçon que la fenêtre de 120 jours juste en dessous : une règle appliquée par ses
+    # appelants n'est pas une règle, c'est une convention.
+    #
+    # `profil_pour` rend None pour un BAT, un test ou un transactionnel : ceux-là répondent
+    # à un geste que quelqu'un vient de faire, les retenir jusqu'à lundi serait absurde.
+    # Le refus est un REPORT, pas un échec : l'appelant doit réessayer, pas abandonner.
+    try:
+        import fenetre_envoi
+        _profil = fenetre_envoi.profil_pour(campaign_id, usage)
+        if _profil:
+            _ok, _motif = fenetre_envoi.ouverte(_profil)
+            if not _ok:
+                return {"ok": False, "reporte": True,
+                        "error": f"hors fenêtre d'envoi — {_motif}"}
+    except ImportError:  # noqa: BLE001
+        print("[maildoso] fenêtre d'envoi illisible — envoi laissé au contrôle des "
+              "appelants", flush=True)
+
     # ── La fenêtre de 120 jours, au point de passage ────────────────────────────
     # Elle était appliquée par chaque APPELANT : `campaign_engine._drop_recently_emailed`
     # croisait deux sources (base repoussoir + journal), `mozart._envoyer` n'en consultait
@@ -515,14 +559,12 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
     # écriture SMTP, parce que c'est le seul endroit qui connaît la boîte retenue. Le
     # refus est un REPORT : l'appelant passe au contact suivant, qui partira d'une autre
     # adresse — c'est ainsi que la rotation et la cadence se renforcent au lieu de se gêner.
-    dernier = _DERNIER_ENVOI.get(mb["email"])
-    if dernier is not None:
-        reste = ECART_MIN_BOITE - (time.time() - dernier)
-        if reste > 0:
-            return {"ok": False, "reporte": True,
-                    "error": f"cadence — {mb['email'].split('@')[0]} a écrit il y a "
-                             f"{int(ECART_MIN_BOITE - reste)} s, minimum {ECART_MIN_BOITE} s",
-                    "mailbox": mb["email"]}
+    ecoule = _secondes_depuis_dernier_envoi(mb["email"])
+    if ecoule is not None and ecoule < ECART_MIN_BOITE:
+        return {"ok": False, "reporte": True,
+                "error": f"cadence — {mb['email'].split('@')[0]} a écrit il y a "
+                         f"{int(ecoule)} s, minimum {ECART_MIN_BOITE} s",
+                "mailbox": mb["email"]}
 
     password = _env().get(mb.get("password_ref") or "MAILDOSO_SMTP_PASSWORD", "")
     if not password:
@@ -685,10 +727,41 @@ ECART_MIN_BOITE = 240        # secondes entre deux envois d'une même boîte (4 
 ECART_MIN_LOT = 20           # plancher absolu entre deux envois, toutes boîtes confondues
 ECART_MAX_LOT = 900          # au-delà, un lot ne finirait jamais (15 min)
 
-# Quand chaque boîte a envoyé pour la dernière fois, dans CE process. Volontairement en
-# mémoire : la contrainte protège d'une rafale à l'intérieur d'un lot, pas d'un envoi
-# légitime après un redémarrage.
+# Quand chaque boîte a envoyé pour la dernière fois, dans CE process.
+#
+# **Ce cache ne suffit pas, et c'est le point corrigé le 2026-08-26.** Il tenait l'écart de
+# quatre minutes à l'intérieur d'un lot, jamais ENTRE le dispatch des campagnes (cron 8h30)
+# et le tick de Mozart (cron horaire) : deux process, deux dictionnaires vides. Rien
+# n'empêchait donc une boîte d'envoyer deux fois en dix secondes, une fois par chemin.
+#
+# Le journal PostgreSQL, lui, voit les deux. On l'interroge en premier ; le cache mémoire
+# reste comme repli immédiat si le journal ne répond pas — une cadence dégradée vaut mieux
+# qu'aucune cadence.
 _DERNIER_ENVOI: dict[str, float] = {}
+
+
+def _secondes_depuis_dernier_envoi(mailbox: str) -> float | None:
+    """Depuis combien de secondes cette boîte n'a rien envoyé ? None = on ne sait pas.
+
+    Lu dans `email_events`, comme le compteur du jour avant lui : c'est la seule source qui
+    voit TOUS les chemins d'envoi. Repli sur le cache mémoire du process si le journal est
+    indisponible.
+    """
+    try:
+        import pool_pg
+        lignes = pool_pg._q("""
+            SELECT EXTRACT(EPOCH FROM (now() - max(occurred_at)))
+              FROM email_events
+             WHERE mailbox = %(m)s AND event_type = 'sent'
+        """, {"m": mailbox})
+        if lignes and lignes[0] and lignes[0][0] is not None:
+            return float(lignes[0][0])
+        return None                      # cette boîte n'a jamais rien envoyé
+    except Exception as e:  # noqa: BLE001
+        print(f"[maildoso] cadence : journal indisponible ({type(e).__name__}: {e}) "
+              f"— repli sur la mémoire du process", flush=True)
+        dernier = _DERNIER_ENVOI.get(mailbox)
+        return (time.time() - dernier) if dernier is not None else None
 
 
 def _cadence(restants: int) -> tuple[int, int]:

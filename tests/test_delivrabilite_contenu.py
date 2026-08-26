@@ -77,9 +77,18 @@ def lance() -> int:
     # reste bas pour que le troisième, lui, soit refusé — c'est lui qui ferait un tract.
     verifie("les deux liens attendus passent",
             q.controler("x", deux, premier_contact=True)["ok"])
-    trois = deux[:-4] + '<a href="https://exemple.fr/autre">et encore</a></p>'
-    verifie("un troisième lien au premier contact est refusé",
-            not q.controler("x", trois, premier_contact=True)["ok"])
+    # Seuil passé de 2 à 4 le 2026-08-26, sur décision de Camille. Le message EMBALLÉ en
+    # porte quatre : page du secteur, prise de rendez-vous, LinkedIn (demandé le 26/08) et
+    # lien de marque ajouté par `wrap_cold_email`. Le corps stocké n'en montre que trois —
+    # c'est ce décalage qui aurait bloqué le dispatch si on avait plafonné à trois.
+    quatre = deux[:-4] + ('<a href="https://exemple.fr/a">a</a>'
+                          '<a href="https://exemple.fr/b">b</a></p>')
+    verifie("les quatre liens réellement envoyés passent",
+            q.controler("x", quatre, premier_contact=True)["ok"],
+            f"({q.controler('x', quatre, premier_contact=True)['bloquants']})")
+    cinq = quatre[:-4] + '<a href="https://exemple.fr/c">et encore</a></p>'
+    verifie("un CINQUIÈME lien au premier contact est refusé",
+            not q.controler("x", cinq, premier_contact=True)["ok"])
     verifie("les mêmes deux liens passent en relance",
             q.controler("x", deux, premier_contact=False)["ok"])
     verifie("une image au premier contact est refusée",

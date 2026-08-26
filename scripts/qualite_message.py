@@ -251,12 +251,25 @@ def typographie_fr(texte: str) -> str:
 
 # ── Contrôle d'ensemble ──────────────────────────────────────────────────────
 
-# Deux liens au premier contact, et pas un de plus. Le guide en conseille ZÉRO — un lien
-# dans un premier message ressemble à un appât. Mais deux sont imposés par ailleurs : le
-# lint exige un CTA de prise de rendez-vous, et Camille a demandé le 2026-08-25 que le lien
-# vers leclientroi.com soit toujours présent. C'est un arbitrage assumé, pas un oubli : le
-# seuil reste bas pour que le TROISIÈME lien, lui, soit refusé.
-LIENS_MAX_PREMIER = 2
+# Quatre liens au premier contact, et pas un de plus. Le guide en conseille ZÉRO — un lien
+# dans un premier message ressemble à un appât. Mais quatre sont imposés par ailleurs, et
+# les voici, comptés sur le message EMBALLÉ, celui qui part réellement :
+#
+#   1. la page du secteur          (leclientroi.com/immobilier)
+#   2. la prise de rendez-vous     (api.cheffer.email/api/book/lcr) — exigée par le lint
+#   3. le profil LinkedIn          — demandé le 2026-08-26 : un profil qu'on peut aller
+#                                    voir rend l'expéditeur réel, ce qui manquait
+#   4. le lien de marque           (leclientroi.com) — demandé le 2026-08-25, ajouté par
+#                                    `wrap_cold_email`, donc absent du corps stocké
+#
+# La désinscription n'est pas comptée : c'est un `mailto:`, et `liens()` l'écarte — elle
+# est obligatoire, jamais un appât.
+#
+# Passé de 2 à 4 le 2026-08-26, sur décision de Camille. Le piège à retenir : le corps
+# STOCKÉ n'en porte que trois, le quatrième vient de l'emballage. Compter sur le corps
+# faisait croire que 3 suffisait, et le dispatch se serait bloqué au premier lot. Le seuil
+# reste un seuil : un CINQUIÈME lien est refusé.
+LIENS_MAX_PREMIER = 4
 
 
 def controler(sujet: str, corps_html: str, premier_contact: bool = False,

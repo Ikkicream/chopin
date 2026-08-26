@@ -808,7 +808,17 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
         # mot ambigu produit un avertissement, sinon on débrancherait le contrôle à la
         # première campagne.
         import qualite_message as qmsg
-        qual = qmsg.controler(camp.get("subject") or "", msg["html"])
+        # `premier_contact` durcit la règle sur les liens et interdit les images. Il n'était
+        # JAMAIS passé : le durcissement n'existait que dans les tests, donc un premier
+        # message à cinq liens serait parti sans que rien ne s'y oppose.
+        #
+        # Il ne vaut que pour un cold email de PREMIER contact. Une newsletter porte cinq
+        # liens et des images par nature — la lui appliquer bloquerait tous les emailings,
+        # c'est-à-dire débrancherait le contrôle à la première campagne.
+        mid_camp = camp.get("message_id") or ""
+        premier = mid_camp.startswith("cold:") and mid_camp.endswith(":first")
+        qual = qmsg.controler(camp.get("subject") or "", msg["html"],
+                              premier_contact=premier)
         for a in qual["avertissements"][:5]:
             print(f"[campaign_engine] avertissement délivrabilité — {a}", flush=True)
         if qual["bloquants"]:
