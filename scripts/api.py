@@ -5889,6 +5889,58 @@ async def api_roles_enregistrer(request: Request):
         return JSONResponse(status_code=503, content={"error": str(e)[:200]})
 
 
+@app.get("/api/mon-guide")
+def api_mon_guide(request: Request):
+    """La documentation de MON rôle — pas un guide unique qui parle d'écrans invisibles.
+
+    Le guide décrivait le scraping à un commercial qui n'a pas la page, et les campagnes à
+    quelqu'un qui ne peut pas en créer. Un mode d'emploi qui parle d'un bouton absent
+    n'apprend rien : il fait douter de sa propre application.
+
+    La source est `roles_backend.PAGES`, la même table qui décide de l'affichage du menu.
+    Elle porte désormais une phrase d'aide par page : ajouter un écran sans expliquer ce
+    qu'il fait se remarque, et le guide ne peut plus décrire une page supprimée.
+
+    Le rôle est lu de la SESSION, jamais d'un paramètre : sinon n'importe qui lirait le
+    mode d'emploi des pages qu'on lui a retirées.
+    """
+    sess = getattr(request.state, "session", None) or {}
+    sys.path.insert(0, str(BASE_DIR / "scripts"))
+    import roles_backend as rbk
+    role = (sess.get("role") or "").strip()
+    utilisateur = (sess.get("username") or "").strip().lower()
+    try:
+        autorisees = set(rbk.pages_autorisees(role))
+        beta = rbk.pages_beta()
+        beta_ok = utilisateur in rbk.beta_testeurs()
+        libelle_role = next((r["label"] for r in rbk.ROLES if r["cle"] == role), role or "—")
+        aide_role = next((r.get("aide") or "" for r in rbk.ROLES if r["cle"] == role), "")
+    except Exception as e:  # noqa: BLE001
+        print(f"[api] guide indisponible ({type(e).__name__}: {e})", flush=True)
+        return {"role": role, "pages": [], "groupes": [],
+                "erreur": "catalogue des droits indisponible"}
+
+    groupes: dict = {}
+    for p in rbk.PAGES:
+        if p["cle"] not in autorisees:
+            continue
+        en_beta = p["cle"] in beta
+        groupes.setdefault(p.get("groupe") or "Autres", []).append({
+            "cle": p["cle"], "label": p["label"], "url": p["url"],
+            "aide": p.get("aide") or "",
+            "beta": en_beta,
+            # Une page en bêta reste VISIBLE et documentée : la découvrir le jour où elle
+            # s'ouvre serait une surprise de plus. On dit seulement qu'elle est fermée.
+            "accessible": (not en_beta) or beta_ok,
+        })
+
+    return {
+        "role": role, "role_label": libelle_role, "role_aide": aide_role,
+        "total_pages": len(rbk.PAGES), "mes_pages": len(autorisees),
+        "groupes": [{"nom": g, "pages": ps} for g, ps in groupes.items()],
+    }
+
+
 @app.get("/api/mes-pages")
 def api_mes_pages(request: Request):
     """Les pages que MON rôle a le droit de voir — lu de la session, pas du navigateur.
@@ -7526,12 +7578,16 @@ def api_mozart_supprimer(site: str, sid: str):
 
 
 @app.get("/api/sites/{site}/campaigns/messages")
-def api_campaign_messages(site: str):
-    """Messages sélectionnables pour une campagne, groupés : Templates (newsletters),
-    Messages validés, Cold emails (par secteur)."""
+def api_campaign_messages(site: str, auto: bool = False):
+    """Messages sélectionnables, groupés : Templates (newsletters), Messages validés,
+    Cold emails (par secteur).
+
+    `auto=1` ajoute « selon le secteur du contact » — un nœud de scénario peut choisir son
+    message à l'envoi, une campagne non : elle en porte un seul, connu d'avance.
+    """
     sys.path.insert(0, str(BASE_DIR / "scripts"))
     import html_templates_backend as htb
-    return htb.campaign_message_options(site)
+    return htb.campaign_message_options(site, auto=auto)
 
 
 @app.get("/api/sites/{site}/campaigns/message-preview")

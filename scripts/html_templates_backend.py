@@ -112,9 +112,26 @@ def delete_version(site: str, vid: str) -> None:
 # Le wizard campagne peut piocher dans : Templates (structures/newsletters),
 # Messages validés (versions), ou Cold emails (email_templates, par secteur).
 # On encode la source dans le message_id : "struct:<name>" | "cold:<sector>:<kind>" | "ver:<id>".
-def campaign_message_options(site: str) -> dict:
-    """Liste groupée des messages sélectionnables pour une campagne."""
+def campaign_message_options(site: str, auto: bool = False) -> dict:
+    """Liste groupée des messages sélectionnables pour une campagne.
+
+    `auto=True` ajoute « le cold email du secteur du contact » — réservé aux SCÉNARIOS.
+    Une campagne vise un ciblage qu'on a choisi et porte un seul message : lui proposer un
+    message variable n'aurait pas de sens, et rendrait son aperçu impossible à afficher.
+    """
     groups = []
+    if auto:
+        import email_templates_backend as _etb
+        groups.append({
+            "key": "auto",
+            "label": "Selon le secteur du contact (scénarios)",
+            "items": [{"id": f"auto:{k}",
+                       "name": {"first": "Premier message du secteur",
+                                "relance1": "Relance 1 du secteur",
+                                "relance2": "Relance 2 du secteur"}.get(k, k),
+                       "sub": "le message est choisi à l'envoi, d'après la fiche du contact"}
+                      for k in _etb.KINDS],
+        })
     structs = [{"id": f"struct:{s['name']}",
                 "name": s["name"].replace("leclientroi-newsletter-", "")}
                for s in list_structures()]
