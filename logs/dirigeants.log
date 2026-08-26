@@ -66,3 +66,37 @@
   "solde": 812
  }
 }
+{
+ "site": "lcr",
+ "sector": "immobilier",
+ "dept_code": "44",
+ "flow": "dirigeants",
+ "companies_total": 2490,
+ "rule": {
+  "action": "extract",
+  "reason": "2,490 ≤ cap — extraction en 3 passe(s) de 1000",
+  "passes": 3
+ },
+ "companies_scanned": 250,
+ "dirigeants_found": 114,
+ "emelia_needed": 114,
+ "emelia_calls": 114,
+ "credits_factures": 18,
+ "valid": 0,
+ "rejected": 96,
+ "errors": 0,
+ "dry_run": false,
+ "use_emelia": true,
+ "solde_emelia_avant": 812,
+ "plafond_credits": 30,
+ "status": "done",
+ "secteur": "immobilier",
+ "dept": "44",
+ "debut": "2026-08-25T23:00:01+00:00",
+ "duree_min": 35.7,
+ "cumul": {
+  "credits_depenses": 328,
+  "contacts": 12,
+  "solde": 794
+ }
+}

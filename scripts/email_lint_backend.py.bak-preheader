@@ -54,22 +54,6 @@ MOTS_CONDITION = {"si", "sinon", "/si"}
 _CONDITION_RE = re.compile(r"\{\{\s*(?:si\s+[A-Za-z0-9_]+|sinon|/si)\s*\}\}")
 _VAR_RE = re.compile(r"\{+\s*([A-Za-z0-9_]+)\s*\}+")
 
-# Un PRÉ-EN-TÊTE est délibérément invisible : c'est le texte que la boîte de réception
-# affiche à côté de l'objet, et qui ne doit PAS réapparaître dans le corps. On l'obtient
-# en empilant `display:none`, `font-size:0`, `max-height:0` et `opacity:0` — d'où un
-# contraste de 1.0:1 que le lint signale à chaque passage (« low contrast ratio 1.0:1 »).
-# Ce bruit a fait perdre du temps le 2026-08-26 : dans le rapport d'une campagne bloquée,
-# il apparaissait en tête et donnait l'impression d'être la cause du blocage — alors que
-# le coupable était `{{si prenom}}`. La catégorie `accessibility` n'a jamais été bloquante
-# (cf. BLOCKING_CATEGORIES), on retire donc seulement le bruit, pas une protection.
-_PREHEADER_RE = re.compile(
-    r"(display\s*:\s*none|font-size\s*:\s*0|max-height\s*:\s*0|opacity\s*:\s*0)",
-    re.I,
-)
-# 1.0:1 = premier plan et fond STRICTEMENT identiques, donc texte invisible. Un vrai défaut
-# de lisibilité (gris clair sur blanc) donne 2:1 ou 3:1 et reste signalé.
-_CONTRASTE_NUL_RE = re.compile(r"\b1(?:[.,]0+)?\s*:\s*1\b")
-
 
 def _conn():
     return duckdb.connect(str(GOD_DB))
@@ -100,23 +84,6 @@ def _ensure_table():
 def _run(cmd: list[str]) -> tuple[int, str, str]:
     p = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_S)
     return p.returncode, p.stdout, p.stderr
-
-
-def _drop_preheader_contrast(issues: list[dict], html: str) -> list[dict]:
-    """Retire l'alerte de contraste nul quand le message porte un pré-en-tête caché.
-
-    `emailens` ne dit pas QUEL élément est en cause : on ne peut donc pas viser le bloc.
-    Deux conditions ensemble suffisent à conclure sans risque — le HTML contient bien un
-    bloc masqué, et le contraste signalé vaut exactement 1.0:1 (invisible, pas « peu
-    lisible »). Si l'une manque, l'alerte est conservée.
-    """
-    if not _PREHEADER_RE.search(html or ""):
-        return issues
-    return [
-        it for it in issues
-        if not ((it.get("rule") or "").lower() == "low-contrast"
-                and _CONTRASTE_NUL_RE.search(it.get("message") or ""))
-    ]
 
 
 def _drop_known_vars(issues: list[dict]) -> list[dict]:
@@ -175,7 +142,6 @@ def run_lint(html: str) -> dict:
         files = lint.get("files") or [{}]
         first = files[0] if files else {}
         issues = _drop_known_vars(first.get("issues", []) or [])
-        issues = _drop_preheader_contrast(issues, html)
         # compteurs recalculés sur les issues filtrées (cohérent avec ce qui s'affiche)
         n_err = sum(1 for i in issues if i.get("severity") == "error")
         n_warn = sum(1 for i in issues if i.get("severity") == "warning")

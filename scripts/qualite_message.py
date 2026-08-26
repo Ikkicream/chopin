@@ -139,6 +139,116 @@ def spintax(gabarit: str, graine: str = "") -> str:
     return out
 
 
+# ── 4. Conditionnel : écrire autrement quand une donnée manque ───────────────
+# `{{si prenom}}Bonjour {{prenom}},{{sinon}}Bonjour,{{/si}}`
+#
+# Mesuré le 2026-08-26 : le prénom n'existe que pour **29 %** des contacts immobiliers, et
+# le script d'extraction a déjà tout récupéré — les 5 058 restants sont des `contact@`,
+# `info@`, `agence@`. Aucune écriture ne créera ces prénoms.
+#
+# Sans conditionnel, il fallait choisir : ou bien « Bonjour {{prenom}}, » qui devient
+# « Bonjour, » pour sept contacts sur dix, ou bien renoncer au prénom pour tout le monde.
+# Le conditionnel permet la troisième voie : **le prénom quand il existe, une autre phrase
+# quand il manque** — « Vous semblez responsable de {{entreprise}} », et la société, elle,
+# est connue à 100 %.
+_CONDITION = re.compile(
+    r"\{\{\s*si\s+([A-Za-z_][A-Za-z0-9_]*)\s*\}\}(.*?)"
+    r"(?:\{\{\s*sinon\s*\}\}(.*?))?\{\{\s*/si\s*\}\}", re.S)
+
+
+def conditionnel(texte: str, contact: dict | None) -> str:
+    """Développe les blocs conditionnels. À appliquer AVANT la substitution des variables.
+
+    Une variable est « présente » si le contact porte une valeur non vide. La branche non
+    retenue disparaît entièrement — y compris les variables qu'elle contient, qui ne
+    doivent surtout pas arriver jusqu'au garde-fou des variables.
+    """
+    if not texte or "{{si " not in texte and "{{si\t" not in texte:
+        return texte or ""
+    c = contact or {}
+    # Les alias, alignés sur `garde_variables._SOURCE` : le gabarit peut écrire `prenom`
+    # comme `firstName`, la donnée vient du même endroit.
+    alias = {"prenom": ("prenom",), "firstname": ("prenom",), "firstName": ("prenom",),
+             "nom": ("nom",), "entreprise": ("societe", "entreprise"),
+             "societe": ("societe",), "ville": ("city", "ville"), "city": ("city",)}
+
+    def presente(nom: str) -> bool:
+        for champ in alias.get(nom, (nom,)):
+            if str(c.get(champ) or "").strip():
+                return True
+        return False
+
+    out, garde = texte, 0
+    while "{{si " in out and garde < 20:      # borne dure : un gabarit mal formé ne boucle pas
+        avant = out
+        out = _CONDITION.sub(
+            lambda m: (m.group(2) if presente(m.group(1)) else (m.group(3) or "")), out)
+        if out == avant:
+            break
+        garde += 1
+    return out
+
+
+# ── 5. Les tics qui trahissent une machine ───────────────────────────────────
+# Relevé par Camille le 2026-08-26 : « comment je reconnais un email écrit par l'IA ?
+# l'utilisation du caractère — impossible qu'un humain le tape, encore moins un Français,
+# il ne sait pas le taper sur son clavier ».
+#
+# Elle a raison, et c'est mesurable : 83 tirets cadratins dans 24 emails que j'avais
+# écrits. Aucun clavier AZERTY ne produit « — » sans manipulation. Un lecteur français ne
+# saurait pas dire pourquoi, mais il sentira que ce n'est pas une main humaine.
+#
+# Deuxième tic, de typographie : en français une ponctuation double (? ! : ;) prend une
+# espace AVANT. Sans elle, le texte a été produit par une machine anglophone.
+ESPACE_FINE = "\u202f"          # espace fine insécable : le « ? » ne bascule jamais seul
+
+_TIRETS_INTERDITS = {"\u2014": "tiret cadratin (—)", "\u2013": "tiret demi-cadratin (–)"}
+
+
+def tics_ia(sujet: str, corps_html: str) -> list[str]:
+    """Les marqueurs qui font dire « c'est écrit par une machine »."""
+    plein = (sujet or "") + " " + _texte(corps_html)
+    motifs = []
+    for car, nom in _TIRETS_INTERDITS.items():
+        n = plein.count(car)
+        if n:
+            motifs.append(f"{n} {nom} : aucun clavier français ne le produit")
+    # Ponctuation double sans espace avant, hors balises et entités.
+    # `_texte()` a déjà décodé les entités ; on ne regarde que ? et ! — le point-virgule
+    # est trop souvent légitime (listes, code) pour être une faute à lui seul.
+    sans_espace = re.findall(r"[^\s\u202f\u00a0!?][?!]", plein)
+    if sans_espace:
+        motifs.append(f"{len(sans_espace)} ponctuation(s) sans espace avant (typographie anglaise)")
+    if sujet and sujet[:1].islower():
+        motifs.append("objet sans majuscule initiale")
+    return motifs
+
+
+def typographie_fr(texte: str) -> str:
+    """Applique la typographie française : espace fine insécable avant ? ! : ;
+
+    On ne touche PAS aux `:` d'une URL ni d'une balise — d'où le contrôle du caractère qui
+    précède et l'exclusion de ce qui ressemble à `http:` ou `mailto:`.
+    """
+    if not texte:
+        return texte or ""
+    # Deux cas, et il faut les deux : l'espace ABSENTE (typographie anglaise) et l'espace
+    # NORMALE déjà présente — celle-ci laisse le « ? » basculer seul à la ligne suivante,
+    # ce qui se voit immédiatement dans une boîte de réception étroite.
+    # Le point-virgule est EXCLU : il termine les entités HTML (`&rsquo;`, `&nbsp;`,
+    # `&#x27;`). Ma première version insérait une espace au milieu — `l&rsquo ;acquisition`
+    # s'affichait tel quel dans l'email. Une règle typographique n'a pas à connaître le
+    # HTML : on lui retire donc le seul caractère qui y a un autre sens.
+    out = re.sub(r"[ \u00a0]+([?!])", ESPACE_FINE + r"\1", texte)
+    out = re.sub(r"(?<=[^\s\u202f\u00a0])([?!])", ESPACE_FINE + r"\1", out)
+    # Les deux-points : seulement après un mot, jamais dans une URL ni un style CSS.
+    out = re.sub(r"[ \u00a0]+(:)(?=\s)", ESPACE_FINE + r"\1", out)
+    out = re.sub(r"(?<=[A-Za-zÀ-ÿ0-9])(:)(?=\s)", ESPACE_FINE + r"\1", out)
+    # Sécurité : si une entité a malgré tout été coupée, on la recolle.
+    out = re.sub(r"(&[a-zA-Z#0-9]{2,8})" + ESPACE_FINE + r";", r"\1;", out)
+    return out
+
+
 # ── Contrôle d'ensemble ──────────────────────────────────────────────────────
 
 # Deux liens au premier contact, et pas un de plus. Le guide en conseille ZÉRO — un lien
@@ -161,6 +271,7 @@ def controler(sujet: str, corps_html: str, premier_contact: bool = False,
     bloquants = [f"terme à risque : « {m} »" for m in spam["bloquants"]]
     avertissements = [f"terme à surveiller : « {m} »" for m in spam["avertissements"]]
     avertissements += mise_en_forme(sujet, corps_html)
+    avertissements += tics_ia(sujet, corps_html)
 
     urls = liens(corps_html)
     imgs = images(corps_html)

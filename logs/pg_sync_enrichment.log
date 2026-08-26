@@ -36,3 +36,11 @@ _duckdb.IOException: IO Error: Could not set lock on file "/home/autoblog/genesi
  "exclus": 212,
  "ignorees_contact_absent": 1754
 }
+{
+ "pool": 11621,
+ "copiees": 9867,
+ "postgresql": 9867,
+ "avec_siret": 4766,
+ "exclus": 226,
+ "ignorees_contact_absent": 1754
+}

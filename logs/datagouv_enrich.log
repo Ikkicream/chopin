@@ -185,3 +185,32 @@ ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'
 2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "TRAITEUR 62", "denomination": "TRAITEUR 62", "siret": "50967948600019", "code_naf": "56.21Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "HENIN-BEAUMONT", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "LE VIDOCQ", "denomination": "LE VIDOCQ", "siret": "80226697300022", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "ARRAS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
 2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "AVINE", "denomination": "AVINE", "siret": "82790435000028", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "0 salarié", "commune": "VERMELLES", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-26 06:30:02,503 [INFO] 762 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-26 06:30:02,504 [INFO] Durée estimée minimale : ~190s (762 × 4 req/s)
+2026-08-26 06:30:17,483 [INFO]   ...50/762 (21 enrichis, 2 exclus, API=54 cache=0)
+2026-08-26 06:30:31,106 [INFO]   ...100/762 (69 enrichis, 2 exclus, API=104 cache=0)
+2026-08-26 06:30:45,457 [INFO]   ...150/762 (87 enrichis, 3 exclus, API=157 cache=0)
+2026-08-26 06:30:59,980 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2911330) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-26 06:31:02,683 [INFO]   ...200/762 (94 enrichis, 3 exclus, API=215 cache=0)
+2026-08-26 06:31:17,974 [INFO]   ...250/762 (110 enrichis, 3 exclus, API=272 cache=0)
+2026-08-26 06:31:32,643 [INFO]   ...300/762 (130 enrichis, 4 exclus, API=326 cache=0)
+2026-08-26 06:31:47,942 [INFO]   ...350/762 (145 enrichis, 6 exclus, API=383 cache=0)
+2026-08-26 06:32:02,607 [INFO]   ...400/762 (166 enrichis, 9 exclus, API=437 cache=0)
+2026-08-26 06:32:16,378 [INFO]   ...450/762 (214 enrichis, 9 exclus, API=487 cache=0)
+2026-08-26 06:32:30,294 [INFO]   ...500/762 (247 enrichis, 9 exclus, API=538 cache=0)
+2026-08-26 06:32:45,133 [INFO]   ...550/762 (282 enrichis, 9 exclus, API=593 cache=0)
+2026-08-26 06:33:00,709 [INFO]   ...600/762 (310 enrichis, 11 exclus, API=651 cache=0)
+2026-08-26 06:33:15,250 [INFO]   ...650/762 (342 enrichis, 12 exclus, API=705 cache=0)
+2026-08-26 06:33:29,053 [INFO]   ...700/762 (369 enrichis, 14 exclus, API=756 cache=0)
+2026-08-26 06:33:44,434 [INFO]   ...750/762 (397 enrichis, 14 exclus, API=813 cache=0)
+2026-08-26 06:33:56,740 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-26 06:33:57,728 [INFO] ============================================================
+2026-08-26 06:33:57,729 [INFO] Total: 762 | Enrichis: 402 | Non-vérifiés(contactables): 345 | Exclus durs: 14 | Transitoires(non écrits): 1 | API: 829 | Cache: 0 | 429: 0 | 235.2s
+2026-08-26 06:33:57,729 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 14}
+2026-08-26 06:33:57,729 [INFO] Non-vérifiés par motif (restent contactables): {"non_trouve": 293, "match_ambigu": 52}
+2026-08-26 06:33:57,729 [INFO] Échantillon enrichis:
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "Aux Dix Vins Traiteur", "denomination": "AUX DIX VINS", "siret": "81886280700034", "code_naf": "47.25Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "COUSANCE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "LA TABLE DE PERRAUD", "denomination": "HUGAB", "siret": "83180005700018", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "Casa d'Italia", "denomination": "PORTOFINO", "siret": "42210229300020", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "RESTAURANT L' ITALIEN", "denomination": "RESTAURANT L'ITALIEN", "siret": "84804759300019", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "0 salarié", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "LA LANTERNA", "denomination": "LA LANTERNA", "siret": "39369677800017", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}

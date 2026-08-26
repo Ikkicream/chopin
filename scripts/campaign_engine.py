@@ -775,6 +775,13 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
     if not msg or not msg.get("html"):
         return {"ok": False, "error": "message introuvable"}
 
+    # Le modèle qui part réellement (`cold:immobilier:first`, `ver:<uuid>`…). Il descend
+    # jusqu'au journal PostgreSQL avec chaque envoi : c'est ce qui permet à la galerie de
+    # dire QUEL email a produit une ouverture, et plus seulement quel secteur. Une campagne
+    # ne porte qu'un message, mais un secteur en porte trois — sans cette information, les
+    # trois affichent le même taux et aucun arbitrage n'est possible.
+    modele = camp.get("message_id") or None
+
     # ── Contrôle anti-spam AVANT le premier envoi (Lot 4) ────────────────────────
     # La recette `email_qa` tournait toutes les nuits et posait un badge dans l'écran ;
     # rien n'empêchait de dispatcher un message qu'elle venait de déclarer bloquant. Ce
@@ -863,7 +870,7 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
             return res
         for ct in contacts:
             try:
-                mark_pushed_to_emelia(ct["id"], site, campaign_id, "")
+                mark_pushed_to_emelia(ct["id"], site, campaign_id, "", modele=modele)
             except Exception:
                 pass
         try:
@@ -917,7 +924,7 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                 if ecm.add_contact(emelia_cid, contact):
                     added += 1
                     mark_pushed_to_emelia(ct["id"], site, emelia_cid, "",
-                                          email=ct.get("email"))
+                                          email=ct.get("email"), modele=modele)
             except Exception:
                 pass
 
@@ -968,7 +975,7 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
                 # pool est tenu par un scrape.
                 mark_pushed_to_emelia(ct["id"], site, campaign_id, "",
                                       email=ct.get("email"),
-                                      mailbox=ct.get("_mailbox"))
+                                      mailbox=ct.get("_mailbox"), modele=modele)
                 marques.add((ct.get("email") or "").strip().lower())
             except Exception as e:  # noqa: BLE001
                 print(f"[campaign_engine] marquage contact {ct.get('email')} échoué : {e}")
@@ -990,7 +997,7 @@ def _send_batch(camp: dict, contacts: list[dict], emails: list[str], today: _dat
             em = (ct.get("email") or "").strip().lower()
             if em in ok_emails and em not in marques:
                 try:
-                    mark_pushed_to_emelia(ct["id"], site, campaign_id, "")
+                    mark_pushed_to_emelia(ct["id"], site, campaign_id, "", modele=modele)
                     rattrapes += 1
                 except Exception as e:  # noqa: BLE001
                     print(f"[campaign_engine] rattrapage du marquage échoué pour {em} : {e}")

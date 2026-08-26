@@ -348,16 +348,25 @@ def record_event(email: str, event_type: str, site_code: str, channel: str,
 
 def record_send(email: str, site_code: str, contact_id: str | None = None,
                 campaign_id: str = "", channel: str = "maildoso",
-                mailbox: str | None = None, provider_msg_id: str | None = None) -> bool:
+                mailbox: str | None = None, provider_msg_id: str | None = None,
+                modele: str | None = None) -> bool:
     """Un envoi. C'est CET événement qui pilote la fenêtre de 120 jours via `v_suppression`,
-    d'où l'importance qu'il ne soit jamais manqué."""
+    d'où l'importance qu'il ne soit jamais manqué.
+
+    `modele` : le message qui est réellement parti (`cold:immobilier:first`,
+    `ver:<uuid>`…). Sans lui, le journal ne retient que la CAMPAGNE, et la galerie ne peut
+    afficher que des chiffres par secteur — partagés par les trois emails du secteur, donc
+    incapables de dire lequel des trois fonctionne. Il voyage dans `meta`, qui existe déjà
+    sur `email_events` : aucune migration n'est nécessaire pour ça.
+    """
     court = None
     if campaign_id:
         parts = campaign_id.split("-")
         court = f"{parts[1]}-{parts[2]}" if len(parts) >= 3 else campaign_id
     return record_event(email, "sent", site_code, channel, contact_id=contact_id,
                         campaign_legacy_id=court, mailbox=mailbox,
-                        provider_msg_id=provider_msg_id)
+                        provider_msg_id=provider_msg_id,
+                        meta={"modele": modele} if modele else None)
 
 
 # ── Campagnes ─────────────────────────────────────────────────────────────────

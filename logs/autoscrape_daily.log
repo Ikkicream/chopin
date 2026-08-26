@@ -13538,3 +13538,918 @@
   "ok": true,
   "skipped": "plafond journalier atteint (1003/1000 contacts collectés)"
 }
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1003/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1003/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1003/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "skipped": "plafond journalier atteint (1003/1000 contacts collectés)"
+}
+{
+  "ok": true,
+  "launched": {
+    "action": "resume",
+    "sector": "restaurant",
+    "dept": "34 Hérault",
+    "why": "statut 'quota' — relance"
+  }
+}
+[daily] 2026-08-25T22:00:02+00:00 resume restaurant / dept 34 Hérault — cible=2000 reliquat=1997 acquis=3 · scrape jusqu'à 07:20 (439 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "launched": {
+    "action": "resume",
+    "sector": "restaurant",
+    "dept": "34 Hérault",
+    "why": "statut 'quota' — relance"
+  }
+}
+[daily] 2026-08-25T22:15:02+00:00 resume restaurant / dept 34 Hérault — cible=2000 reliquat=1997 acquis=3 · scrape jusqu'à 07:20 (424 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 34",
+    "valid": 33,
+    "current_city": "Villeneuve-lès-Maguelone"
+  }
+}
+[mailnjoy] 86 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 87 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 87 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 47,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:34",
+    "runs": 1,
+    "valid_total": 47,
+    "status": "pending"
+  }
+}
+[mailnjoy] 86 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 87 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 87 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 4,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:34",
+    "runs": 2,
+    "valid_total": 51,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "30 Gard",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-25T22:45:05+00:00 start restaurant / dept 30 Gard — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (394 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 30",
+    "valid": 66,
+    "current_city": "Alès"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 30",
+    "valid": 129,
+    "current_city": "Saint-Gilles"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 30",
+    "valid": 129,
+    "current_city": "Saint-Gilles"
+  }
+}
+[mailnjoy] 87 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 88 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 88 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 89 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 89 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 129,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:30",
+    "runs": 1,
+    "valid_total": 129,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "66 Pyrénées-Orientales",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-25T23:45:04+00:00 start restaurant / dept 66 Pyrénées-Orientales — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (334 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 66",
+    "valid": 68,
+    "current_city": "Cabestany"
+  }
+}
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:restaurant:66",
+    "sector": "restaurant",
+    "dept": "66",
+    "dept_name": "Pyrénées-Orientales",
+    "region_name": "Occitanie",
+    "night": "2026-08-26",
+    "started_at": "2026-08-25T23:45:04+00:00",
+    "resumes": 0,
+    "note_stephane": null,
+    "pourquoi_stephane": null,
+    "priorite_stephane": null
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:66",
+    "runs": 1,
+    "valid_total": 94,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+[mailnjoy] 89 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 89 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 94,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:66",
+    "runs": 2,
+    "valid_total": 188,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "81 Tarn",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T00:30:06+00:00 start restaurant / dept 81 Tarn — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (289 min), nettoyage jusqu'à 07:50 Paris
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T00:30:07+00:00 start restaurant / dept 81 Tarn — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (289 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 81",
+    "valid": 24,
+    "current_city": "Mazamet"
+  }
+}
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:restaurant:81",
+    "sector": "restaurant",
+    "dept": "81",
+    "dept_name": "Tarn",
+    "region_name": "Occitanie",
+    "night": "2026-08-26",
+    "started_at": "2026-08-26T00:30:07+00:00",
+    "resumes": 0,
+    "note_stephane": null,
+    "pourquoi_stephane": null,
+    "priorite_stephane": null
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:81",
+    "runs": 2,
+    "valid_total": 100,
+    "status": "pending"
+  },
+  "why": "passe terminée"
+}
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 50,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:81",
+    "runs": 3,
+    "valid_total": 150,
+    "status": "retired"
+  }
+}
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2339044) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 50,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:81",
+    "runs": 4,
+    "valid_total": 200,
+    "status": "retired"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "11 Aude",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T01:15:05+00:00 start restaurant / dept 11 Aude — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (244 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 11",
+    "valid": 55,
+    "current_city": "Narbonne"
+  }
+}
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 84,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:11",
+    "runs": 1,
+    "valid_total": 84,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "82 Tarn-et-Garonne",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T01:45:04+00:00 start restaurant / dept 82 Tarn-et-Garonne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (214 min), nettoyage jusqu'à 07:50 Paris
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 48,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:82",
+    "runs": 1,
+    "valid_total": 48,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "12 Aveyron",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T02:00:07+00:00 start restaurant / dept 12 Aveyron — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (199 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "action": "skip"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 12",
+    "valid": 51,
+    "current_city": "Villefranche-de-Rouergue"
+  }
+}
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 51,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:12",
+    "runs": 1,
+    "valid_total": 51,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "65 Hautes-Pyrénées",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T02:30:05+00:00 start restaurant / dept 65 Hautes-Pyrénées — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (169 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 65",
+    "valid": 43,
+    "current_city": "Lourdes"
+  }
+}
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 90 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 43,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:65",
+    "runs": 1,
+    "valid_total": 43,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "32 Gers",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T03:00:23+00:00 start restaurant / dept 32 Gers — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (139 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 7,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:32",
+    "runs": 1,
+    "valid_total": 7,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "46 Lot",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T03:15:12+00:00 start restaurant / dept 46 Lot — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (124 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[serper_places] error: IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 13,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:46",
+    "runs": 1,
+    "valid_total": 13,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "09 Ariège",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T03:30:13+00:00 start restaurant / dept 09 Ariège — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (109 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 2,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:09",
+    "runs": 1,
+    "valid_total": 2,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "48 Lozère",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T03:45:12+00:00 start restaurant / dept 48 Lozère — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (94 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [scrape][pool dual-write] IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 91 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 14,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:48",
+    "runs": 1,
+    "valid_total": 14,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "33 Gironde",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T04:00:13+00:00 start restaurant / dept 33 Gironde — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (79 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2595405) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:restaurant:33",
+    "sector": "restaurant",
+    "dept": "33",
+    "dept_name": "Gironde",
+    "region_name": "Nouvelle-Aquitaine",
+    "night": "2026-08-26",
+    "started_at": "2026-08-26T04:00:13+00:00",
+    "resumes": 0,
+    "note_stephane": null,
+    "pourquoi_stephane": null,
+    "priorite_stephane": null
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:33",
+    "runs": 1,
+    "valid_total": 0,
+    "status": "pending"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 33",
+    "valid": 104,
+    "current_city": "Bordeaux"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 33",
+    "valid": 157,
+    "current_city": "Bègles"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 33",
+    "valid": 226,
+    "current_city": "Saint-André-de-Cubzac"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 33",
+    "valid": 297,
+    "current_city": "Mios"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 33",
+    "valid": 355,
+    "current_city": "Andernos-les-Bains"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 33",
+    "valid": 413,
+    "current_city": "Mérignac"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "64 Pyrénées-Atlantiques",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T06:00:05+00:00 start restaurant / dept 64 Pyrénées-Atlantiques — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (0 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "cleaning",
+    "scope": "Dept 33",
+    "valid": 425,
+    "current_city": "Léognan"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 64",
+    "valid": 112,
+    "current_city": "Lons"
+  }
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 64",
+    "valid": 152,
+    "current_city": "Anglet"
+  }
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 171,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:64",
+    "runs": 1,
+    "valid_total": 171,
+    "status": "pending"
+  }
+}
+[mailnjoy] 94 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 94 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 95 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 95 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 95 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 95 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 96 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 425,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:33",
+    "runs": 2,
+    "valid_total": 425,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au entretien du matin (enrichissement + réconciliation) (06:20-07:20 serveur)"
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "87 Haute-Vienne",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T07:30:06+00:00 start restaurant / dept 87 Haute-Vienne — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (0 min), nettoyage jusqu'à 07:50 Paris
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 87",
+    "valid": 58,
+    "current_city": "Panazol"
+  }
+}
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 59,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:87",
+    "runs": 1,
+    "valid_total": 59,
+    "status": "pending"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "launched": {
+    "action": "start",
+    "sector": "restaurant",
+    "dept": "17 Charente-Maritime",
+    "why": "nouvelle cible"
+  }
+}
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+[daily] 2026-08-26T08:00:07+00:00 start restaurant / dept 17 Charente-Maritime — cible=2000 reliquat=2000 acquis=0 · scrape jusqu'à 07:20 (0 min), nettoyage jusqu'à 07:50 Paris
+  [basile] lead error (skip): IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 3117064) by user root. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "ok": true,
+  "closed": {
+    "id": "lcr:restaurant:17",
+    "sector": "restaurant",
+    "dept": "17",
+    "dept_name": "Charente-Maritime",
+    "region_name": "Nouvelle-Aquitaine",
+    "night": "2026-08-26",
+    "started_at": "2026-08-26T08:00:07+00:00",
+    "resumes": 0,
+    "note_stephane": null,
+    "pourquoi_stephane": null,
+    "priorite_stephane": null
+  },
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:17",
+    "runs": 1,
+    "valid_total": 0,
+    "status": "pending"
+  },
+  "why": "reprise impossible (fichier écrasé)"
+}
+{
+  "ok": true,
+  "skipped": "un scrape tourne déjà",
+  "live": {
+    "status": "running",
+    "scope": "Dept 17",
+    "valid": 90,
+    "current_city": "Rochefort"
+  }
+}
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 98 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 99 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[mailnjoy] 99 pending hors file (>= 5 tentatives, en attente du délai de grâce)
+[autoscrape] Stéphane n'a proposé aucune cible éligible — ordre historique
+{
+  "ok": true,
+  "closed": true,
+  "valid": 96,
+  "result": {
+    "ok": true,
+    "id": "lcr:restaurant:17",
+    "runs": 2,
+    "valid_total": 96,
+    "status": "pending"
+  }
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}
+{
+  "ok": true,
+  "skipped": "créneau réservé au dispatch de campagnes (08:20-10:00 serveur)"
+}

@@ -23,8 +23,6 @@ from emelia_campaign_manager import (
 )
 # NB: anciens imports crm_backend (CRM/PRM legacy) supprimés le 2026-05-20.
 # Toute la logique passe désormais par scripts/acquisition_backend.py.
-import re          # NB 2026-08-26 : n'était importé que localement dans 6 fonctions,
-                   # d'où un NameError sur les 4 routes avatars (_nom_avatar).
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -6802,48 +6800,6 @@ def api_template_rendu(site: str, sector: str, kind: str):
     return {"sector": sector, "kind": kind, "rendus": rendus,
             "note": ("Rendu réel, pied de page légal compris. Le spintax est tiré une fois : "
                      "chaque destinataire recevra une variante.")}
-
-
-@app.get("/api/sites/{site}/messages/rendu")
-def api_message_rendu(site: str, modele: str = ""):
-    """Le même aperçu, pour N'IMPORTE QUEL message — cold email OU newsletter.
-
-    La galerie montre désormais les deux dans une seule table (décision du 2026-08-26 :
-    « cold email et newsletters sont la même chose »). Une route qui n'accepte que
-    `secteur/kind` ne sait rien afficher d'une newsletter, dont l'identité est
-    `struct:<fichier>` ou `ver:<uuid>`.
-
-    `resolve_campaign_message` sait déjà résoudre les trois formes — c'est elle que le
-    dispatch utilise pour savoir quoi envoyer. On s'appuie sur la même, sinon l'aperçu
-    montrerait autre chose que ce qui part.
-    """
-    _scripts_dans_le_chemin()
-    import html_templates_backend as htb, qualite_message as qm
-    import maildoso_backend as md, expediteur as ex
-    if not modele:
-        return _introuvable("message")
-    resolu = htb.resolve_campaign_message(site, modele)
-    brut = (resolu or {}).get("html") or ""
-    if not brut:
-        return _introuvable("message")
-
-    try:
-        boites = ex.boites(site)
-        boite = next((b for b in boites if b.get("usage") == "mozart"), boites[0] if boites else {})
-    except Exception:  # noqa: BLE001
-        boite = {"email": "immo@leclient-roi.com", "sender_name": "Julie Durand"}
-
-    ct = {"email": "m.dupont@exemple.fr", "prenom": "Marc", "nom": "Dupont",
-          "societe": "Agence Dupont", "city": "Nantes"}
-    try:
-        h = md._apply_tokens(qm.conditionnel(qm.spintax(brut, ct["email"]), ct), ct, boite)
-    except Exception as e:  # noqa: BLE001
-        h = brut
-        print(f"[messages] rendu impossible ({type(e).__name__}: {e})", flush=True)
-    return {"modele": modele, "nom": (resolu or {}).get("name") or modele,
-            "rendus": [{"cas": "aperçu", "objet": (resolu or {}).get("name") or "", "html": h,
-                        "expediteur": f"{boite.get('sender_name','')} <{boite.get('email','')}>"}],
-            "note": "Aperçu du message tel qu'il est enregistré, variables développées."}
 
 
 @app.post("/api/sites/{site}/templates/{sector}/{kind}/favori")

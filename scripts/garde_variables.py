@@ -42,6 +42,12 @@ MOTIFS: list[tuple[str, str]] = [
 # Les variables que les gabarits savent utiliser. Doit rester alignée sur
 # `maildoso_backend._apply_tokens` : une variable connue de l'un et pas de l'autre est
 # soit remplacée sans être contrôlée, soit refusée alors qu'elle est valide.
+# Les mots-clés du conditionnel ne sont pas des variables : `{{si prenom}}`, `{{sinon}}`
+# et `{{/si}}` sont développés par `qualite_message.conditionnel()` avant la substitution.
+# Sans cette liste, le garde-fou les prendrait pour des variables inconnues et refuserait
+# l'envoi — alors qu'elles auront disparu au moment où il regarde.
+MOTS_CONDITION = {"si", "sinon", "/si"}
+
 VARIABLES_CONNUES = {
     "prenom", "firstname", "firstName", "nom", "lastname", "lastName",
     "entreprise", "societe", "company", "ville", "city",
@@ -82,7 +88,7 @@ def variables_inconnues(gabarit: str) -> set[str]:
     À contrôler à l'enregistrement du message, pas seulement à l'envoi : c'est le seul
     moment où quelqu'un peut encore corriger la faute de frappe.
     """
-    return variables_utilisees(gabarit) - VARIABLES_CONNUES
+    return variables_utilisees(gabarit) - VARIABLES_CONNUES - MOTS_CONDITION
 
 
 def _valeur(variable: str, contact: dict) -> str:

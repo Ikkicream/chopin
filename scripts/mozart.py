@@ -545,7 +545,7 @@ def _envoyer(sc: dict, noeud: dict, insc: dict, dry_run: bool = False) -> tuple[
         if not (r or {}).get("ok"):
             return "refuse", (r or {}).get("error") or "envoi Sweego refusé"
         try:
-            mark_pushed_to_emelia(cid, site, campaign_id, "", email=email)
+            mark_pushed_to_emelia(cid, site, campaign_id, "", email=email, modele=mid)
         except Exception as e:  # noqa: BLE001
             print(f"[mozart] marquage de {email} échoué : {type(e).__name__}: {e}", flush=True)
         return "envoye", "via Sweego"
@@ -589,7 +589,7 @@ def _envoyer(sc: dict, noeud: dict, insc: dict, dry_run: bool = False) -> tuple[
 
     try:
         mark_pushed_to_emelia(cid, site, campaign_id, "", email=email,
-                              mailbox=res.get("mailbox"))
+                              mailbox=res.get("mailbox"), modele=mid)
     except Exception as e:  # noqa: BLE001
         print(f"[mozart] marquage de {email} échoué : {type(e).__name__}: {e}", flush=True)
     return "envoye", f"via {res.get('mailbox')}"

@@ -3628,6 +3628,181 @@ règles qui ont déménagé. Réécrits pour vérifier l'EMPLACEMENT de la règl
 copie — dont un contrôle nouveau : `send_email` refuse-t-il bien AVANT d'écrire sur le
 réseau, et non après. Les quinze suites passent.
 
+### MAJ 2026-08-26 — J'ai bloqué une campagne en production, et l'aperçu mentait
+
+**Le plus grave d'abord.** La campagne « Agent immobilier, loi cazenave » était arrêtée en
+plein envoi avec `message bloquant au contrôle anti-spam`. Cause : **mes marqueurs
+conditionnels**. `email_lint_backend._VAR_RE` ne reconnaît que `{{mot}}` — `{{sinon}}`
+devenait donc une variable inconnue, et `templatevars` fait partie des catégories
+BLOQUANTES. Une fonctionnalité ajoutée le matin a arrêté la production l'après-midi.
+
+Marqueurs déclarés (`MOTS_CONDITION`, `_CONDITION_RE`), alarme effacée, lint revérifié :
+`bloquant : False`. Il ne reste que « low contrast 1.0:1 » sur le pré-en-tête caché —
+**voulu** (un pré-en-tête est invisible par construction) et **non bloquant**.
+
+**L'aperçu montrait le gabarit, pas le message.** Camille : « je vois le rendu de l'email
+envoyé ou de notre moteur ? » — le moteur. `{{si prenom}}Bonjour {{prenom}},{{sinon}}…`,
+sans retour à la ligne ni pied de page. On ne pouvait donc juger de rien.
+
+Nouvelle route `/templates/{sector}/{kind}/rendu` : le message **tel qu'il partira**,
+conditionnel développé, spintax tiré, variables remplacées, pied de page légal inclus. Et
+les DEUX cas côte à côte — avec prénom, et sans (71 % des contacts) —, affichés dans un
+cadre isolé avec l'expéditeur et l'objet, parce que c'est un document complet et non un
+fragment.
+
+**Sept chantiers déposés dans `RESTE-A-FAIRE.md`** pour la reprise, dont trois demandés à
+la fermeture : la marque LeClientROI **identifiée nulle part** (ni objet, ni nom
+d'expéditeur), la fusion Newsletters + Cold email avec une colonne Type, et la
+documentation à refaire avec un guide **par rôle de session**.
+
+### MAJ 2026-08-26 — Des objets qui ne voulaient rien dire, et une faute de construction
+
+Camille : « les objets ne veulent rien dire. *Et vos clients, le SMS*, ça ne veut rien
+dire. » Exact — et c'est la règle qui manquait à ma base de connaissance. J'avais optimisé
+la FORME (question, 2 à 4 mots, minuscules) jusqu'à écrire des phrases amputées qui
+cochaient toutes les cases sans rien demander à personne.
+
+| Objet creux | Objet qui demande quelque chose |
+|---|---|
+| Et vos clients, le SMS ? | **Vos clients réclament du SMS ?** |
+| Vos mandats après août ? | **Vos mandats sans démarchage ?** |
+| Je referme ? | **On en reste là ?** |
+| Qui appelle-t-on en urgence ? | **Vos dépannages viennent d'où ?** |
+
+Le test, ajouté au document : *lire l'objet seul. S'il ne pose pas une question à laquelle
+le destinataire peut répondre dans sa tête, il ne vaut rien* — même à deux mots et avec un
+point d'interrogation.
+
+**La faute de construction qu'elle a relevée en citant le corps** : « Quand l'un d'eux vous
+demande du SMS, **Agence Pixel passe la main ?** ». `{{entreprise}}` employé comme SUJET du
+verbe fait parler de l'entreprise du lecteur à la troisième personne alors qu'on s'adresse
+à lui. Devenu « vous passez la main ? ». La variable de société se place désormais après une
+préposition (« chez {{entreprise}} », « sous le nom de {{entreprise}} »), jamais devant un
+verbe conjugué. Vérifié : plus aucune occurrence.
+
+**« Fais quelque chose pour que les images soient françaises. »** Trois tournures traduites
+remplacées : « suivre l'acquisition pour X » → « vous vous occupez du développement
+commercial chez X » ; « sur des contacts consentants » → « auprès de gens qui ont accepté
+d'être contactés » ; « ces budgets cherchent une sortie » → « ces budgets doivent bien aller
+quelque part ».
+
+`OBJETS-EMAIL.md` gagne deux sections : **10 — un objet doit vouloir dire quelque chose**,
+et **11 — écrire en français, pas en français traduit**.
+
+### MAJ 2026-08-26 — Galerie des cold emails, conditionnel sur le prénom, et les tics d'IA
+
+**La page que je n'avais pas faite.** `/site/lcr/cold-email` s'ouvre désormais sur une
+GALERIE : un tableau de tous les messages avec favori, secteur, étape, objet, extrait,
+envoyés, envoyés aujourd'hui, taux d'ouverture et de clic, nombre de liens, de variantes de
+spintax, de mots, date du premier envoi, et les actions verrouiller / éditer / dupliquer.
+Filtre plein texte, tri par volume ou par ouverture, aperçu **à droite** et non en fenêtre
+modale : on lit sans perdre la liste de vue. L'assistant reste, derrière un onglet.
+
+**Limite dite à l'écran** : `email_events` ne retient pas quel MODÈLE a servi à un envoi,
+seulement la campagne. Les chiffres sont donc calculés par SECTEUR, et les trois emails
+d'un secteur partagent les mêmes. Le tableau révèle au passage que **seul l'immobilier a
+jamais été démarché** : 1 105 envois, 46 % d'ouverture, tout le reste à zéro — alors que
+1 113 agences sont collectées.
+
+**Le prénom : le script n'est pas en cause.** Testé — `marc.dupont@` rend « Marc »,
+`sophie.martin@` rend « Sophie ». Il a déjà tourné sur toute la base : sur **5 058 contacts
+sans prénom, 0 récupérable**, parce que ce sont `contact@` (36 %), `info@` (6 %),
+`agence@` (6 %). Il n'y a rien à extraire.
+
+La solution de Camille est implémentée : `{{si prenom}}…{{sinon}}…{{/si}}`, développé après
+le spintax et **avant** la substitution — la branche non retenue disparaît avec ses
+variables, qui ne doivent surtout pas arriver jusqu'au garde-fou. Les 71 % sans prénom
+reçoivent désormais : « Bonjour, **Vous semblez suivre l'acquisition pour ORPI Nantes.** Si
+je me trompe d'interlocuteur, dites-le-moi. »
+
+**Les tics d'IA — le relevé le plus fin de Camille.** « Le caractère — impossible qu'un
+humain le tape, encore moins un Français. » **83 tirets cadratins dans 24 emails.** Tous
+retirés, remplacés selon le sens et non mécaniquement. Objets capitalisés, et **espace fine
+insécable** (U+202F) avant les ponctuations doubles — une espace ordinaire laisse le « ? »
+basculer seul à la ligne. `qualite_message.tics_ia()` les détecte désormais, et le contrôle
+d'ensemble les remonte en avertissement.
+
+**Un défaut introduit et corrigé dans le même geste** : ma règle typographique insérait une
+espace avant TOUT point-virgule, y compris celui qui ferme une entité HTML.
+`l&rsquo;acquisition` devenait `l&rsquo ;acquisition`, affiché tel quel. Le point-virgule
+est exclu de la règle, et une sécurité recolle les entités coupées. Vu seulement en lisant
+le rendu réel — pas dans le code.
+
+**LinkedIn** ajouté à la signature des 24 emails.
+
+### MAJ 2026-08-26 — Les objets ne pouvaient pas ouvrir, et les liens mentaient
+
+Retour de Camille sur les trois emails reçus : « aucune chance que ces objets ouvrent,
+0 perso sur la forme, le fond, le secteur ». Vérifié, et elle a raison — les données le
+disent, classement à l'appui (Belkins, 5,5 M d'emails) :
+
+| Type d'objet | Ouverture |
+|---|---|
+| **Question** | **46 %** |
+| Description / adjectif | 39 % ← « marque blanche », « papier coûte » |
+| Nom de lieu ou d'entreprise | 38 % ← « mandats Nantes » |
+
+**Mes trois objets tombaient dans les deux pires catégories utiles, et aucun n'était une
+question.** Tous réécrits en questions courtes : « vos mandats après août ? », « et vos
+clients, le SMS ? », « vos leads sont-ils opposables ? ».
+
+**Trois autres fautes relevées, toutes réelles :**
+
+1. **Les liens mentaient.** « Le principe en deux minutes » pointait sur la prise de
+   rendez-vous. Chaque lien va désormais où son texte annonce : « la page qui explique »
+   → `leclientroi.com/immobilier` (ou `/lelead`), « réservez 15 minutes » → le calendrier.
+2. **Deux désinscriptions.** Le pied de page de `wrap_cold_email` en portait déjà une, avec
+   le téléphone et l'adresse de contact. Ma signature en ajoutait une seconde : retirée.
+   Le numéro apparaissait trois fois, il n'apparaît plus qu'une.
+3. **Accroche trop frontale.** On se présente d'abord : « Je suis {{expediteur_prenom}}, de
+   LeClientROI — une petite structure parisienne 🇫🇷 qui fait de la prospection par SMS,
+   RCS et email », puis on parle d'eux, et le numéro est donné en clair.
+
+**Un défaut que seul le rendu réel a montré** : le pré-en-tête — le texte d'aperçu affiché
+à côté de l'objet dans la boîte de réception — recopiait le début du corps **avec les
+variables vidées**, donnant « Bonjour, Je suis , de LeClientROI ». Un aperçu troué coûte
+l'ouverture que l'objet vient de gagner. `_preheader()` saute désormais la salutation et
+prend la première phrase qui apprend quelque chose : « Depuis le 11 août, appeler un
+propriétaire sans accord écrit est interdit : 375 000 € d'amende par appel. »
+
+**Ce qu'aucune écriture ne corrige, et qu'il faut décider** : le prénom n'existe que pour
+**29 %** des contacts immobiliers, et **0 % ne sont dérivables** de l'adresse (ce sont des
+`contact@`, `info@`). Camille dit qu'on « kille 80 % des retours » sans lui — c'est vrai, et
+la seule réponse utile est de **servir d'abord les 586 contacts qui en ont un**.
+
+**`OBJETS-EMAIL.md`** : la base de connaissance demandée. Le classement par type d'objet,
+la longueur, ce que la personnalisation change (+31 % d'ouverture, réponses × 2), la
+contradiction sur la casse entre Gong et Belkins — l'écart est dans le bruit —, et la règle
+des emojis : un seul, en fin d'objet, qui DIT quelque chose, jamais dans un premier contact
+froid. Le 🇫🇷 vit donc dans le corps.
+
+### MAJ 2026-08-26 — « Voici ta journée » : une croix qui ne fermait rien
+
+Camille : « il y a une croix mais ne marche pas, impossible de fermer la popup ».
+
+**Le composant portait DÉJÀ un correctif contre ce symptôme**, posé plus tôt, avec un
+commentaire qui décrivait exactement le bon diagnostic : deux effets partis en parallèle,
+deux fenêtres superposées, la croix fermant celle du dessus. Mais ses garde-fous vivaient
+dans des `useRef` — donc dans l'INSTANCE. Or `ClientShell` repasse par son écran
+« Chargement… » à chaque changement de `pathname` : le composant se démonte, les refs
+repartent à zéro, et la fenêtre revient. **Le correctif ne survivait pas à une navigation.**
+
+Quatre verrous désormais, et il faut les quatre :
+1. `fermeeDansCetteSession`, booléen de **module** : il survit au démontage.
+2. `demandeEnCours`, qui réserve la place pendant que la requête vole — sans marquer
+   « vu », ce qui aurait supprimé une fenêtre légitime quand les compteurs sont encore à
+   zéro au premier chargement.
+3. Cette réservation **libérée avant tout retour anticipé** : ma première version la
+   laissait posée quand la requête échouait, et la fenêtre ne revenait plus de la session.
+   Défaut introduit et corrigé dans le même geste.
+4. Un dernier contrôle **au rendu** : même si l'état rouvrait, rien ne s'affiche.
+
+**Corrigé au passage** : la clé du jour utilisait `toISOString()`, donc la date **UTC**.
+Entre minuit et 2 h à Paris, elle rend la veille — la fenêtre de la veille pouvait se
+rouvrir en pleine nuit. Elle est construite sur l'heure locale.
+
+`tests/test_popup_fermeture.py` fige les quatre verrous, dont l'ordre de libération.
+
 ### MAJ 2026-08-25 — Lot X puis lot 3 : le garde-fou de capacité, et l'urgence enfin vraie
 
 **Lot X — un scénario ne peut plus noyer les boîtes.** Le scénario immobilier vise 3 869

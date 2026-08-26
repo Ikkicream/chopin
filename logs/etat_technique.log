@@ -560,3 +560,167 @@
   "genesis-mailnjoy-drain": true
  }
 }
+{
+ "at": "2026-08-26T06:45:01+00:00",
+ "jour": "2026-08-25",
+ "bases": {
+  "fichiers": {
+   "contacts.duckdb": 1296576512,
+   "god_mode.duckdb": 219688960,
+   "auth.duckdb": 5779456,
+   "postgresql": 42368023
+  },
+  "tables": {
+   "pool.contacts": 11163,
+   "pool.contact_site_history": 13938,
+   "pool.contact_enrichment": 11621,
+   "pool.email_suppression": 1107,
+   "god_mode.scrappe": 13842,
+   "god_mode.scrappe_pending": 117,
+   "god_mode.scrappe_rejected": 14316,
+   "god_mode.maildoso_sent": 1606,
+   "god_mode.mass_campaigns": 1,
+   "god_mode.sweego_events": 4300,
+   "god_mode.god_mode_serper_calls": 96010,
+   "god_mode.autoscrape_targets": 2162,
+   "pg.contacts": 11382,
+   "pg.contact_sites": 11167,
+   "pg.contact_enrichment": 9614,
+   "pg.email_events": 6944,
+   "pg.campaign_recipients": 1772,
+   "pg.memoire_stephane": 409,
+   "pg.followup_events": 140,
+   "pg.contact_followup": 126,
+   "pg.sector_policy": 56,
+   "pg.stats_secteur_jour": 36,
+   "pg.mailbox_ramp_log": 32,
+   "pg.campaigns": 8,
+   "pg.mailboxes": 8,
+   "pg.mozart_scenarios": 8,
+   "pg.etat_technique_journalier": 6,
+   "pg.opportunites": 2,
+   "pg.config_stephane": 1,
+   "pg.segments": 1,
+   "pg.mass_sends": 1,
+   "pg.onoff_evenements": 1,
+   "pg.mozart_passages": 0,
+   "pg.role_pages": 0,
+   "pg.lecture_contacts": 0,
+   "pg.mozart_inscriptions": 0
+  }
+ },
+ "flux_hier": {
+  "scrape_serper": 112,
+  "scrape_basile": 117,
+  "mailnjoy_verifies": 365,
+  "mailnjoy_rejetes": 1551,
+  "datagouv_enrichis": 563,
+  "emails_envoyes": 63,
+  "contacts_crees": 341,
+  "en_attente_mailnjoy": 117
+ },
+ "crm": {
+  "a_rappeler": 119,
+  "attribues": 119,
+  "appels_7j": 4,
+  "rdv_a_traiter": 0
+ },
+ "taches": {
+  "enrichissement data.gouv": {
+   "present": true,
+   "dernier": "2026-08-26T06:33:57+00:00",
+   "heures": 0.2,
+   "octets": 31687,
+   "echec": null
+  },
+  "réconciliation PostgreSQL": {
+   "present": true,
+   "dernier": "2026-08-26T06:34:50+00:00",
+   "heures": 0.2,
+   "octets": 1592,
+   "echec": null
+  },
+  "dispatch campagnes": {
+   "present": true,
+   "dernier": "2026-08-25T09:02:23+00:00",
+   "heures": 21.7,
+   "octets": 28419,
+   "echec": null
+  },
+  "sauvegarde": {
+   "present": true,
+   "dernier": "2026-08-25T21:00:29+00:00",
+   "heures": 9.7,
+   "octets": 191198,
+   "echec": null
+  },
+  "rattrapage du pool": {
+   "present": true,
+   "dernier": "2026-08-26T06:30:01+00:00",
+   "heures": 0.3,
+   "octets": 2329,
+   "echec": "_duckdb.IOException: IO Error: Could not set lock on file \"/home/autoblog/genesis/data/god_mode.duckdb\": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https:"
+  },
+  "miroir enrichissement": {
+   "present": true,
+   "dernier": "2026-08-26T06:33:58+00:00",
+   "heures": 0.2,
+   "octets": 1883,
+   "echec": null
+  },
+  "délivrabilité": {
+   "present": true,
+   "dernier": "2026-08-25T07:45:05+00:00",
+   "heures": 23.0,
+   "octets": 1840,
+   "echec": null
+  },
+  "programmation des envois": {
+   "present": true,
+   "dernier": "2026-08-25T07:50:02+00:00",
+   "heures": 22.9,
+   "octets": 1529,
+   "echec": null
+  },
+  "collecte": {
+   "present": true,
+   "dernier": "2026-08-26T06:45:02+00:00",
+   "heures": 0.0,
+   "octets": 489644,
+   "echec": null
+  },
+  "statistiques": {
+   "present": true,
+   "dernier": "2026-08-26T05:50:02+00:00",
+   "heures": 0.9,
+   "octets": 16029,
+   "echec": null
+  },
+  "plancher de collecte": {
+   "present": true,
+   "dernier": "2026-08-26T06:30:01+00:00",
+   "heures": 0.3,
+   "octets": 42878,
+   "echec": null
+  },
+  "dirigeants nommés": {
+   "present": true,
+   "dernier": "2026-08-25T23:35:41+00:00",
+   "heures": 7.2,
+   "octets": 2122,
+   "echec": null
+  },
+  "scénarios Mozart": {
+   "present": true,
+   "dernier": "2026-08-26T06:15:01+00:00",
+   "heures": 0.5,
+   "octets": 2440,
+   "echec": null
+  }
+ },
+ "services": {
+  "genesis-dashboard": true,
+  "genesis-ui": true,
+  "genesis-mailnjoy-drain": true
+ }
+}

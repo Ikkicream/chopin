@@ -100,9 +100,35 @@ SECTOR_META = {
 }
 
 
+# Secteurs qui portent des modèles SANS avoir d'angle rédigé : ils sont nés d'une
+# duplication, pas d'une génération. `SECTOR_META` ne pouvait pas les connaître — il liste
+# ce qu'on sait GÉNÉRER — mais la galerie doit quand même savoir les AFFICHER, sinon
+# quatre secteurs sur huit sortent avec une enveloppe grise et leur code technique en
+# guise de nom. Deux questions différentes, deux tables.
+SECTEUR_AFFICHAGE = {
+    "artisan":   ("🔨", "Artisans"),
+    "fleuriste": ("💐", "Fleuristes"),
+    "opticien":  ("👓", "Opticiens"),
+    "plombier":  ("🔧", "Plombiers"),
+    "lelead":    ("🎯", "LeLead"),
+}
+
+
 def supported_sectors() -> list[dict]:
     """Secteurs proposables dans l'UI (ceux qui ont un angle rédigé)."""
     return [{"code": k, "emoji": e, "label": l} for k, (e, l) in SECTOR_META.items()]
+
+
+def sector_display() -> list[dict]:
+    """Tous les secteurs AFFICHABLES : ceux qu'on sait générer, plus ceux qu'on a dupliqués.
+
+    À utiliser partout où l'on montre un secteur. `supported_sectors()` reste la réponse à
+    « que puis-je générer ? » et ne doit pas s'élargir : proposer la génération d'un secteur
+    sans angle rédigé produirait un email creux.
+    """
+    tout = dict(SECTOR_META)
+    tout.update(SECTEUR_AFFICHAGE)
+    return [{"code": k, "emoji": e, "label": l} for k, (e, l) in tout.items()]
 
 # Interdits FR (cf. cold-email-rules.md) — détection casse-insensible sur le texte nettoyé.
 # (« Cher/Chère [Prénom] » est traité à part, en salutation, pour éviter « décrocher ».)

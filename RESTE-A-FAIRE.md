@@ -64,6 +64,65 @@ La campagne atteint sa cible samedi : **lundi 31/08 la file serait vide**. Le cr
 piochables), et alerte si le vivier ne suit plus — créer une campagne reste une décision
 humaine (message + ciblage), la machine ne l'invente pas.
 
+## COLD EMAIL & MOZART — à reprendre (déposé le 2026-08-26, fin de session)
+
+Sept chantiers, dans l'ordre où je les prendrais.
+
+### 1. Le sens des formulations, et la marque invisible
+Camille : « Vos mandats après août ? » ne dit rien, et **la marque n'est identifiée nulle
+part** — ni dans l'objet, ni dans le nom d'expéditeur (`Julie Durand`, `Pascal Cabral`).
+Un inconnu reçoit un email d'une personne inconnue, d'une société qu'il ne voit qu'en
+signature. Deux pistes à trancher :
+  - le nom d'expéditeur devient « Julie Durand · LeClientROI » (visible dans TOUTE boîte,
+    avant même l'ouverture) ;
+  - ou la marque entre dans l'objet, ce que les données déconseillent (nom d'entreprise en
+    objet : 38 % d'ouverture, la pire catégorie utile).
+Les objets restants sont encore courts et parfois anglicisés dans leur construction.
+Relire les 24 à voix haute.
+
+### 2. Écran cold email : filtrer par secteur, icônes, colonne objet
+  - un filtre PAR SECTEUR (aujourd'hui il n'y a qu'un champ de recherche libre) ;
+  - une icône par secteur, comme dans l'assistant (`sectorMeta.emoji` existe déjà) ;
+  - la colonne « Objet » ne doit plus afficher le début du corps en dessous.
+
+### 3. Fusionner Newsletters et Cold email
+Décision de Camille : « finalement cold email et newsletters sont la même chose ».
+Incorporer les newsletters dans `/site/{code}/cold-email` et ajouter une colonne **Type**
+(`Cold email` / `Emailing`) pour les distinguer. Les newsletters vivent dans
+`html_templates` (`ver:` / `struct:`), les cold emails dans `email_templates` — la galerie
+devra lire les deux sources.
+
+### 4. Documentation et guide par rôle
+Refaire toute la documentation : établir le plan, recenser l'existant ET toutes les pages
+nouvelles, puis **afficher le bon guide selon le rôle de la session** — pas un guide unique
+qui parle de pages que l'utilisateur ne voit pas.
+
+### 5. Lot 2 jamais attaqué : le routage par secteur dans Mozart
+Pour chaque contact nouvellement collecté, choisir automatiquement le bon cold email selon
+son secteur, avec relance conditionnée à l'ouverture. Aujourd'hui un scénario porte UN
+message figé : il faut soit un scénario par secteur (fait pour immobilier et agences), soit
+un nœud « message selon le secteur ».
+
+### 6. Attribution par message
+`email_events` ne retient pas QUEL modèle a servi à un envoi. La galerie affiche donc des
+chiffres par SECTEUR, partagés par les trois emails d'un même secteur. Écrire le modèle
+dans le journal à l'envoi lèverait la limite.
+
+### 7. Le contraste du pré-en-tête
+Le lint signale « low contrast 1.0:1 » sur le pré-en-tête caché (blanc sur blanc, opacité 0).
+C'est **voulu** — un pré-en-tête doit être invisible — et **non bloquant**. À faire ignorer
+explicitement plutôt que de le laisser polluer chaque contrôle.
+
+### Ce qui a été corrigé juste avant la fermeture
+- **La campagne « Agent immobilier, loi cazenave » était BLOQUÉE par ma faute** : le lint
+  prenait mes marqueurs `{{si prenom}}` / `{{sinon}}` pour des variables inconnues, et
+  `templatevars` est une catégorie bloquante. Marqueurs déclarés dans
+  `email_lint_backend`, alarme effacée, campagne repartie.
+- **L'aperçu montrait le gabarit brut** (`{{si prenom}}…`, sans retour à la ligne ni pied
+  de page). Nouvelle route `/templates/{sector}/{kind}/rendu` : le message tel qu'il
+  partira, dans les DEUX cas (avec et sans prénom), affiché dans un cadre isolé avec
+  l'expéditeur, l'objet et les mentions légales.
+
 ## À reprendre à froid — écarté le 2026-08-24, sciemment
 
 Deux chantiers justes, identifiés par la revue de simplification, **volontairement non

@@ -77,3 +77,23 @@
     "mkd": 0
   }
 }
+{
+  "pool": 11140,
+  "presents_avant": 12310,
+  "a_retirer": 1170,
+  "a_creer": 0,
+  "dry_run": false,
+  "evenements_conserves": 101,
+  "presents_apres": 11142,
+  "par_etat": {
+    "ok": 8702,
+    "spam": 1482,
+    "a_verifier": 649,
+    "exclu": 211,
+    "ko": 98
+  },
+  "attributions_auto": {
+    "lcr": 0,
+    "mkd": 0
+  }
+}

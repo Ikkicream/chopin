@@ -260,6 +260,26 @@ def stats(site: str = SITE_DEFAULT) -> dict:
 
 
 def remaining_quota_today(site: str = SITE_DEFAULT) -> int:
+    """Ce qu'il reste à envoyer aujourd'hui, tous expéditeurs confondus.
+
+    Lit `expediteur.boites()` — donc le journal PostgreSQL — comme TOUT le reste du chemin
+    d'envoi depuis la fin du Lot 1. `mailboxes.sent_today` ne peut plus servir ici : son
+    incrément vit dans `god_mode.duckdb` et échoue dès qu'un scrape tient le verrou, si
+    bien que le compteur dérive sans que personne ne s'en aperçoive. Constaté le
+    2026-08-26 : `last_reset` datait du 22/08 et les quatre boîtes affichaient 83, 71, 72
+    et 72 envois pour un plafond de 40 — alors que DIX emails étaient partis dans la
+    journée. La soustraction `daily_cap - sent_today` rendait donc un nombre NÉGATIF.
+
+    `reste` tient déjà compte du plafond journalier ET du plafond de progression, et n'est
+    jamais négatif. Repli DuckDB seulement si le journal ne répond pas, borné à zéro pour
+    ne jamais réafficher un reste négatif.
+    """
+    try:
+        import expediteur
+        return sum(int(b.get("reste") or 0) for b in expediteur.boites(site) if b.get("active"))
+    except Exception as e:  # noqa: BLE001
+        print(f"[maildoso] quota du jour : journal indisponible ({type(e).__name__}: {e}) "
+              f"— repli DuckDB", flush=True)
     _ensure_tables()
     c = _conn()
     try:
@@ -268,7 +288,7 @@ def remaining_quota_today(site: str = SITE_DEFAULT) -> int:
                       "WHERE site_code=? AND provider='maildoso' AND status='active'", [site]).fetchone()
     finally:
         c.close()
-    return int(r[0] or 0)
+    return max(0, int(r[0] or 0))
 
 
 def _comptabiliser(site, campaign_id, mailbox, to_email, subject, rfc_msgid,
@@ -521,6 +541,13 @@ def send_email(to_email: str, subject: str, text: str | None = None, html: str |
         subject = qm.spintax(subject, to_email)
         text = qm.spintax(text, to_email)
         html = qm.spintax(html, to_email) if html else html
+        # Le conditionnel APRÈS le spintax et AVANT la substitution : la branche non
+        # retenue disparaît avec les variables qu'elle contient, qui ne doivent surtout
+        # pas arriver jusqu'au garde-fou des variables — il refuserait l'envoi pour une
+        # variable vide qu'on avait justement prévu de ne pas utiliser.
+        subject = qm.conditionnel(subject, contact)
+        text = qm.conditionnel(text, contact)
+        html = qm.conditionnel(html, contact) if html else html
     except ImportError:
         pass
 
