@@ -82,3 +82,38 @@ Traceback (most recent call last):
     return duckdb.connect(str(GOD_DB), read_only=read_only)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _duckdb.IOException: IO Error: Could not set lock on file "/home/autoblog/genesis/data/god_mode.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2961934) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+{
+  "scrappe": 14894,
+  "absents_du_pool": 8184,
+  "tombstones_respectes": 7531,
+  "refuses_par_les_regles_actuelles": 448,
+  "motifs_de_refus": {
+    "role_based": 446,
+    "honeypot": 1,
+    "role_based_num": 1
+  },
+  "recuperables": 205,
+  "dry_run": false,
+  "crees": 205,
+  "echecs": 0,
+  "postgresql": {
+    "pool": 11117,
+    "presents_avant": 12487,
+    "a_retirer": 1370,
+    "a_creer": 0,
+    "dry_run": false,
+    "evenements_conserves": 146,
+    "presents_apres": 11117,
+    "par_etat": {
+      "ok": 9090,
+      "spam": 1527,
+      "exclu": 199,
+      "a_verifier": 189,
+      "ko": 112
+    },
+    "attributions_auto": {
+      "lcr": 0,
+      "mkd": 0
+    }
+  }
+}

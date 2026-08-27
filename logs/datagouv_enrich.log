@@ -214,3 +214,25 @@ ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'
 2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "Casa d'Italia", "denomination": "PORTOFINO", "siret": "42210229300020", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "RESTAURANT L' ITALIEN", "denomination": "RESTAURANT L'ITALIEN", "siret": "84804759300019", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "0 salarié", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
 2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "LA LANTERNA", "denomination": "LA LANTERNA", "siret": "39369677800017", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-27 06:31:07,359 [INFO] 495 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-27 06:31:07,360 [INFO] Durée estimée minimale : ~124s (495 × 4 req/s)
+2026-08-27 06:31:21,870 [INFO]   ...50/495 (48 enrichis, 0 exclus, API=50 cache=0)
+2026-08-27 06:31:35,515 [INFO]   ...100/495 (97 enrichis, 0 exclus, API=100 cache=0)
+2026-08-27 06:31:49,387 [INFO]   ...150/495 (140 enrichis, 0 exclus, API=151 cache=0)
+2026-08-27 06:32:03,212 [INFO]   ...200/495 (178 enrichis, 0 exclus, API=202 cache=0)
+2026-08-27 06:32:17,404 [INFO]   ...250/495 (223 enrichis, 0 exclus, API=254 cache=0)
+2026-08-27 06:32:31,742 [INFO]   ...300/495 (271 enrichis, 0 exclus, API=304 cache=0)
+2026-08-27 06:32:45,432 [INFO]   ...350/495 (320 enrichis, 0 exclus, API=354 cache=0)
+2026-08-27 06:32:59,384 [INFO]   ...400/495 (368 enrichis, 0 exclus, API=404 cache=0)
+2026-08-27 06:33:12,977 [INFO]   ...450/495 (417 enrichis, 0 exclus, API=454 cache=0)
+2026-08-27 06:33:33,681 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-27 06:33:34,828 [INFO] ============================================================
+2026-08-27 06:33:34,828 [INFO] Total: 495 | Enrichis: 449 | Non-vérifiés(contactables): 45 | Exclus durs: 0 | Transitoires(non écrits): 1 | API: 504 | Cache: 0 | 429: 0 | 147.5s
+2026-08-27 06:33:34,828 [INFO] Exclusions DURES par motif (filtrées au push): {}
+2026-08-27 06:33:34,828 [INFO] Non-vérifiés par motif (restent contactables): {"match_ambigu": 19, "non_trouve": 26}
+2026-08-27 06:33:34,828 [INFO] Échantillon enrichis:
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "JMD DISTRIBUTION", "denomination": "JMD DISTRIBUTION", "siret": "80795076100021", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "ANGERS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "LE COLISEE", "denomination": "LE COLISEE", "siret": "82271424200010", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "ANGERS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "SAS ANAVA", "denomination": "SAS ANAVA", "siret": "91360007800012", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "LES PONTS-DE-CE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "BROTHER CONCEPT UNITED", "denomination": "BROTHER CONCEPT UNITED", "siret": "91978791100024", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "ANGERS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "NUABOL", "denomination": "NUABOL", "siret": "93790769900048", "code_naf": "56.10C", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "SAUMUR", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}

@@ -97,3 +97,22 @@
     "mkd": 0
   }
 }
+{
+  "pool": 11117,
+  "presents_avant": 11117,
+  "a_retirer": 0,
+  "a_creer": 0,
+  "dry_run": false,
+  "presents_apres": 11117,
+  "par_etat": {
+    "ok": 9090,
+    "spam": 1527,
+    "exclu": 199,
+    "a_verifier": 189,
+    "ko": 112
+  },
+  "attributions_auto": {
+    "lcr": 0,
+    "mkd": 0
+  }
+}

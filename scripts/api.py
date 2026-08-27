@@ -9461,6 +9461,32 @@ SCRAPE_STALE_TIMEOUT_MIN = 120
 
 
 @app.get("/api/sites/{site}/scrape/live-activity")
+def _lot_vivant(site: str, debut) -> bool:
+    """Ce lot bat-il encore ? Le statut vivant ne connaît QUE la dernière collecte.
+
+    Deux conditions, et il faut les deux : le battement est frais (< 5 min, le seuil que
+    `autoscrape_daily.decider` utilise pour refuser d'en lancer une seconde), et le lot
+    qu'on regarde est bien celui que ce statut décrit — sinon une collecte d'il y a trois
+    heures emprunterait le battement de celle qui tourne maintenant, et afficherait même
+    sa ville en cours. C'est ce qui faisait apparaître « Rennes » sur le département 27,
+    où Rennes ne se trouve pas.
+    """
+    try:
+        _scripts_dans_le_chemin()
+        import autoscrape_backend as _asb
+        vif = _asb.read_status(site) or {}
+        if (time.time() - (vif.get("updated_at") or 0)) >= 300:
+            return False
+        debut_vif = vif.get("started_at") or 0
+        if not debut_vif or not debut:
+            return bool(vif.get("status") in ("running", "starting"))
+        # Même lot à quelques secondes près : le journal et le statut n'écrivent pas
+        # exactement au même instant.
+        return abs(float(debut_vif) - debut.timestamp()) < 120
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def api_scrape_live_activity(site: str, limit: int = 20):
     """Live-activity feed des scrapes : matche start_scrape + scrape + crédits Serper consommés."""
     import duckdb as _dd, json as _json
@@ -9515,7 +9541,17 @@ def api_scrape_live_activity(site: str, limit: int = 20):
                 ORDER BY created_at ASC LIMIT 1
             """, [site, sector, start_at, _upper]).fetchone()
 
-            end_at = None; scraped = 0; valid = 0; rejected = 0; errors = 0; status = "running"
+            # « running » était la valeur par DÉFAUT de toute collecte dont la fin n'a
+            # jamais été écrite. Un processus tué — verrou, OOM, redémarrage — restait donc
+            # « en cours » pour toujours dans cet écran, et l'écran en comptait plusieurs
+            # à la fois. Camille, le 2026-08-27 : « 2 actives » affichées alors qu'un seul
+            # processus tournait, et la règle est d'un seul scrape automatique à la fois.
+            #
+            # Une collecte n'est réellement en cours que si le PROCESSUS bat encore : le
+            # statut vivant porte un `updated_at`, et au-delà de 5 minutes sans battement
+            # `autoscrape_daily` lui-même la considère morte (même seuil, même source).
+            end_at = None; scraped = 0; valid = 0; rejected = 0; errors = 0
+            status = "running" if _lot_vivant(site, start_at) else "interrompu"
             duplicates = 0; net = None; cleanup = None; skipped_seen = 0
             valid_serper = None; valid_basile = None
             if end_row:

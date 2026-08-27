@@ -113,3 +113,40 @@
     "rien à faire — la file couvre l'horizon"
   ]
 }
+{
+  "site": "lcr",
+  "objectif_par_jour": 160,
+  "campagnes_actives": [
+    {
+      "id": "fd0dc221-b44",
+      "nom": "Agent immobilier, loi cazenave",
+      "canal": "maildoso",
+      "reste": 486,
+      "secteurs": [
+        "immobilier"
+      ]
+    }
+  ],
+  "couverture": {
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 140,
+    "2026-09-01": 85,
+    "2026-09-02": 0,
+    "2026-09-03": 0,
+    "2026-09-04": 0
+  },
+  "jours_pleins_devant": 4,
+  "premier_jour_creux": "2026-09-02",
+  "sous_objectif": {
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 140,
+    "2026-09-01": 85
+  },
+  "suffisant": true,
+  "apply": true,
+  "actions": [
+    "rien à faire — la file couvre l'horizon"
+  ]
+}

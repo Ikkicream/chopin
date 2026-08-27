@@ -724,3 +724,167 @@
   "genesis-mailnjoy-drain": true
  }
 }
+{
+ "at": "2026-08-27T06:45:01+00:00",
+ "jour": "2026-08-26",
+ "bases": {
+  "fichiers": {
+   "contacts.duckdb": 1377054720,
+   "god_mode.duckdb": 232796160,
+   "auth.duckdb": 5779456,
+   "postgresql": 44047383
+  },
+  "tables": {
+   "pool.contacts": 11117,
+   "pool.contact_site_history": 13892,
+   "pool.contact_enrichment": 12162,
+   "pool.email_suppression": 1171,
+   "god_mode.scrappe": 14894,
+   "god_mode.scrappe_pending": 107,
+   "god_mode.scrappe_rejected": 15690,
+   "god_mode.maildoso_sent": 1680,
+   "god_mode.mass_campaigns": 1,
+   "god_mode.sweego_events": 4469,
+   "god_mode.god_mode_serper_calls": 97620,
+   "god_mode.autoscrape_targets": 2162,
+   "pg.contacts": 11117,
+   "pg.contact_sites": 11115,
+   "pg.contact_enrichment": 9555,
+   "pg.email_events": 7281,
+   "pg.campaign_recipients": 1847,
+   "pg.memoire_stephane": 417,
+   "pg.followup_events": 157,
+   "pg.contact_followup": 141,
+   "pg.sector_policy": 56,
+   "pg.stats_secteur_jour": 37,
+   "pg.mailbox_ramp_log": 32,
+   "pg.campaigns": 8,
+   "pg.mailboxes": 8,
+   "pg.mozart_scenarios": 8,
+   "pg.etat_technique_journalier": 7,
+   "pg.lecture_contacts": 5,
+   "pg.opportunites": 2,
+   "pg.config_stephane": 1,
+   "pg.segments": 1,
+   "pg.mass_sends": 1,
+   "pg.onoff_evenements": 1,
+   "pg.role_pages": 0,
+   "pg.mozart_inscriptions": 0,
+   "pg.mozart_passages": 0
+  }
+ },
+ "flux_hier": {
+  "scrape_serper": 84,
+  "scrape_basile": 86,
+  "mailnjoy_verifies": 206,
+  "mailnjoy_rejetes": 1174,
+  "datagouv_enrichis": 808,
+  "emails_envoyes": 74,
+  "contacts_crees": 216,
+  "en_attente_mailnjoy": 107
+ },
+ "crm": {
+  "a_rappeler": 129,
+  "attribues": 129,
+  "appels_7j": 4,
+  "rdv_a_traiter": 0
+ },
+ "taches": {
+  "enrichissement data.gouv": {
+   "present": true,
+   "dernier": "2026-08-27T06:33:34+00:00",
+   "heures": 0.2,
+   "octets": 35043,
+   "echec": null
+  },
+  "réconciliation PostgreSQL": {
+   "present": true,
+   "dernier": "2026-08-27T06:34:26+00:00",
+   "heures": 0.2,
+   "octets": 1887,
+   "echec": null
+  },
+  "dispatch campagnes": {
+   "present": true,
+   "dernier": "2026-08-26T13:22:26+00:00",
+   "heures": 17.4,
+   "octets": 29640,
+   "echec": null
+  },
+  "sauvegarde": {
+   "present": true,
+   "dernier": "2026-08-26T21:00:29+00:00",
+   "heures": 9.7,
+   "octets": 193911,
+   "echec": null
+  },
+  "rattrapage du pool": {
+   "present": true,
+   "dernier": "2026-08-27T06:31:06+00:00",
+   "heures": 0.2,
+   "octets": 3006,
+   "echec": null
+  },
+  "miroir enrichissement": {
+   "present": true,
+   "dernier": "2026-08-27T06:33:35+00:00",
+   "heures": 0.2,
+   "octets": 2012,
+   "echec": null
+  },
+  "délivrabilité": {
+   "present": true,
+   "dernier": "2026-08-26T07:45:05+00:00",
+   "heures": 23.0,
+   "octets": 3116,
+   "echec": null
+  },
+  "programmation des envois": {
+   "present": true,
+   "dernier": "2026-08-26T07:50:02+00:00",
+   "heures": 22.9,
+   "octets": 2280,
+   "echec": null
+  },
+  "collecte": {
+   "present": true,
+   "dernier": "2026-08-27T06:37:22+00:00",
+   "heures": 0.1,
+   "octets": 581566,
+   "echec": null
+  },
+  "statistiques": {
+   "present": true,
+   "dernier": "2026-08-27T05:50:03+00:00",
+   "heures": 0.9,
+   "octets": 19317,
+   "echec": null
+  },
+  "plancher de collecte": {
+   "present": true,
+   "dernier": "2026-08-27T06:30:02+00:00",
+   "heures": 0.3,
+   "octets": 66131,
+   "echec": null
+  },
+  "dirigeants nommés": {
+   "present": true,
+   "dernier": "2026-08-26T23:35:24+00:00",
+   "heures": 7.2,
+   "octets": 2807,
+   "echec": null
+  },
+  "scénarios Mozart": {
+   "present": true,
+   "dernier": "2026-08-27T06:15:01+00:00",
+   "heures": 0.5,
+   "octets": 3736,
+   "echec": null
+  }
+ },
+ "services": {
+  "genesis-dashboard": true,
+  "genesis-ui": true,
+  "genesis-mailnjoy-drain": true
+ }
+}
