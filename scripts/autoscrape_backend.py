@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -574,6 +575,31 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
             except Exception:
                 pass
 
+    # ── Le battement, indépendant de la boucle ────────────────────────────────
+    # `emit()` n'était appelé qu'aux FRONTIÈRES ville/secteur. Une grosse ville dépasse
+    # facilement cinq minutes — pagination Basile, Serper, vérification Mailnjoy, et la
+    # visite des sites des prospects — et pendant tout ce temps rien ne bat. Or cinq
+    # minutes sans battement, c'est précisément le seuil auquel `autoscrape_daily` et les
+    # trois écrans déclarent la collecte MORTE.
+    #
+    # Constaté le 2026-08-27 : le processus travaillait depuis 17 minutes sur Rennes, la
+    # première des douze villes, et les trois écrans annonçaient « Process interrompu ».
+    # Camille voyait « collecte interrompue », « aucune collecte en cours » et « 2 actives »
+    # au même instant.
+    #
+    # Un fil dédié bat toutes les 30 s tant que la collecte vit. Il ne fabrique aucun
+    # chiffre — il republie l'état courant, donc rafraîchit `updated_at`. En démon : il ne
+    # retient jamais l'arrêt du processus.
+    _battement_fini = threading.Event()
+
+    def _battre():
+        while not _battement_fini.wait(30):
+            emit()
+
+    _fil_battement = threading.Thread(target=_battre, name="autoscrape-battement",
+                                      daemon=True)
+    _fil_battement.start()
+
     # Villes finies du dept EN COURS (reprise intra-département).
     city_progress = {"dept": cities_dept, "done": list(cities_done or [])}
 
@@ -597,6 +623,7 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
         cum["message"] = "Aucun secteur." if not sectors else f"{scope_label} : rien à scraper."
         emit()
         persist_progress()
+        _battement_fini.set()
         return cum
 
     # Une seule ligne d'activité par RUN (et non 1 par ville) : start_scrape unique.
@@ -892,6 +919,10 @@ def run_autoscrape(site: str, sectors, region: str | None = None, dept: str | No
 
     cum["finished_at"] = time.time()
     persist_progress()
+    # Le battement s'arrête AVANT l'émission finale : sinon le fil pourrait republier un
+    # état intermédiaire par-dessus l'état terminal, et la collecte paraîtrait « running »
+    # après sa fin — exactement le symptôme qu'on répare.
+    _battement_fini.set()
     emit()
     return cum
 
