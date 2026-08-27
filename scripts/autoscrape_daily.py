@@ -29,7 +29,8 @@ des 3 passes.
 
 Fenêtre : réglée par `SCRAPE_WINDOW` dans `.env` — « 24h » (défaut depuis le 2026-08-20)
 = continu. Le frein n'est plus l'horaire mais le quota de contacts du jour. Seule plage
-protégée : `DISPATCH_RESERVE_UTC`, réservée au routage des emails.
+protégée : `ENTRETIEN_RESERVE_UTC`, pour `pg_reconcile`. Le créneau qui protégeait le
+routage a été supprimé le 2026-08-27 : la migration PostgreSQL l'avait rendu inutile.
 
 État  : memory/autoscrape/<site>-daily.json · pause : <site>-daily-pause.flag
 Table : autoscrape_targets (god_mode.duckdb)
@@ -65,20 +66,32 @@ MAX_TARGETS_PER_DAY = 12      # cibles par jour en mode CONTINU (2026-08-20)
 # ce compteur-ci ne sert plus qu'de garde-fou contre une file qui s'emballerait.
 MAX_RESUMES_PER_PASS = 8      # garde-fou : une passe qui ne finit jamais est close d'office
 
-# Créneau réservé au routage des emails (heure serveur = UTC). Le dispatch de campagnes
-# tourne à 08:30 UTC et dure jusqu'à ~09:05 ; il écrit dans god_mode.duckdb ET dans le
-# pool, qui n'admettent qu'un écrivain. Le 2026-08-20 un scrape tenait les deux fichiers :
-# le dispatch a envoyé ses 52 emails mais s'est arrêté sur un verrou, et un contact est
-# resté sans sa ligne de repoussoir — donc renvoyable. On ne DÉMARRE plus de passe dans
-# cette plage ; ce qui tourne déjà n'est pas interrompu (le journal PostgreSQL, écrit
-# avant DuckDB depuis ce jour, protège de toute façon la règle des 120 jours).
-DISPATCH_RESERVE_UTC = ("08:20", "10:00")
+# Créneau réservé au routage des emails : SUPPRIMÉ le 2026-08-27.
+#
+# Il existait parce que le dispatch écrivait dans `god_mode.duckdb` et dans le pool, qui
+# n'admettent qu'un écrivain : le 2026-08-20, un scrape tenait les deux fichiers, le
+# dispatch a envoyé ses 52 emails mais s'est arrêté sur un verrou, et un contact est resté
+# sans ligne de repoussoir — donc renvoyable.
+#
+# **La migration PostgreSQL a réglé cela à la racine, et ce créneau était un vestige.**
+# Aujourd'hui, dans tout le chemin d'envoi :
+#   · `campaign_engine` ne parle plus qu'à PostgreSQL (`_conn()` y est un pool psycopg2) ;
+#   · `mark_pushed_to_emelia` écrit le journal PostgreSQL — qui PORTE la règle des 120
+#     jours via `v_suppression` — AVANT d'ouvrir DuckDB. Un verrou dégrade le cooldown du
+#     pool, il ne rouvre pas la porte aux renvois ;
+#   · `_comptabiliser` attrape l'échec DuckDB et le CRIE sans interrompre l'envoi :
+#     « l'email est parti, le journal PostgreSQL fait foi » ;
+#   · le quota du jour et la cadence par boîte se lisent dans `email_events`.
+#
+# Garder ce créneau revenait à protéger un verrou dont on s'est justement affranchi — et à
+# décaler le routage pour l'éviter, ce qui était le contraire du but. Il est retiré ; seul
+# le créneau d'ENTRETIEN reste, qui protège `pg_reconcile`, une opération PostgreSQL.
 
 # Même raison pour l'entretien du matin : `datagouv_enrich` (06:30 UTC) puis `pg_reconcile`
 # lisent le pool. En 24 h/24 un scrape peut le tenir à cette heure-là — c'est ce qui a
 # empêché la réconciliation de tourner. On lui réserve son créneau.
 ENTRETIEN_RESERVE_UTC = ("06:20", "07:20")
-CRENEAUX_RESERVES = (ENTRETIEN_RESERVE_UTC, DISPATCH_RESERVE_UTC)
+CRENEAUX_RESERVES = (ENTRETIEN_RESERVE_UTC,)
 
 # Butoirs horaires : ils vivent dans `autoscrape_backend` (SCRAPE_STOP / CLEANUP_STOP,
 # 07:20 et 07:50 heure de Paris) pour s'appliquer à TOUS les points d'entrée — ici, le

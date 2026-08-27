@@ -3850,6 +3850,32 @@ async def api_sweego_webhook(request: Request):
                           "complaint": "complaint", "list_unsub": "unsub",
                           "clicked_unsub": "unsub"}
         _cible = _TYPES_JOURNAL.get(event_type)
+        # Une plainte, une désinscription ou un rebond dur sont des ÉTATS, pas des gestes
+        # qu'on répète : personne ne se plaint deux fois du même email. Un `open` ou un
+        # `click`, si — on ne les dédoublonne donc pas.
+        #
+        # Sans cette garde, une seule plainte de `michel.bazzali@orange.fr` a été réécrite
+        # 21 FOIS dans la nuit du 26 au 27/08, toutes les 15 minutes : Sweego réessaie
+        # quand il ne reçoit pas l'acquittement attendu, et l'écriture, elle, réussissait
+        # à chaque tour. Le taux de plainte affiché passait de 1,3 % à 28 % — au-dessus de
+        # tous les seuils d'alerte, pour UNE personne.
+        if _cible in ("complaint", "unsub", "bounce"):
+            try:
+                import pool_pg as _pp
+                # Le CANAL fait partie de la clé. Une plainte Sweego et une plainte
+                # Maildoso sur la même adresse sont deux faits distincts : elles portent
+                # sur deux messages, partis de deux infrastructures, et chacune compte
+                # dans le taux de SON canal. Dédoublonner sans le canal ferait disparaître
+                # la seconde — et masquerait précisément le signal qu'on surveille.
+                _deja = _pp._q("""
+                    SELECT 1 FROM email_events
+                     WHERE email = %(e)s AND event_type = %(t)s AND channel = %(c)s
+                       AND occurred_at > now() - interval '30 days' LIMIT 1
+                """, {"e": email, "t": _cible, "c": "sweego"})
+                if _deja:
+                    _cible = None
+            except Exception:  # noqa: BLE001
+                pass          # dans le doute on écrit : mieux vaut un doublon qu'un oubli
         if _cible:
             _pgs.record_event(email, _cible, site, "sweego",
                               url=(data.get("click") or {}).get("url") or None,
