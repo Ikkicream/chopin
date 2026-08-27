@@ -1,0 +1,191 @@
+{
+  "_description": "Groupes de synonymes de job titles pour la recherche full-text Basile. UNE seule liste 'terms' par groupe. Détection: si le mot tapé figure dans 'terms' (insensible casse/accents), on propose le bouton 'termes related'. Au clic: on injecte tous les 'terms' du groupe (sauf déjà présents). Full-text => les combos type 'Founder & CTO' sortent déjà. Termes larges (FR+EN+acronymes+variantes ponctuées+masculin/féminin) — l'utilisateur supprime ce qu'il ne veut pas. Couvre dirigeants C-level ET métiers opérationnels classiques.",
+  "groups": [
+    {
+      "id": "ceo",
+      "label": "CEO / Dirigeant (PDG, DG, Président)",
+      "terms": ["CEO", "C.E.O", "C.E.O.", "Chief Executive Officer", "PDG", "P.D.G", "P-DG", "Président Directeur Général", "Président-Directeur Général", "Président", "Présidente", "Directeur Général", "Directrice Générale", "DG", "Directeur Général Délégué", "Directeur général adjoint", "Dirigeant", "Dirigeante", "Gérant", "Gérante", "Gérant principal", "Associé gérant", "Managing Director", "General Manager"]
+    },
+    {
+      "id": "founder",
+      "label": "Founder / Fondateur",
+      "terms": ["Founder", "Co-Founder", "Cofounder", "Fondateur", "Fondatrice", "Co-fondateur", "Co-fondatrice", "Cofondateur", "Founding Partner", "Créateur", "Créatrice", "Owner", "Propriétaire", "Directeur-fondateur"]
+    },
+    {
+      "id": "coo",
+      "label": "COO / Directeur des Opérations",
+      "terms": ["COO", "C.O.O", "C.O.O.", "Chief Operating Officer", "Directeur des Opérations", "Directrice des Opérations", "Directeur d'exploitation", "Directeur d’exploitation", "Responsable des opérations", "Responsable d'exploitation", "Responsable d’exploitation", "Operations Director", "Operations Manager", "Head of Operations", "VP Operations"]
+    },
+    {
+      "id": "cfo",
+      "label": "CFO / Directeur Financier (DAF)",
+      "terms": ["CFO", "C.F.O", "C.F.O.", "Chief Financial Officer", "Directeur Financier", "Directrice Financière", "DAF", "D.A.F", "Directeur Administratif et Financier", "Directrice Administrative et Financière", "Responsable Administratif et Financier", "Responsable Administrative et Financière", "RAF", "Finance Director", "Finance Manager", "VP Finance", "Head of Finance"]
+    },
+    {
+      "id": "cto",
+      "label": "CTO / Directeur Technique",
+      "terms": ["CTO", "C.T.O", "C.T.O.", "Chief Technology Officer", "Chief Technical Officer", "Directeur Technique", "Directrice Technique", "Responsable Technique", "VP Engineering", "VP of Engineering", "Head of Engineering", "Head of Tech", "Technical Director", "Engineering Manager", "Directeur Ingénierie"]
+    },
+    {
+      "id": "cio",
+      "label": "CIO / DSI (Systèmes d'Information)",
+      "terms": ["CIO", "C.I.O", "C.I.O.", "Chief Information Officer", "DSI", "D.S.I", "Directeur des Systèmes d'Information", "Directeur des Systèmes d’Information", "Directeur Informatique", "Directrice Informatique", "Responsable Informatique", "IT Director", "IT Manager", "Head of IT"]
+    },
+    {
+      "id": "cmo",
+      "label": "CMO / Directeur Marketing",
+      "terms": ["CMO", "C.M.O", "C.M.O.", "Chief Marketing Officer", "Directeur Marketing", "Directrice Marketing", "Responsable Marketing", "Marketing Manager", "Marketing Director", "Head of Marketing", "VP Marketing", "Head of Growth", "Growth Manager", "Brand Manager"]
+    },
+    {
+      "id": "cso_sales",
+      "label": "CSO / CRO / Directeur Commercial (Sales)",
+      "terms": ["CSO", "Chief Sales Officer", "CRO", "Chief Revenue Officer", "Directeur Commercial", "Directrice Commerciale", "Directeur des Ventes", "Directrice des Ventes", "Chef des ventes", "Sales Director", "VP Sales", "VP of Sales", "Head of Sales", "Responsable Commercial", "Responsable Commerciale", "Responsable des Ventes", "Responsable développement commercial", "Sales Manager", "Regional Sales Manager", "Area Sales Manager", "Business Development Director"]
+    },
+    {
+      "id": "chro_rh",
+      "label": "CHRO / DRH (Ressources Humaines)",
+      "terms": ["CHRO", "Chief Human Resources Officer", "DRH", "D.R.H", "Directeur des Ressources Humaines", "Directrice des Ressources Humaines", "Responsable des Ressources Humaines", "Responsable Ressources Humaines", "Responsable RH", "HR Director", "HR Manager", "Head of HR", "Head of People"]
+    },
+    {
+      "id": "cpo_product",
+      "label": "CPO / Directeur Produit (Product)",
+      "terms": ["CPO", "Chief Product Officer", "Directeur Produit", "Directrice Produit", "Head of Product", "VP Product", "Product Director", "Product Manager", "Senior Product Manager", "Product Owner", "Lead Product Manager", "Responsable Produit"]
+    },
+    {
+      "id": "cdo_data",
+      "label": "CDO / Data (Données)",
+      "terms": ["CDO", "Chief Data Officer", "Directeur Data", "Head of Data", "VP Data", "Data Scientist", "Senior Data Scientist", "Data Analyst", "Data Engineer", "Data Manager", "Analytics Manager"]
+    },
+    {
+      "id": "ciso_security",
+      "label": "CISO / Sécurité IT (RSSI)",
+      "terms": ["CISO", "C.I.S.O", "Chief Information Security Officer", "RSSI", "R.S.S.I", "Responsable Sécurité des Systèmes d'Information", "Responsable Sécurité", "Security Officer", "Head of Security", "Cybersecurity Manager"]
+    },
+    {
+      "id": "associate_partner",
+      "label": "Associé / Partner",
+      "terms": ["Partner", "Associé", "Associée", "Associate", "Associate Partner", "Founding Partner", "Managing Partner", "Associé gérant", "Directeur associé", "Senior Partner"]
+    },
+    {
+      "id": "board",
+      "label": "Conseil d'administration / Board",
+      "terms": ["Board Member", "Administrateur", "Administratrice", "Membre du Conseil d'Administration", "Membre du conseil de surveillance", "Président du Conseil d'Administration", "Chairman", "Chairwoman", "Non-Executive Director", "Censeur"]
+    },
+
+    {
+      "id": "commercial_terrain",
+      "label": "Commercial / Vendeur (terrain)",
+      "terms": ["Commercial", "Commerciale", "Conseiller commercial", "Conseillère commerciale", "Conseiller de vente", "Conseillère de vente", "Conseiller ventes", "Vendeur", "Vendeuse", "Technico-commercial", "Technico-commerciale", "Représentant technico-commercial", "Ingénieur commercial", "Ingénieure commerciale", "Attaché commercial", "Attachée commerciale", "Chargé d'affaires", "Chargé d’affaires", "Chargée d'affaires", "Business Developer", "Business Development Manager", "Account Manager", "Key Account Manager", "Account Executive", "Sales Representative", "Sales Executive", "Sales Development Representative", "Chef de secteur", "Responsable de secteur", "Responsable grands comptes", "Customer Success Manager"]
+    },
+    {
+      "id": "assistant_commercial",
+      "label": "Assistant(e) commercial(e) / ADV",
+      "terms": ["Assistant commercial", "Assistante commerciale", "Assistant administration des ventes", "Assistante administration des ventes", "ADV", "Administration des ventes", "Assistante administrative et commerciale", "Chargé de clientèle", "Chargée de clientèle"]
+    },
+    {
+      "id": "compta",
+      "label": "Comptable / Expert-comptable",
+      "terms": ["Comptable", "Assistant comptable", "Assistante comptable", "Collaborateur comptable", "Collaboratrice comptable", "Expert-comptable", "Expert comptable", "Chef comptable", "Responsable comptable", "Comptable unique", "Aide-comptable", "Gestionnaire comptable", "Contrôleur de gestion", "Contrôleuse de gestion", "Financial Controller"]
+    },
+    {
+      "id": "paie",
+      "label": "Paie / Gestionnaire de paie",
+      "terms": ["Gestionnaire de paie", "Gestionnaire paie", "Responsable paie", "Chargé de paie", "Chargée de paie", "Technicien paie", "Assistant paie", "Payroll Manager", "Payroll Specialist"]
+    },
+    {
+      "id": "rh_op",
+      "label": "RH opérationnel / Recrutement",
+      "terms": ["Assistant RH", "Assistante RH", "Chargé RH", "Chargée RH", "Gestionnaire RH", "Chargé de recrutement", "Chargée de recrutement", "Chargée des Ressources Humaines", "Chargé des Ressources Humaines", "Consultant en recrutement", "Consultante en recrutement", "Recruteur", "Recruteuse", "Talent Acquisition", "Recruiter", "HR Business Partner", "HRBP", "Responsable formation"]
+    },
+    {
+      "id": "juridique",
+      "label": "Juridique / Avocat / Juriste",
+      "terms": ["Juriste", "Avocat", "Avocate", "Avocat associé", "Juriste d'entreprise", "Responsable juridique", "Directeur juridique", "Directrice juridique", "Legal Counsel", "General Counsel", "Notaire", "Clerc de notaire", "Paralegal", "Conseil juridique"]
+    },
+    {
+      "id": "chef_projet",
+      "label": "Chef de projet / Project Manager",
+      "terms": ["Chef de projet", "Cheffe de projet", "Chargé de projet", "Chargée de projet", "Responsable de projet", "Project Manager", "Senior Project Manager", "Program Manager", "Chef de projet MOA", "Chef de projet MOE", "Project Coordinator", "PMO", "Directeur de projet"]
+    },
+    {
+      "id": "dev_it",
+      "label": "Développeur / Ingénieur logiciel (IT)",
+      "terms": ["Développeur", "Développeuse", "Développeur web", "Développeur Full Stack", "Développeur Fullstack", "Développeur Front-End", "Développeur Back-End", "Software Engineer", "Senior Software Engineer", "Software Developer", "Ingénieur logiciel", "Ingénieur développement", "Lead Developer", "Tech Lead", "DevOps", "Ingénieur DevOps", "Web Developer", "Full Stack Developer"]
+    },
+    {
+      "id": "tech_maintenance",
+      "label": "Technicien / Maintenance",
+      "terms": ["Technicien", "Technicienne", "Technicien maintenance", "Technicien de maintenance", "Technicien informatique", "Technicien SAV", "Technicien itinérant", "Responsable maintenance", "Responsable technique", "Agent de maintenance", "Technicien support", "Support technique"]
+    },
+    {
+      "id": "btp_chantier",
+      "label": "BTP / Conduite de travaux & chantier",
+      "terms": ["Conducteur de travaux", "Conductrice de travaux", "Chef de chantier", "Chef d'équipe", "Chef d’équipe", "Chargé d'affaires BTP", "Maître d'œuvre", "Dessinateur-projeteur", "Dessinateur projeteur", "Économiste de la construction", "Métreur", "Ingénieur travaux", "Responsable de chantier"]
+    },
+    {
+      "id": "artisan_batiment",
+      "label": "Artisan du bâtiment (métiers)",
+      "terms": ["Électricien", "Electricien", "Plombier", "Chauffagiste", "Plombier-chauffagiste", "Menuisier", "Maçon", "Charpentier", "Couvreur", "Peintre", "Peintre en bâtiment", "Carreleur", "Plaquiste", "Serrurier", "Métallier", "Façadier", "Terrassier", "Paysagiste", "Pisciniste", "Artisan"]
+    },
+    {
+      "id": "immobilier",
+      "label": "Immobilier",
+      "terms": ["Agent immobilier", "Agente immobilière", "Conseiller immobilier", "Conseillère immobilière", "Négociateur immobilier", "Négociatrice immobilière", "Mandataire immobilier", "Responsable d'agence immobilière", "Gestionnaire locatif", "Gestionnaire de copropriété", "Syndic", "Property Manager", "Chasseur immobilier"]
+    },
+    {
+      "id": "patrimoine_assurance",
+      "label": "Gestion de patrimoine / Assurance / Banque",
+      "terms": ["Conseiller en gestion de patrimoine", "Conseillère en gestion de patrimoine", "CGP", "Gestionnaire de patrimoine", "Conseiller financier", "Conseiller bancaire", "Chargé de clientèle bancaire", "Courtier", "Courtier en assurance", "Agent général d'assurance", "Conseiller en assurance", "Wealth Manager"]
+    },
+    {
+      "id": "marketing_comm_op",
+      "label": "Marketing / Communication (opérationnel)",
+      "terms": ["Chargé de communication", "Chargée de communication", "Chargé de marketing", "Chargée de marketing", "Community Manager", "Social Media Manager", "Responsable communication", "Responsable marketing et communication", "Traffic Manager", "Content Manager", "Chef de produit", "Cheffe de produit", "Chargé de marketing digital"]
+    },
+    {
+      "id": "design_crea",
+      "label": "Design / Création / Graphisme",
+      "terms": ["Graphiste", "Designer", "UX Designer", "UI Designer", "UX/UI Designer", "Product Designer", "Directeur artistique", "Directrice artistique", "Motion Designer", "Webdesigner", "Web Designer", "Designer graphique", "Architecte d'intérieur", "Architecte d’intérieur"]
+    },
+    {
+      "id": "office_admin",
+      "label": "Office Management / Assistanat & Admin",
+      "terms": ["Office Manager", "Assistant de direction", "Assistante de direction", "Assistant direction", "Assistante administrative", "Assistant administratif", "Assistante de gestion", "Secrétaire", "Secrétaire administrative", "Adjoint administratif", "Gestionnaire administratif", "Executive Assistant", "Assistant Manager"]
+    },
+    {
+      "id": "achats_supply",
+      "label": "Achats / Supply Chain / Logistique",
+      "terms": ["Acheteur", "Acheteuse", "Responsable achats", "Directeur achats", "Responsable logistique", "Responsable supply chain", "Supply Chain Manager", "Approvisionneur", "Gestionnaire de stock", "Responsable approvisionnement", "Logistics Manager", "Procurement Manager", "Category Manager"]
+    },
+    {
+      "id": "qualite_hse",
+      "label": "Qualité / QHSE / HSE",
+      "terms": ["Responsable qualité", "Responsable QHSE", "Responsable HSE", "Ingénieur qualité", "Technicien qualité", "Animateur QSE", "Responsable QSE", "Quality Manager", "Auditeur qualité", "Responsable RSE"]
+    },
+    {
+      "id": "prod_industrie",
+      "label": "Production / Industrie",
+      "terms": ["Responsable de production", "Responsable production", "Directeur de production", "Directeur d'usine", "Directeur industriel", "Chef d'atelier", "Responsable d'atelier", "Responsable d’atelier", "Opérateur de production", "Agent de production", "Ingénieur production", "Production Manager", "Plant Manager", "Responsable méthodes"]
+    },
+    {
+      "id": "retail_magasin",
+      "label": "Retail / Magasin / Boutique",
+      "terms": ["Responsable de magasin", "Responsable magasin", "Directeur de magasin", "Responsable boutique", "Responsable de boutique", "Store Manager", "Chef de rayon", "Responsable de rayon", "Manager de rayon", "Gérant de magasin", "Responsable point de vente", "Retail Manager"]
+    },
+    {
+      "id": "sante",
+      "label": "Santé / Médical & Paramédical",
+      "terms": ["Infirmier", "Infirmière", "Médecin", "Pharmacien", "Pharmacienne", "Kinésithérapeute", "Aide-soignant", "Aide-soignante", "Secrétaire médicale", "Sage-femme", "Dentiste", "Chirurgien-dentiste", "Psychologue", "Ostéopathe", "Diététicien", "Cadre de santé"]
+    },
+    {
+      "id": "formation_ens",
+      "label": "Formation / Enseignement",
+      "terms": ["Formateur", "Formatrice", "Enseignant", "Enseignante", "Professeur", "Professeure", "Consultant formateur", "Responsable formation", "Coordinateur pédagogique", "Coordinatrice pédagogique", "Responsable pédagogique", "Intervenant", "Coach", "Maître de conférences"]
+    },
+    {
+      "id": "consultant",
+      "label": "Consultant / Conseil",
+      "terms": ["Consultant", "Consultante", "Senior Consultant", "Consultant senior", "Consultant indépendant", "Manager consultant", "Associate Consultant", "Conseiller", "Conseillère", "Chargé de mission", "Chargée de mission", "Expert", "Advisor"]
+    }
+  ]
+}

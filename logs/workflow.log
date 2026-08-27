@@ -1,0 +1,41 @@
+[workflow_runner] start 2026-05-22T06:30:01.778678+00:00 args={'site': 'both', 'dept': None, 'scrape_quota': 30, 'daily_limit': 50, 'dry_run': False}
+
+=== Workflow runner — site LCR ===
+  Département : Loire-Atlantique (44)
+  Villes      : Nantes, Saint-Nazaire, Saint-Herblain, Rezé, Saint-Sébastien-sur-Loire
+
+  -- Secteur immobilier --
+    scrape: 5 bruts, 2 validés (email OK)
+      ✓ pushed Blot Immobilier → campaign workflow-lcr-immobilier
+      ✓ pushed L'AGENCE LOCALE → campaign workflow-lcr-immobilier
+
+  -- Secteur restaurant --
+    scrape: 5 bruts, 4 validés (email OK)
+      ✓ pushed Pickles → campaign workflow-lcr-restaurant
+      ✓ pushed La Mandale Restaurant → campaign workflow-lcr-restaurant
+      ✓ pushed Chez Maman → campaign workflow-lcr-restaurant
+      ✓ pushed Restaurant Art'N Blum - Restaurant Nantes → campaign workflow-lcr-restaurant
+
+  -- Secteur garagiste --
+    scrape: 5 bruts, 2 validés (email OK)
+      ✓ pushed Garage des Anglais - Bosch Car Service → campaign workflow-lcr-garagiste
+
+  -- Secteur coiffeur --
+    scrape: 5 bruts, 2 validés (email OK)
+      ✓ pushed As de pique coiffeur Nantes → campaign workflow-lcr-coiffeur
+      ✓ pushed UMA NOVA → campaign workflow-lcr-coiffeur
+
+  -- Secteur retail --
+    scrape: 5 bruts, 0 validés (email OK)
+
+  -- Secteur artisan --
+    scrape: 5 bruts, 3 validés (email OK)
+      ✓ pushed SERRURIER VITRIER NANTES ABACA ARTISANS ASSOCIES → campaign workflow-lcr-artisan
+      ✓ pushed Nant'Artisans → campaign workflow-lcr-artisan
+
+=== Workflow runner — site MKD ===
+  Site mkd désactivé (state.enabled=False) → skip
+
+[workflow_runner] done
+  {'site': 'lcr', 'dept': '44', 'cities': ['Nantes', 'Saint-Nazaire', 'Saint-Herblain', 'Rezé', 'Saint-Sébastien-sur-Loire'], 'total_pushed': 11, 'total_scraped': 30, 'per_sector': {'immobilier': {'scraped': 5, 'valid': 2, 'qualified': 2, 'rejected_by_ai': 0, 'pushed': 2}, 'restaurant': {'scraped': 5, 'valid': 4, 'qualified': 4, 'rejected_by_ai': 0, 'pushed': 4}, 'garagiste': {'scraped': 5, 'valid': 2, 'qualified': 1, 'rejected_by_ai': 1, 'pushed': 1}, 'coiffeur': {'scraped': 5, 'valid': 2, 'qualified': 2, 'rejected_by_ai': 0, 'pushed': 2}, 'retail': {'scraped': 5, 'valid': 0, 'qualified': 0, 'rejected_by_ai': 0, 'pushed': 0}, 'artisan': {'scraped': 5, 'valid': 3, 'qualified': 2, 'rejected_by_ai': 1, 'pushed': 2}}, 'dry_run': False}
+  {'site': 'mkd', 'skipped': 'disabled'}

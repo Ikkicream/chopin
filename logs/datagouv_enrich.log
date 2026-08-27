@@ -1,0 +1,238 @@
+2026-08-19 21:53:36,732 [INFO] 106 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-19 21:53:36,732 [INFO] Durée estimée minimale : ~26s (106 × 4 req/s)
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 529, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 481, in main
+    row = enrich_contact(contact, client)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 304, in enrich_contact
+    payload = client.by_denomination(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 236, in by_denomination
+    return self.search(params)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 205, in search
+    self.rl.wait()
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 180, in wait
+    time.sleep(self.interval - elapsed)
+KeyboardInterrupt
+2026-08-20 06:30:02,074 [INFO] 96 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-20 06:30:02,075 [INFO] Durée estimée minimale : ~24s (96 × 4 req/s)
+2026-08-20 06:30:11,605 [INFO]   ...50/96 (30 enrichis, 1 exclus, API=33 cache=22)
+Traceback (most recent call last):
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 550, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 481, in main
+    row = enrich_contact(contact, client)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/autoblog/genesis/scripts/datagouv_enrich.py", line 382, in enrich_contact
+    latitude=float(siege["latitude"]) if siege.get("latitude") else None,
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[NON-DIFFUSIBLE]'
+2026-08-21 06:30:02,298 [INFO] 632 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-21 06:30:02,299 [INFO] Durée estimée minimale : ~158s (632 × 4 req/s)
+2026-08-21 06:30:18,201 [INFO]   ...50/632 (26 enrichis, 4 exclus, API=58 cache=0)
+2026-08-21 06:30:33,636 [INFO]   ...100/632 (53 enrichis, 4 exclus, API=116 cache=0)
+2026-08-21 06:30:47,962 [INFO]   ...150/632 (78 enrichis, 4 exclus, API=169 cache=0)
+2026-08-21 06:31:04,079 [INFO]   ...200/632 (101 enrichis, 7 exclus, API=230 cache=0)
+2026-08-21 06:31:21,092 [INFO]   ...250/632 (122 enrichis, 7 exclus, API=294 cache=0)
+2026-08-21 06:31:37,765 [INFO]   ...300/632 (147 enrichis, 7 exclus, API=357 cache=0)
+2026-08-21 06:31:54,768 [INFO]   ...350/632 (173 enrichis, 7 exclus, API=421 cache=0)
+2026-08-21 06:32:09,291 [INFO]   ...400/632 (204 enrichis, 9 exclus, API=475 cache=0)
+2026-08-21 06:32:24,494 [INFO]   ...450/632 (230 enrichis, 9 exclus, API=532 cache=0)
+2026-08-21 06:32:39,642 [INFO]   ...500/632 (250 enrichis, 9 exclus, API=589 cache=0)
+2026-08-21 06:32:55,346 [INFO]   ...550/632 (268 enrichis, 11 exclus, API=648 cache=1)
+2026-08-21 06:33:06,849 [INFO]   ...600/632 (293 enrichis, 11 exclus, API=690 cache=17)
+2026-08-21 06:33:21,995 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-21 06:33:22,968 [INFO] ============================================================
+2026-08-21 06:33:22,968 [INFO] Total: 632 | Enrichis: 308 | Non-vérifiés(contactables): 311 | Exclus durs: 12 | Transitoires(non écrits): 1 | API: 718 | Cache: 30 | 429: 0 | 200.7s
+2026-08-21 06:33:22,968 [INFO] Exclusions DURES par motif (filtrées au push): {"administration_service_public": 4, "entreprise_fermee": 8}
+2026-08-21 06:33:22,968 [INFO] Non-vérifiés par motif (restent contactables): {"match_ambigu": 39, "non_trouve": 272}
+2026-08-21 06:33:22,968 [INFO] Échantillon enrichis:
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "Immobilière BRUN SALAT", "denomination": "IMMOBILIERE BRUN SALAT", "siret": "34302598700052", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "NONTRON", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "IMPERIUM IMMOBILIER", "denomination": "IMPERIUM IMMOBILIER", "siret": "93140156600019", "code_naf": "68.31Z", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "VERDUN", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "GB IMMOBILIER SAINT DIZIER", "denomination": "GB VITRY SARL", "siret": "35044952600010", "code_naf": "70.3A", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "VITRY-LE-FRANCOIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "Neobilis", "denomination": "NEOBILIS", "siret": "30565026900031", "code_naf": "68.20A", "categorie_entreprise": "ETI", "tranche_effectif_libelle": "1-2", "commune": "EPINAL", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-21 06:33:22,968 [INFO]   {"societe_scrape": "THOMAS IMMOBILIER", "denomination": "THOMAS IMMOBILIER", "siret": "79361061900017", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "6-9", "commune": "EPINAL", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-22 06:30:02,333 [INFO] 333 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-22 06:30:02,334 [INFO] Durée estimée minimale : ~83s (333 × 4 req/s)
+2026-08-22 06:30:16,501 [INFO]   ...50/333 (46 enrichis, 0 exclus, API=51 cache=0)
+2026-08-22 06:30:32,367 [INFO]   ...100/333 (73 enrichis, 1 exclus, API=111 cache=0)
+2026-08-22 06:30:48,630 [INFO]   ...150/333 (108 enrichis, 1 exclus, API=172 cache=0)
+2026-08-22 06:31:04,608 [INFO]   ...200/333 (139 enrichis, 3 exclus, API=232 cache=1)
+2026-08-22 06:31:18,456 [INFO]   ...250/333 (185 enrichis, 4 exclus, API=283 cache=1)
+2026-08-22 06:31:32,717 [INFO]   ...300/333 (231 enrichis, 4 exclus, API=336 cache=1)
+2026-08-22 06:31:50,156 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-22 06:31:51,235 [INFO] ============================================================
+2026-08-22 06:31:51,235 [INFO] Total: 333 | Enrichis: 257 | Non-vérifiés(contactables): 71 | Exclus durs: 4 | Transitoires(non écrits): 1 | API: 373 | Cache: 2 | 429: 0 | 108.9s
+2026-08-22 06:31:51,235 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 3, "administration_service_public": 1}
+2026-08-22 06:31:51,236 [INFO] Non-vérifiés par motif (restent contactables): {"non_trouve": 57, "match_ambigu": 14}
+2026-08-22 06:31:51,236 [INFO] Échantillon enrichis:
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "PROPERTY DEAL TRANSACTIONS", "denomination": "PROPERTY DEAL TRANSACTIONS", "siret": "52218115500022", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "NOYERS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "L'IMMOBILIER DE BRIENON", "denomination": "L'IMMOBILIER DE BRIENON", "siret": "42230736300016", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "BRIENON-SUR-ARMANCON", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "BRETON", "denomination": "BRETON", "siret": "90046373800014", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "MONTHOLON", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "AGENCE CHARNY IMMOBILIER", "denomination": "AGENCE CHARNY IMMOBILIER", "siret": "52813349900012", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "CHARNY OREE DE PUISAYE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-22 06:31:51,236 [INFO]   {"societe_scrape": "AGENCE OPTIMUS", "denomination": "AGENCE OPTIMUS", "siret": "48361398000018", "code_naf": "68.31Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "VILLENEUVE-LA-GUYARD", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:30:02,550 [INFO] 766 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-23 06:30:02,551 [INFO] Durée estimée minimale : ~192s (766 × 4 req/s)
+2026-08-23 06:30:18,455 [INFO]   ...50/766 (18 enrichis, 0 exclus, API=58 cache=0)
+2026-08-23 06:30:33,194 [INFO]   ...100/766 (39 enrichis, 2 exclus, API=112 cache=0)
+2026-08-23 06:30:48,652 [INFO]   ...150/766 (51 enrichis, 2 exclus, API=169 cache=0)
+2026-08-23 06:31:02,696 [INFO]   ...200/766 (70 enrichis, 4 exclus, API=220 cache=0)
+2026-08-23 06:31:17,092 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 500898) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-23 06:31:19,791 [INFO]   ...250/766 (72 enrichis, 5 exclus, API=278 cache=0)
+2026-08-23 06:31:35,561 [INFO]   ...300/766 (72 enrichis, 5 exclus, API=337 cache=0)
+2026-08-23 06:31:50,168 [INFO]   ...350/766 (83 enrichis, 6 exclus, API=391 cache=0)
+2026-08-23 06:32:04,112 [INFO]   ...400/766 (121 enrichis, 7 exclus, API=442 cache=0)
+2026-08-23 06:32:18,950 [INFO]   ...450/766 (141 enrichis, 7 exclus, API=497 cache=0)
+2026-08-23 06:32:34,262 [INFO]   ...500/766 (165 enrichis, 9 exclus, API=554 cache=0)
+2026-08-23 06:32:49,901 [INFO]   ...550/766 (188 enrichis, 12 exclus, API=612 cache=0)
+2026-08-23 06:33:05,911 [INFO]   ...600/766 (209 enrichis, 12 exclus, API=672 cache=0)
+2026-08-23 06:33:20,957 [INFO]   ...650/766 (215 enrichis, 12 exclus, API=728 cache=0)
+2026-08-23 06:33:34,510 [INFO]   ...700/766 (248 enrichis, 14 exclus, API=778 cache=0)
+2026-08-23 06:33:48,506 [INFO]   ...750/766 (264 enrichis, 15 exclus, API=830 cache=0)
+2026-08-23 06:34:02,447 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-23 06:34:03,392 [INFO] ============================================================
+2026-08-23 06:34:03,392 [INFO] Total: 766 | Enrichis: 269 | Non-vérifiés(contactables): 479 | Exclus durs: 17 | Transitoires(non écrits): 1 | API: 853 | Cache: 0 | 429: 0 | 240.8s
+2026-08-23 06:34:03,392 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 17}
+2026-08-23 06:34:03,392 [INFO] Non-vérifiés par motif (restent contactables): {"non_trouve": 435, "match_ambigu": 44}
+2026-08-23 06:34:03,392 [INFO] Échantillon enrichis:
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Pizza Caffé", "denomination": "NOTRE AVENTURE LM", "siret": "94046476100011", "code_naf": "56.10C", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "FUVEAU", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Monde 2 douceurs", "denomination": null, "siret": "52537318900014", "code_naf": "10.71D", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "MARIGNANE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Paisa Papa Marignane", "denomination": "PAISA PAPA", "siret": "90228856200017", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "MARIGNANE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "PRONTO BURGER", "denomination": "LE KING", "siret": "84814668400016", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "MARIGNANE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-23 06:34:03,392 [INFO]   {"societe_scrape": "Roche Belle", "denomination": "ROCHE BELLE", "siret": "51107560800014", "code_naf": "68.20B", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "LA CIOTAT", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-24 06:30:53,625 [INFO] 1359 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-24 06:30:53,626 [INFO] Durée estimée minimale : ~340s (1359 × 4 req/s)
+2026-08-24 06:31:07,376 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:31:10,301 [INFO]   ...50/1359 (25 enrichis, 2 exclus, API=55 cache=0)
+2026-08-24 06:31:24,032 [INFO]   ...100/1359 (66 enrichis, 2 exclus, API=106 cache=0)
+2026-08-24 06:31:36,983 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1459164) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:31:38,492 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:31:41,124 [INFO]   ...150/1359 (96 enrichis, 5 exclus, API=158 cache=0)
+2026-08-24 06:31:56,347 [INFO]   ...200/1359 (119 enrichis, 5 exclus, API=215 cache=0)
+2026-08-24 06:32:11,407 [INFO]   ...250/1359 (131 enrichis, 6 exclus, API=271 cache=0)
+2026-08-24 06:32:25,414 [INFO]   ...300/1359 (163 enrichis, 6 exclus, API=323 cache=0)
+2026-08-24 06:32:38,958 [INFO]   ...350/1359 (210 enrichis, 6 exclus, API=373 cache=0)
+2026-08-24 06:32:52,594 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:32:55,321 [INFO]   ...400/1359 (227 enrichis, 7 exclus, API=428 cache=0)
+2026-08-24 06:33:08,958 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:33:10,469 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:33:13,093 [INFO]   ...450/1359 (241 enrichis, 9 exclus, API=483 cache=0)
+2026-08-24 06:33:27,074 [INFO]   ...500/1359 (271 enrichis, 10 exclus, API=535 cache=0)
+2026-08-24 06:33:39,581 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:33:42,218 [INFO]   ...550/1359 (304 enrichis, 10 exclus, API=585 cache=2)
+2026-08-24 06:33:56,384 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:33:57,892 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1459164) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:34:00,551 [INFO]   ...600/1359 (328 enrichis, 10 exclus, API=642 cache=2)
+2026-08-24 06:34:14,828 [INFO]   ...650/1359 (355 enrichis, 12 exclus, API=695 cache=2)
+2026-08-24 06:34:29,439 [INFO]   ...700/1359 (373 enrichis, 14 exclus, API=749 cache=2)
+2026-08-24 06:34:44,837 [INFO]   ...750/1359 (383 enrichis, 15 exclus, API=805 cache=2)
+2026-08-24 06:34:59,738 [INFO]   ...800/1359 (396 enrichis, 17 exclus, API=860 cache=2)
+2026-08-24 06:35:14,808 [INFO]   ...850/1359 (408 enrichis, 18 exclus, API=916 cache=2)
+2026-08-24 06:35:29,849 [INFO]   ...900/1359 (426 enrichis, 19 exclus, API=972 cache=2)
+2026-08-24 06:35:44,883 [INFO]   ...950/1359 (440 enrichis, 19 exclus, API=1028 cache=2)
+2026-08-24 06:35:59,953 [INFO]   ...1000/1359 (463 enrichis, 21 exclus, API=1084 cache=4)
+2026-08-24 06:36:17,510 [INFO]   ...1050/1359 (479 enrichis, 22 exclus, API=1150 cache=4)
+2026-08-24 06:36:33,755 [INFO]   ...1100/1359 (492 enrichis, 23 exclus, API=1211 cache=4)
+2026-08-24 06:36:49,908 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:36:51,419 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1459164) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:36:52,926 [WARNING] DuckDB occupé (flush), retry 3 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:36:55,547 [INFO]   ...1150/1359 (507 enrichis, 25 exclus, API=1276 cache=4)
+2026-08-24 06:37:11,537 [INFO]   ...1200/1359 (524 enrichis, 26 exclus, API=1336 cache=4)
+2026-08-24 06:37:26,135 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 1459164) by user root. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:37:28,755 [INFO]   ...1250/1359 (548 enrichis, 27 exclus, API=1395 cache=4)
+2026-08-24 06:37:43,145 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:37:44,650 [WARNING] DuckDB occupé (flush), retry 2 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:37:47,330 [INFO]   ...1300/1359 (568 enrichis, 28 exclus, API=1453 cache=4)
+2026-08-24 06:38:00,477 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2358108) by user autoblog. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-24 06:38:03,264 [INFO]   ...1350/1359 (584 enrichis, 30 exclus, API=1506 cache=4)
+2026-08-24 06:38:14,447 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-24 06:38:15,358 [INFO] ============================================================
+2026-08-24 06:38:15,358 [INFO] Total: 1359 | Enrichis: 589 | Non-vérifiés(contactables): 739 | Exclus durs: 30 | Transitoires(non écrits): 1 | API: 1518 | Cache: 4 | 429: 0 | 441.7s
+2026-08-24 06:38:15,359 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 30}
+2026-08-24 06:38:15,359 [INFO] Non-vérifiés par motif (restent contactables): {"non_trouve": 652, "match_ambigu": 87}
+2026-08-24 06:38:15,359 [INFO] Échantillon enrichis:
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "Pizzeria 500", "denomination": "BILADI TACOS", "siret": "83458848500013", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "SAINT-ETIENNE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "Cafe de L'opera", "denomination": "CAFE DE L'OPERA", "siret": "93062656900014", "code_naf": "56.30Z", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "SAINT-ETIENNE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "La crêpe au carré", "denomination": "LA CREPERIE", "siret": "83496210200036", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "10-19", "commune": "PARIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "Boucherie SOZERI Villefontaine", "denomination": "BOUCHERIE SOZERI", "siret": "98323902100022", "code_naf": "47.22Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "VILLEFONTAINE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-24 06:38:15,359 [INFO]   {"societe_scrape": "La Brasserie Dauphinoise", "denomination": "LA BRASSERIE DAUPHINOISE", "siret": "82919811800012", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "SAINT-EGREVE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-25 06:30:57,304 [INFO] 564 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-25 06:30:57,305 [INFO] Durée estimée minimale : ~141s (564 × 4 req/s)
+2026-08-25 06:31:12,206 [INFO]   ...50/564 (39 enrichis, 1 exclus, API=52 cache=0)
+2026-08-25 06:31:27,495 [INFO]   ...100/564 (59 enrichis, 4 exclus, API=108 cache=0)
+2026-08-25 06:31:42,430 [INFO]   ...150/564 (71 enrichis, 5 exclus, API=163 cache=0)
+2026-08-25 06:31:56,935 [INFO]   ...200/564 (100 enrichis, 5 exclus, API=216 cache=0)
+2026-08-25 06:32:11,186 [INFO]   ...250/564 (133 enrichis, 7 exclus, API=269 cache=0)
+2026-08-25 06:32:25,473 [INFO]   ...300/564 (155 enrichis, 11 exclus, API=322 cache=0)
+2026-08-25 06:32:39,742 [INFO]   ...350/564 (190 enrichis, 13 exclus, API=375 cache=0)
+2026-08-25 06:32:54,942 [INFO]   ...400/564 (207 enrichis, 16 exclus, API=432 cache=0)
+2026-08-25 06:33:10,753 [INFO]   ...450/564 (213 enrichis, 21 exclus, API=491 cache=0)
+2026-08-25 06:33:24,568 [INFO]   ...500/564 (254 enrichis, 22 exclus, API=542 cache=0)
+2026-08-25 06:33:39,568 [INFO]   ...550/564 (281 enrichis, 22 exclus, API=598 cache=0)
+2026-08-25 06:33:52,250 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-25 06:33:53,207 [INFO] ============================================================
+2026-08-25 06:33:53,207 [INFO] Total: 564 | Enrichis: 289 | Non-vérifiés(contactables): 252 | Exclus durs: 22 | Transitoires(non écrits): 1 | API: 616 | Cache: 0 | 429: 0 | 175.9s
+2026-08-25 06:33:53,207 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 21, "administration_service_public": 1}
+2026-08-25 06:33:53,207 [INFO] Non-vérifiés par motif (restent contactables): {"match_ambigu": 44, "non_trouve": 208}
+2026-08-25 06:33:53,207 [INFO] Échantillon enrichis:
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "Le Rojance", "denomination": "LE ROJANCE", "siret": "98419502400018", "code_naf": "56.21Z", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "CALAIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "LE POINT GOURMAND", "denomination": null, "siret": "50273331400020", "code_naf": "47.29Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "CALAIS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "TRAITEUR 62", "denomination": "TRAITEUR 62", "siret": "50967948600019", "code_naf": "56.21Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "HENIN-BEAUMONT", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "LE VIDOCQ", "denomination": "LE VIDOCQ", "siret": "80226697300022", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "ARRAS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-25 06:33:53,207 [INFO]   {"societe_scrape": "AVINE", "denomination": "AVINE", "siret": "82790435000028", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "0 salarié", "commune": "VERMELLES", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-26 06:30:02,503 [INFO] 762 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-26 06:30:02,504 [INFO] Durée estimée minimale : ~190s (762 × 4 req/s)
+2026-08-26 06:30:17,483 [INFO]   ...50/762 (21 enrichis, 2 exclus, API=54 cache=0)
+2026-08-26 06:30:31,106 [INFO]   ...100/762 (69 enrichis, 2 exclus, API=104 cache=0)
+2026-08-26 06:30:45,457 [INFO]   ...150/762 (87 enrichis, 3 exclus, API=157 cache=0)
+2026-08-26 06:30:59,980 [WARNING] DuckDB occupé (flush), retry 1 : IO Error: Could not set lock on file "/home/autoblog/genesis/data/contacts.duckdb": Conflicting lock is held in /usr/bin/python3.12 (PID 2911330) by user autoblog. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency
+2026-08-26 06:31:02,683 [INFO]   ...200/762 (94 enrichis, 3 exclus, API=215 cache=0)
+2026-08-26 06:31:17,974 [INFO]   ...250/762 (110 enrichis, 3 exclus, API=272 cache=0)
+2026-08-26 06:31:32,643 [INFO]   ...300/762 (130 enrichis, 4 exclus, API=326 cache=0)
+2026-08-26 06:31:47,942 [INFO]   ...350/762 (145 enrichis, 6 exclus, API=383 cache=0)
+2026-08-26 06:32:02,607 [INFO]   ...400/762 (166 enrichis, 9 exclus, API=437 cache=0)
+2026-08-26 06:32:16,378 [INFO]   ...450/762 (214 enrichis, 9 exclus, API=487 cache=0)
+2026-08-26 06:32:30,294 [INFO]   ...500/762 (247 enrichis, 9 exclus, API=538 cache=0)
+2026-08-26 06:32:45,133 [INFO]   ...550/762 (282 enrichis, 9 exclus, API=593 cache=0)
+2026-08-26 06:33:00,709 [INFO]   ...600/762 (310 enrichis, 11 exclus, API=651 cache=0)
+2026-08-26 06:33:15,250 [INFO]   ...650/762 (342 enrichis, 12 exclus, API=705 cache=0)
+2026-08-26 06:33:29,053 [INFO]   ...700/762 (369 enrichis, 14 exclus, API=756 cache=0)
+2026-08-26 06:33:44,434 [INFO]   ...750/762 (397 enrichis, 14 exclus, API=813 cache=0)
+2026-08-26 06:33:56,740 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-26 06:33:57,728 [INFO] ============================================================
+2026-08-26 06:33:57,729 [INFO] Total: 762 | Enrichis: 402 | Non-vérifiés(contactables): 345 | Exclus durs: 14 | Transitoires(non écrits): 1 | API: 829 | Cache: 0 | 429: 0 | 235.2s
+2026-08-26 06:33:57,729 [INFO] Exclusions DURES par motif (filtrées au push): {"entreprise_fermee": 14}
+2026-08-26 06:33:57,729 [INFO] Non-vérifiés par motif (restent contactables): {"non_trouve": 293, "match_ambigu": 52}
+2026-08-26 06:33:57,729 [INFO] Échantillon enrichis:
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "Aux Dix Vins Traiteur", "denomination": "AUX DIX VINS", "siret": "81886280700034", "code_naf": "47.25Z", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "COUSANCE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "LA TABLE DE PERRAUD", "denomination": "HUGAB", "siret": "83180005700018", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "Casa d'Italia", "denomination": "PORTOFINO", "siret": "42210229300020", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "3-5", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "RESTAURANT L' ITALIEN", "denomination": "RESTAURANT L'ITALIEN", "siret": "84804759300019", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "0 salarié", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-26 06:33:57,729 [INFO]   {"societe_scrape": "LA LANTERNA", "denomination": "LA LANTERNA", "siret": "39369677800017", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "LONS-LE-SAUNIER", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-27 06:31:07,359 [INFO] 495 contact(s) à enrichir (rebuild=False, dry_run=False)
+2026-08-27 06:31:07,360 [INFO] Durée estimée minimale : ~124s (495 × 4 req/s)
+2026-08-27 06:31:21,870 [INFO]   ...50/495 (48 enrichis, 0 exclus, API=50 cache=0)
+2026-08-27 06:31:35,515 [INFO]   ...100/495 (97 enrichis, 0 exclus, API=100 cache=0)
+2026-08-27 06:31:49,387 [INFO]   ...150/495 (140 enrichis, 0 exclus, API=151 cache=0)
+2026-08-27 06:32:03,212 [INFO]   ...200/495 (178 enrichis, 0 exclus, API=202 cache=0)
+2026-08-27 06:32:17,404 [INFO]   ...250/495 (223 enrichis, 0 exclus, API=254 cache=0)
+2026-08-27 06:32:31,742 [INFO]   ...300/495 (271 enrichis, 0 exclus, API=304 cache=0)
+2026-08-27 06:32:45,432 [INFO]   ...350/495 (320 enrichis, 0 exclus, API=354 cache=0)
+2026-08-27 06:32:59,384 [INFO]   ...400/495 (368 enrichis, 0 exclus, API=404 cache=0)
+2026-08-27 06:33:12,977 [INFO]   ...450/495 (417 enrichis, 0 exclus, API=454 cache=0)
+2026-08-27 06:33:33,681 [WARNING] Erreur API définitive {'q': 'CDT AISNE', 'per_page': 5, 'departement': '20'} : 400 Client Error: Bad Request for url: https://recherche-entreprises.api.gouv.fr/search?q=CDT+AISNE&per_page=5&departement=20
+2026-08-27 06:33:34,828 [INFO] ============================================================
+2026-08-27 06:33:34,828 [INFO] Total: 495 | Enrichis: 449 | Non-vérifiés(contactables): 45 | Exclus durs: 0 | Transitoires(non écrits): 1 | API: 504 | Cache: 0 | 429: 0 | 147.5s
+2026-08-27 06:33:34,828 [INFO] Exclusions DURES par motif (filtrées au push): {}
+2026-08-27 06:33:34,828 [INFO] Non-vérifiés par motif (restent contactables): {"match_ambigu": 19, "non_trouve": 26}
+2026-08-27 06:33:34,828 [INFO] Échantillon enrichis:
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "JMD DISTRIBUTION", "denomination": "JMD DISTRIBUTION", "siret": "80795076100021", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "ANGERS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "LE COLISEE", "denomination": "LE COLISEE", "siret": "82271424200010", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "ANGERS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "SAS ANAVA", "denomination": "SAS ANAVA", "siret": "91360007800012", "code_naf": "56.10C", "categorie_entreprise": "PME", "tranche_effectif_libelle": "Non employeur", "commune": "LES PONTS-DE-CE", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "BROTHER CONCEPT UNITED", "denomination": "BROTHER CONCEPT UNITED", "siret": "91978791100024", "code_naf": "56.10A", "categorie_entreprise": "PME", "tranche_effectif_libelle": "1-2", "commune": "ANGERS", "est_rge": false, "est_qualiopi": false, "match_quality": "match_denomination_ville"}
+2026-08-27 06:33:34,828 [INFO]   {"societe_scrape": "NUABOL", "denomination": "NUABOL", "siret": "93790769900048", "code_naf": "56.10C", "categorie_entreprise": null, "tranche_effectif_libelle": "Non employeur", "commune": "SAUMUR", "est_rge": false, "est_qualiopi": false, "match_quality": "match_fuzzy_top1"}

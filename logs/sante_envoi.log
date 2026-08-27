@@ -1,0 +1,76 @@
+
+■ leclient-roi.com
+   MX     : _dc-mx.b6894f8ec272.leclient-roi.com
+   SPF    : v=spf1 include:_spf.pinkproof.net ~all
+   DKIM   : {'selecteur': 'selector1', 'cle_presente': True}
+   DMARC  : v=DMARC1; p=reject; pct=100;
+
+■ smtp.maildoso.com (159.69.10.94, 159.69.23.134, 159.69.27.245, 159.69.28.123, 159.69.9.85, 178.105.161.216, 188.245.41.45, 46.225.183.5, 49.12.224.81, 49.13.170.255) : non vérifiable : zen.spamhaus.org
+
+■ Fenêtre 7 jours — 325 envois
+   ouverture 40.3 %  ·  clic 9.8 %  ·  rebond 0.0 %  ·  plainte 0.0 %
+   j.bernard@leclient-roi.com         0/ 40 aujourd'hui · ouverture 37.0 % sur 81 envois
+   j.durand@leclient-roi.com          0/ 40 aujourd'hui · ouverture 36.6 % sur 82 envois
+   j.juste@leclient-roi.com           0/ 40 aujourd'hui · ouverture 46.3 % sur 82 envois
+   j.nguyen@leclient-roi.com          0/ 40 aujourd'hui · ouverture 42.7 % sur 82 envois
+
+■ Alertes : 0
+
+■ leclient-roi.com
+   MX     : _dc-mx.b6894f8ec272.leclient-roi.com
+   SPF    : v=spf1 include:_spf.pinkproof.net ~all
+   DKIM   : {'selecteur': 'selector1', 'cle_presente': True}
+   DMARC  : v=DMARC1; p=reject; pct=100;
+
+■ smtp.maildoso.com (159.69.10.94, 159.69.23.134, 159.69.27.245, 159.69.28.123, 159.69.9.85, 178.105.161.216, 188.245.41.45, 46.225.183.5, 49.12.224.81, 49.13.170.255) : non vérifiable : zen.spamhaus.org
+
+■ Fenêtre 7 jours — 388 envois
+   ouverture 42.8 %  ·  clic 11.3 %  ·  rebond 0.0 %  ·  plainte 0.0 %
+   j.bernard@leclient-roi.com         0/ 40 aujourd'hui · ouverture 41.0 % sur 105 envois
+   j.durand@leclient-roi.com          0/ 40 aujourd'hui · ouverture 41.1 % sur 95 envois
+   j.juste@leclient-roi.com           0/ 40 aujourd'hui · ouverture 47.4 % sur 95 envois
+   j.nguyen@leclient-roi.com          0/ 40 aujourd'hui · ouverture 42.6 % sur 94 envois
+
+■ Alertes : 0
+
+■ leclient-roi.com
+   MX     : _dc-mx.b6894f8ec272.leclient-roi.com
+   SPF    : v=spf1 include:_spf.pinkproof.net ~all
+   DKIM   : {'selecteur': 'selector1', 'cle_presente': True}
+   DMARC  : v=DMARC1; p=reject; pct=100;
+
+■ smtp.maildoso.com (159.69.10.94, 159.69.23.134, 159.69.27.245, 159.69.28.123, 159.69.9.85, 178.105.161.216, 188.245.41.45, 46.225.183.5, 49.12.224.81, 49.13.170.255) : non vérifiable : zen.spamhaus.org
+
+■ Fenêtre 7 jours — 426 envois
+   ouverture 40.6 %  ·  clic 11.5 %  ·  rebond 0.0 %  ·  plainte 0.0 %
+   agence@leclient-roi.com            0/  3 aujourd'hui · ouverture 0.0 % sur 2 envois
+   immo@leclient-roi.com              0/  3 aujourd'hui · ouverture 0.0 % sur 1 envois
+   info@leclient-roi.com              0/  3 aujourd'hui · ouverture 0.0 % sur 1 envois
+   j.bernard@leclient-roi.com         0/ 40 aujourd'hui · ouverture 40.4 % sur 114 envois
+   j.durand@leclient-roi.com          0/ 40 aujourd'hui · ouverture 38.5 % sur 104 envois
+   j.juste@leclient-roi.com           0/ 40 aujourd'hui · ouverture 44.7 % sur 103 envois
+   j.nguyen@leclient-roi.com          0/ 40 aujourd'hui · ouverture 39.8 % sur 103 envois
+   news@leclient-roi.com              0/  3 aujourd'hui · ouverture 0.0 % sur 1 envois
+
+■ Alertes : 0
+
+■ leclient-roi.com
+   MX     : _dc-mx.b6894f8ec272.leclient-roi.com
+   SPF    : v=spf1 include:_spf.pinkproof.net ~all
+   DKIM   : {'selecteur': 'selector1', 'cle_presente': True}
+   DMARC  : v=DMARC1; p=reject; pct=100;
+
+■ smtp.maildoso.com (159.69.10.94, 159.69.23.134, 159.69.27.245, 159.69.28.123, 159.69.9.85, 178.105.161.216, 188.245.41.45, 46.225.183.5, 49.12.224.81, 49.13.170.255) : non vérifiable : zen.spamhaus.org
+
+■ Fenêtre 7 jours — 443 envois
+   ouverture 40.2 %  ·  clic 13.3 %  ·  rebond 0.0 %  ·  plainte 0.0 %
+   agence@leclient-roi.com            0/  3 aujourd'hui · ouverture 0.0 % sur 2 envois
+   immo@leclient-roi.com              0/  3 aujourd'hui · ouverture 0.0 % sur 1 envois
+   info@leclient-roi.com              0/  3 aujourd'hui · ouverture 0.0 % sur 1 envois
+   j.bernard@leclient-roi.com         0/ 40 aujourd'hui · ouverture 41.2 % sur 119 envois
+   j.durand@leclient-roi.com          0/ 40 aujourd'hui · ouverture 37.0 % sur 108 envois
+   j.juste@leclient-roi.com           0/ 40 aujourd'hui · ouverture 44.9 % sur 107 envois
+   j.nguyen@leclient-roi.com          0/ 40 aujourd'hui · ouverture 38.3 % sur 107 envois
+   news@leclient-roi.com              0/  3 aujourd'hui · ouverture 0.0 % sur 1 envois
+
+■ Alertes : 0

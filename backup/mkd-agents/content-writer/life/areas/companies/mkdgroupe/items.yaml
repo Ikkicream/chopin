@@ -1,0 +1,48 @@
+facts:
+  - id: mkd-001
+    date: 2026-03-25
+    type: preference
+    subject: mkdgroupe.com
+    predicate: article_format
+    object: HTML (pas Markdown)
+    status: active
+
+  - id: mkd-002
+    date: 2026-03-25
+    type: preference
+    subject: mkdgroupe.com
+    predicate: article_length
+    object: 800-1200 mots
+    status: active
+
+  - id: mkd-003
+    date: 2026-03-25
+    type: preference
+    subject: mkdgroupe.com
+    predicate: keyword_placement
+    object: dans les 100 premiers mots et dans le H1
+    status: active
+
+  - id: mkd-004
+    date: 2026-03-25
+    type: preference
+    subject: mkdgroupe.com
+    predicate: structure
+    object: respecter exactement les H2/H3 du brief SEO
+    status: active
+
+  - id: mkd-005
+    date: 2026-03-25
+    type: preference
+    subject: mkdgroupe.com
+    predicate: emphasis
+    object: 2-3 phrases fortes en <strong> par section
+    status: active
+
+  - id: mkd-006
+    date: 2026-03-25
+    type: preference
+    subject: mkdgroupe.com
+    predicate: quality
+    object: contenu différenciant, pas de remplissage générique
+    status: active

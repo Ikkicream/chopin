@@ -1,0 +1,152 @@
+{
+  "site": "lcr",
+  "objectif_par_jour": 160,
+  "campagnes_actives": [
+    {
+      "id": "fd0dc221-b44",
+      "nom": "Agent immobilier, loi cazenave",
+      "canal": "maildoso",
+      "reste": 691,
+      "secteurs": [
+        "immobilier"
+      ]
+    }
+  ],
+  "couverture": {
+    "2026-08-25": 100,
+    "2026-08-26": 120,
+    "2026-08-27": 130,
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 80,
+    "2026-09-01": 0
+  },
+  "jours_pleins_devant": 6,
+  "premier_jour_creux": "2026-09-01",
+  "sous_objectif": {
+    "2026-08-25": 100,
+    "2026-08-26": 120,
+    "2026-08-27": 130,
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 80
+  },
+  "suffisant": true,
+  "apply": true,
+  "actions": [
+    "rien à faire — la file couvre l'horizon"
+  ]
+}
+{
+  "site": "lcr",
+  "objectif_par_jour": 160,
+  "campagnes_actives": [
+    {
+      "id": "fd0dc221-b44",
+      "nom": "Agent immobilier, loi cazenave",
+      "canal": "maildoso",
+      "reste": 611,
+      "secteurs": [
+        "immobilier"
+      ]
+    }
+  ],
+  "couverture": {
+    "2026-08-26": 120,
+    "2026-08-27": 130,
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 100,
+    "2026-09-01": 0,
+    "2026-09-02": 0
+  },
+  "jours_pleins_devant": 5,
+  "premier_jour_creux": "2026-09-01",
+  "sous_objectif": {
+    "2026-08-26": 120,
+    "2026-08-27": 130,
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 100
+  },
+  "suffisant": true,
+  "apply": true,
+  "actions": [
+    "rien à faire — la file couvre l'horizon"
+  ]
+}
+{
+  "site": "lcr",
+  "objectif_par_jour": 160,
+  "campagnes_actives": [
+    {
+      "id": "fd0dc221-b44",
+      "nom": "Agent immobilier, loi cazenave",
+      "canal": "maildoso",
+      "reste": 550,
+      "secteurs": [
+        "immobilier"
+      ]
+    }
+  ],
+  "couverture": {
+    "2026-08-27": 130,
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 140,
+    "2026-09-01": 19,
+    "2026-09-02": 0,
+    "2026-09-03": 0
+  },
+  "jours_pleins_devant": 5,
+  "premier_jour_creux": "2026-09-02",
+  "sous_objectif": {
+    "2026-08-27": 130,
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 140,
+    "2026-09-01": 19
+  },
+  "suffisant": true,
+  "apply": true,
+  "actions": [
+    "rien à faire — la file couvre l'horizon"
+  ]
+}
+{
+  "site": "lcr",
+  "objectif_par_jour": 160,
+  "campagnes_actives": [
+    {
+      "id": "fd0dc221-b44",
+      "nom": "Agent immobilier, loi cazenave",
+      "canal": "maildoso",
+      "reste": 486,
+      "secteurs": [
+        "immobilier"
+      ]
+    }
+  ],
+  "couverture": {
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 140,
+    "2026-09-01": 85,
+    "2026-09-02": 0,
+    "2026-09-03": 0,
+    "2026-09-04": 0
+  },
+  "jours_pleins_devant": 4,
+  "premier_jour_creux": "2026-09-02",
+  "sous_objectif": {
+    "2026-08-28": 140,
+    "2026-08-29": 121,
+    "2026-08-31": 140,
+    "2026-09-01": 85
+  },
+  "suffisant": true,
+  "apply": true,
+  "actions": [
+    "rien à faire — la file couvre l'horizon"
+  ]
+}
