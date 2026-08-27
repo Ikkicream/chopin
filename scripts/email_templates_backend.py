@@ -27,7 +27,14 @@ KIND_LABEL = {"first": "1er email", "relance1": "Relance 1", "relance2": "Relanc
 
 
 def _conn():
-    return duckdb.connect(str(GOD_DB))
+    # `duck_ouverture.ouvrir` et non `duckdb.connect` : ce module est dans le CHEMIN DU
+    # DISPATCH — résoudre le message, le contrôler, lire les modèles. Une ouverture directe
+    # échoue au premier verrou tenu par un scrape, et le lot entier est refusé : c'est ce
+    # qui a fait échouer la campagne du 2026-08-27 à 10h30, « Could not set lock on file
+    # god_mode.duckdb ». Ces lectures ne sont pas des écritures de garantie — elles peuvent
+    # attendre une seconde et demie, et se contenter d'un accès en lecture seule.
+    import duck_ouverture
+    return duck_ouverture.ouvrir(GOD_DB)
 
 
 _FN = "{{firstName}}"
