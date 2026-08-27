@@ -111,8 +111,11 @@ def _sidebar_complete() -> None:
         return
     t = side.read_text()
     verifie("la sidebar lit le catalogue", "setCatalogue(d.catalogue)" in t)
+    # On vérifie l'ACTE (pousser une entrée portant le libellé du serveur), pas la forme
+    # exacte de l'objet : depuis l'icône image de Mozart, l'appel choisit entre `icon` et
+    # `iconImg`, et une comparaison littérale se cassait sur du code équivalent.
     verifie("elle AJOUTE les pages qu'elle ne connaît pas",
-            "groupe.items.push({ title: p.label" in t)
+            "groupe.items.push(" in t and "title: p.label" in t)
     verifie("une clé sans icône reçoit tout de même une entrée",
             "ICONES_PAGES[p.cle] || CircleDotIcon" in t)
     # L'ordre compte : une page ajoutée après le marquage bêta n'aurait jamais d'étiquette.
