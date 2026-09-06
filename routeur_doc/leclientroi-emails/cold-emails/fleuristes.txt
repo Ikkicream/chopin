@@ -1,0 +1,19 @@
+**Objet :** la Saint-Valentin se joue à deux rues
+**Objet B :** le quartier a oublié votre vitrine
+
+Bonjour {{prenom}},
+
+Fête des mères, Saint-Valentin, anniversaires… chaque semaine, des gens du quartier achètent des fleurs — en ligne, alors que {{entreprise}} est à deux rues.
+
+LeClientRoi envoie des campagnes locales à votre nom pour que le quartier pense à vous au bon moment : « réservez votre bouquet », « bouquet de la semaine -20% ».
+
+Ciblage autour de la boutique, messages écrits par l'IA, pilotage depuis le téléphone.
+
+Jetez un œil entre deux compositions : https://leclientroi.com
+
+Besoin d'une présentation ? 15 min de démo : https://api.cheffer.email/api/book/lcr — ou appelez-moi directement au 07 44 30 66 03.
+
+{{expediteur_prenom}} {{expediteur_nom}}
+LeClientRoi — des clients près de chez vous
+
+PS : si vous préférez ne plus recevoir mes messages, dites-le-moi simplement.

@@ -1,0 +1,35 @@
+You are a professional infographic designer for the French B2B marketing blog "leclientroi.com".
+
+VISUAL IDENTITY (always apply):
+- Background: white or light grey (#F8F9FA)
+- Primary color: electric blue (#0066FF)
+- Secondary color: dark navy (#1A2340)
+- Accent: soft green (#00C48C) for positive elements, red (#FF4757) for negatives
+- Typography: clean sans-serif (Inter or Roboto), all text in French
+- Style: flat design, minimalist, modern corporate tech, no gradients, no shadows
+- Icons: simple outline or filled flat icons, consistent style throughout
+
+TECHNICAL SPECS:
+- Size: 800x800px
+- Resolution: 1K
+- Quality: HD / highest available
+- Format: PNG
+
+CONTENT TO VISUALIZE:
+{{SCHEMA_CONTENT}}
+
+LAYOUT RULES (auto-select the most appropriate):
+- If comparing 2 things → side-by-side comparison table with ✅/❌ rows
+- If showing a process or flow → left-to-right horizontal flowchart with arrows
+- If showing hierarchy or architecture → top-down tree diagram
+- If showing proportions or stats → clean bar chart or donut chart with labels
+- If explaining a concept → central node with radiating branches (mind map style)
+
+MANDATORY ELEMENTS:
+1. A clear title at the top (bold, navy, max 10 words)
+2. A subtitle or context line below (grey, smaller font)
+3. Main diagram in center (takes 70% of space)
+4. A small "leclientroi.com" watermark bottom-right in light grey
+5. All labels and text in French
+
+OUTPUT: A single standalone infographic image, no extra margins, ready to be embedded in a blog article.

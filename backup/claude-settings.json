@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 30,
+            "statusMessage": "Checking Higgsfield credits for MKD-57...",
+            "command": "code=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST -H \"Authorization: Key $HIGGSFIELD_API_KEY:$HIGGSFIELD_API_SECRET\" -H \"Content-Type: application/json\" -d '{\"prompt\":\"test\",\"aspect_ratio\":\"16:9\",\"resolution\":\"720p\"}' \"https://platform.higgsfield.ai/higgsfield-ai/soul/standard\" 2>/dev/null); if [ \"$code\" != \"403\" ] && [ -n \"$code\" ]; then curl -s -X PATCH -H \"Authorization: Bearer $PAPERCLIP_API_KEY\" -H \"Content-Type: application/json\" -d '{\"status\":\"todo\"}' \"$PAPERCLIP_API_URL/api/issues/9280e2fc-0947-4cb6-a85a-7f095767d14e\" > /dev/null 2>&1; echo \"{\\\"systemMessage\\\": \\\"Higgsfield credits recharged (HTTP $code) — MKD-57 reset to todo. Prêt à générer l'image featured.\\\"}\" ; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
