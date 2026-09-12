@@ -1,0 +1,9 @@
+{
+  "_description": "Préfixes d'emails génériques d'entreprise à tester via Emelia verify/email quand on a le domaine mais pas d'email. Tester dans l'ordre, s'arrêter au 1er 'valid', MAXIMUM 3 essais par domaine pour ne pas gaspiller.",
+  "_usage": "Pour chaque domaine: essayer prefix + '@' + domaine, verifier, garder le 1er valide. Max 3.",
+  "max_attempts_per_domain": 3,
+  "primary": ["contact", "bonjour", "hello"],
+  "fallback_fr": ["info", "accueil", "commercial", "direction"],
+  "fallback_en": ["info", "sales", "office", "team"],
+  "notes": "primary = ordre par défaut (FR + international). Si l'entreprise est clairement anglophone, on peut remplacer 'bonjour' par 'hello'/'info'. Ne JAMAIS dépasser 3 tests par domaine."
+}

@@ -1,0 +1,41 @@
+facts:
+  - id: goal_10k_visits
+    type: business_goal
+    title: "10,000 organic visits/month target"
+    description: "Primary KPI for LeCLientROI project; reached through SMS marketing SEO content"
+    deadline: "2026-09-30"
+    status: active
+    created_at: "2026-03-31"
+
+  - id: customer_discovery_week1
+    type: initiative
+    title: "Week 1 customer discovery"
+    description: "Validate SMB willingness-to-pay and product assumptions via 20+ interviews"
+    deadline: "2026-04-06"
+    status: in_progress
+    blockers: "Awaiting human executor assignment"
+    created_at: "2026-03-31"
+
+  - id: first_hire_engineer
+    type: hiring_plan
+    title: "Product engineer hire (Week 2-3)"
+    description: "Core technical founder to build SMS platform MVP"
+    priority: critical
+    status: planned
+    created_at: "2026-03-31"
+
+  - id: gdpr_compliance
+    type: technical_requirement
+    title: "GDPR/CNIL compliance architecture"
+    description: "SMS marketing must comply with French regulations; core differentiator"
+    priority: critical
+    status: planned
+    created_at: "2026-03-31"
+
+  - id: sms_tools_competitive_context
+    type: market_research
+    title: "French SMBs' SMS tool landscape"
+    description: "Current adoption of SMS/WhatsApp/email; pain points; budget ranges (€0-€2k+/month)"
+    source: "LCR-2 customer discovery interviews (planned)"
+    status: pending
+    created_at: "2026-03-31"

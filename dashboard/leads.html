@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cold Email &amp; Prospection — Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script></head>
+<body class="bg-gray-50">
+<div class="container mx-auto p-6 max-w-6xl">
+  <h1 class="text-3xl font-bold mb-6">Cold Email &amp; Prospection — Dashboard</h1>
+  <nav class="flex gap-2 mb-6 border-b">
+    <button data-tab="overview" class="tab-btn px-4 py-2 font-medium">Overview</button>
+    <button data-tab="sources" class="tab-btn px-4 py-2 font-medium">Par source</button>
+    <button data-tab="search" class="tab-btn px-4 py-2 font-medium">Recherche</button>
+    <button data-tab="export" class="tab-btn px-4 py-2 font-medium">Export</button>
+  </nav>
+  <section id="tab-overview" class="tab-content">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="bg-white p-4 rounded shadow"><div class="text-sm text-gray-500">Total</div><div id="kpi-total" class="text-2xl font-bold">—</div></div>
+      <div class="bg-green-50 p-4 rounded shadow"><div class="text-sm text-gray-500">OK</div><div id="kpi-ok" class="text-2xl font-bold text-green-600">—</div></div>
+      <div class="bg-red-50 p-4 rounded shadow"><div class="text-sm text-gray-500">Rejetés</div><div id="kpi-rej" class="text-2xl font-bold text-red-600">—</div></div>
+      <div class="bg-yellow-50 p-4 rounded shadow"><div class="text-sm text-gray-500">Droppés</div><div id="kpi-drop" class="text-2xl font-bold text-yellow-600">—</div></div>
+      <div class="bg-orange-50 p-4 rounded shadow"><div class="text-sm text-gray-500">Erreurs</div><div id="kpi-err" class="text-2xl font-bold text-orange-600">—</div></div>
+    </div>
+    <div class="bg-white p-4 rounded shadow"><h2 class="font-bold mb-3">Envois par mois</h2><div style="height:200px"><canvas id="chart-monthly"></canvas></div></div>
+    <div class="bg-white p-4 rounded shadow mt-4"><h2 class="font-bold mb-3">Par source</h2>
+      <table class="w-full text-sm" id="src-table"><thead class="bg-gray-100"><tr>
+        <th class="text-left p-2">Source</th><th class="text-right p-2">Total</th><th class="text-right p-2">OK</th>
+        <th class="text-right p-2">Rejet</th><th class="text-right p-2">Drop</th><th class="text-right p-2">Err</th>
+      </tr></thead><tbody></tbody></table></div>
+  </section>
+  <section id="tab-sources" class="tab-content hidden">
+    <select id="src-select" class="border p-2 rounded mb-4 w-full max-w-xs"></select>
+    <div id="src-detail"></div>
+  </section>
+  <section id="tab-search" class="tab-content hidden">
+    <div class="flex gap-2 mb-4">
+      <input id="search-input" type="text" placeholder="GSM ou email…" class="border p-2 rounded flex-1">
+      <button id="search-btn" class="bg-blue-600 text-white px-4 rounded">Chercher</button>
+    </div>
+    <div id="search-results"></div>
+  </section>
+  <section id="tab-export" class="tab-content hidden">
+    <div class="bg-white p-6 rounded shadow max-w-md">
+      <h2 class="font-bold mb-4">Exporter en CSV</h2>
+      <label class="block mb-2">Du <input id="exp-from" type="text" placeholder="01/04/2026" class="border p-2 rounded w-full mt-1"></label>
+      <label class="block mb-2">Au <input id="exp-to" type="text" placeholder="30/04/2026" class="border p-2 rounded w-full mt-1"></label>
+      <button id="exp-btn" class="bg-green-600 text-white px-4 py-2 rounded mt-2">Télécharger CSV</button>
+      <p class="text-xs text-gray-500 mt-2">Format DD/MM/YYYY</p>
+    </div>
+  </section>
+</div>
+<script>
+const API='';
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+let chartMonthly=null;
+document.addEventListener('DOMContentLoaded',()=>{
+  $$('.tab-btn').forEach(b=>b.addEventListener('click',()=>{
+    $$('.tab-btn').forEach(x=>x.classList.remove('text-blue-600','border-b-2','border-blue-600'));
+    b.classList.add('text-blue-600','border-b-2','border-blue-600');
+    $$('.tab-content').forEach(c=>c.classList.add('hidden'));
+    $('#tab-'+b.dataset.tab).classList.remove('hidden');
+    if(b.dataset.tab==='sources'&&$('#src-select').value)loadTab($('#src-select').value);
+  }));
+  $$('.tab-btn')[0].click(); loadOverview();
+  $('#search-btn').onclick=doSearch;
+  $('#search-input').addEventListener('keypress',e=>{if(e.key==='Enter')doSearch();});
+  $('#exp-btn').onclick=doExport;
+  $('#src-select').addEventListener('change',e=>loadTab(e.target.value));
+});
+async function loadOverview(){
+  try{
+    const d=await(await fetch(API+'/api/overview')).json();
+    $('#kpi-total').textContent=d.totals.total;
+    $('#kpi-ok').textContent=d.totals.ok;
+    $('#kpi-rej').textContent=d.totals.rejected;
+    $('#kpi-drop').textContent=d.totals.dropped;
+    $('#kpi-err').textContent=d.totals.error;
+    const tb=$('#src-table tbody'),sel=$('#src-select');
+    tb.innerHTML=''; sel.innerHTML='';
+    for(const[src,s]of Object.entries(d.sources||{})){
+      tb.insertAdjacentHTML('beforeend',`<tr class="border-t hover:bg-gray-50 cursor-pointer" onclick="goSource('${src}')">
+        <td class="p-2">${src}</td><td class="text-right p-2">${s.total}</td>
+        <td class="text-right p-2 text-green-600">${s.ok}</td>
+        <td class="text-right p-2 text-red-600">${s.rejected}</td>
+        <td class="text-right p-2 text-yellow-600">${s.dropped}</td>
+        <td class="text-right p-2 text-orange-600">${s.error||0}</td></tr>`);
+      sel.insertAdjacentHTML('beforeend',`<option value="${src}">${src}</option>`);
+    }
+    const months=Object.keys(d.monthly||{});
+    const totals=months.map(m=>d.monthly[m].total||0);
+    if(chartMonthly)chartMonthly.destroy();
+    chartMonthly=new Chart($('#chart-monthly'),{type:'bar',
+      data:{labels:months,datasets:[{label:'Leads envoyés',data:totals,backgroundColor:'#3b82f6'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  }catch(e){console.error(e);}
+}
+function goSource(name){
+  $$('.tab-btn').forEach(b=>{if(b.dataset.tab==='sources')b.click();});
+  $('#src-select').value=name; loadTab(name);
+}
+async function loadTab(name){
+  try{
+    const d=await(await fetch(API+'/api/tab/'+encodeURIComponent(name))).json();
+    const days=Object.keys(d.by_day||{}).sort().reverse();
+    let h=`<div class="bg-white p-4 rounded shadow"><h2 class="font-bold mb-2">${d.source}</h2>
+      <p class="text-sm mb-4">Total: <b>${d.stats.total}</b> &bull;
+      OK: <span class="text-green-600">${d.stats.ok}</span> &bull;
+      Rejet: <span class="text-red-600">${d.stats.rejected}</span> &bull;
+      Drop: <span class="text-yellow-600">${d.stats.dropped}</span> &bull;
+      Err: <span class="text-orange-600">${d.stats.error||0}</span></p>
+      <table class="w-full text-sm"><thead class="bg-gray-100"><tr>
+      <th class="text-left p-2">Jour</th><th class="text-right p-2">Envoyés</th>
+      <th class="text-right p-2">OK</th><th class="text-right p-2">Rejet</th>
+      <th class="text-right p-2">Drop</th><th class="text-right p-2">Err</th>
+      </tr></thead><tbody>`;
+    for(const day of days.slice(0,90)){const x=d.by_day[day];
+      h+=`<tr class="border-t"><td class="p-2">${day}</td><td class="text-right p-2">${x.sent}</td>
+        <td class="text-right p-2 text-green-600">${x.ok}</td>
+        <td class="text-right p-2 text-red-600">${x.rejected}</td>
+        <td class="text-right p-2 text-yellow-600">${x.dropped}</td>
+        <td class="text-right p-2 text-orange-600">${x.error||0}</td></tr>`;}
+    h+='</tbody></table></div>';
+    $('#src-detail').innerHTML=h;
+  }catch(e){$('#src-detail').textContent='Erreur: '+e.message;}
+}
+async function doSearch(){
+  const q=$('#search-input').value.trim();
+  if(q.length<4){alert('Au moins 4 caractères');return;}
+  try{
+    const d=await(await fetch(API+'/api/search?q='+encodeURIComponent(q))).json();
+    if(d.count===0){$('#search-results').innerHTML='<p class="text-gray-500 mt-4">Aucun résultat.</p>';return;}
+    let h=`<p class="my-3 text-sm"><b>${d.count}</b> résultat(s)</p>`;
+    for(const r of d.results)h+=`<div class="bg-white p-3 rounded shadow mb-2 text-xs font-mono whitespace-pre-wrap">${JSON.stringify(r,null,2)}</div>`;
+    $('#search-results').innerHTML=h;
+  }catch(e){$('#search-results').textContent='Erreur: '+e.message;}
+}
+function doExport(){
+  const f=$('#exp-from').value.trim(),t=$('#exp-to').value.trim();
+  if(!f||!t){alert('Renseigne les 2 dates');return;}
+  window.location.href=API+`/api/export?from=${encodeURIComponent(f)}&to=${encodeURIComponent(t)}`;
+}
+</script></body></html>
