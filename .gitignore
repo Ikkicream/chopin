@@ -1,0 +1,35 @@
+# Secrets
+.env
+.env.*
+!.env.template
+context/shared/credentials.md
+context/shared/prospects.csv
+
+# Data (too large / personal)
+data/
+memory/
+backups/
+
+# Tools & deps
+tools/
+node_modules/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+google-indexing-key.json
+.htpasswd
+
+# Copies de sécurité prises avant une modification (`cp fichier fichier.bak-motif`).
+# 84 d'entre elles étaient suivies au 2026-08-26, pour 8,4 Mo — dont une copie de 9 530
+# lignes d'`api.py` avalée par la sauvegarde automatique du jour. Ce sont des béquilles de
+# travail, l'historique git fait déjà ce travail-là et le fait mieux.
+*.bak
+*.bak-*
+
+# Les logs ne sont pas du code — et tant qu'ils étaient suivis, ils salissaient l'arbre
+# à chaque exécution. C'est ce qui a fait échouer le `git checkout` de retour de
+# `sauvegarde_hors_machine.sh` le 2026-08-28, laissant le dépôt bloqué trois jours sur
+# la branche orpheline `sauvegarde/courante-tmp` — et `main` figé au 27/08.
+logs/
