@@ -1,0 +1,19 @@
+**Objet :** des chantiers dans votre zone, sans démarcher
+**Objet B :** votre planning de novembre se remplit maintenant
+
+Bonjour {{prenom}},
+
+Entre deux interventions, personne n'a le temps de prospecter — et les plateformes de mise en relation prennent leur commission au passage.
+
+LeClientRoi envoie des campagnes locales à votre nom (« entretien chaudière avant l'hiver », « devis gratuit ») et vous livre des demandes de gens qui ont accepté d'être rappelés.
+
+Vous choisissez votre zone d'intervention, tout se gère depuis le chantier, sur votre téléphone.
+
+Regardez le principe ici : https://leclientroi.com
+
+Besoin d'une présentation ? 15 min de démo : https://api.cheffer.email/api/book/lcr — ou appelez-moi directement au 07 44 30 66 03.
+
+{{expediteur_prenom}} {{expediteur_nom}}
+LeClientRoi — des chantiers près de chez vous
+
+PS : un mot et je ne vous réécris plus.

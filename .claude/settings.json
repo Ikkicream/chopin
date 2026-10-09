@@ -1,0 +1,29 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(~/.npm-global/bin/ccr:*)",
+      "Bash(node:*)",
+      "Bash(pm2:*)",
+      "Bash(npx:*)",
+      "Bash(jq:*)",
+      "Bash(source:*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/autoblog/genesis && echo \"{\\\"event\\\": \\\"session_stop\\\", \\\"timestamp\\\": \\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\"}\" >> memory/shared/agent-logs/sessions.jsonl 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
