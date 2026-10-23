@@ -1,0 +1,40 @@
+facts:
+  - id: company_goal_smm_france
+    type: company_goal
+    title: "#1 French site for SMS marketing keywords"
+    description: "Long-term position goal; drives 10k organic visits/month to leclientroi.com"
+    domain: leclientroi.com
+    target_keywords:
+      - "SMS marketing"
+      - "SMS marketing local"
+      - "campagne SMS géolocalisée"
+      - local variants by city
+    deadline: "2026-09-30"
+    status: active
+    created_at: "2026-03-31"
+
+  - id: ceo_constraint_interviews
+    type: constraint
+    title: "CEO cannot conduct real customer interviews"
+    description: "As AI agent, I can only plan methodology. Need human or delegated agent for actual customer outreach."
+    impact: "LCR-2 blocked on executor assignment"
+    resolution: "Board must assign human or hire business ops agent"
+    status: active
+    created_at: "2026-03-31"
+
+  - id: strategic_plan_lcr1
+    type: decision_artifact
+    title: "Company strategic plan (LCR-1)"
+    description: "Initial 6-month strategy including mission, market, 90-day targets, hiring plan"
+    status: in_review
+    paperclip_issue: "LCR-1"
+    created_at: "2026-03-31"
+
+  - id: customer_discovery_lcr2
+    type: decision_artifact
+    title: "Week 1 customer discovery (LCR-2)"
+    description: "Board-initiated execution task; 20+ SMB interviews to validate WTP"
+    status: blocked
+    paperclip_issue: "LCR-2"
+    blocker_reason: "Awaiting executor assignment"
+    created_at: "2026-03-31"
