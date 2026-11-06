@@ -1,0 +1,19 @@
+**Objet :** vos clients passent devant sans entrer
+**Objet B :** faites entrer le quartier chez {{entreprise}}
+
+Bonjour {{prenom}},
+
+Des centaines de personnes passent chaque jour devant {{entreprise}} — et la vitrine ne suffit plus à les faire entrer.
+
+LeClientRoi envoie des campagnes locales à votre nom : « nouvelle collection », « ventes privées ce week-end », « -20% cette semaine ».
+
+Vous ciblez les habitants autour de la boutique, l'IA écrit les messages, et vous suivez les résultats depuis votre téléphone.
+
+Venez découvrir, sans inscription : https://leclientroi.com
+
+Besoin d'une présentation ? 15 min de démo : https://api.cheffer.email/api/book/lcr — ou appelez-moi directement au 07 44 30 66 03.
+
+{{expediteur_prenom}} {{expediteur_nom}}
+LeClientRoi — des clients près de chez vous
+
+PS : si vous préférez ne plus recevoir mes messages, dites-le-moi et c'est réglé.
