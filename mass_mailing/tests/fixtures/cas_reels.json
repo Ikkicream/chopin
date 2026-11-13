@@ -1,0 +1,213 @@
+{
+ "bnp": {
+  "soumis_a": "2026-09-26T14:42:20.672292+00:00",
+  "S": [
+   {
+    "at": "2026-09-26T14:52:46+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/desinscription?t=7726.rwnu84E8FBiKIgtL0001Lw",
+    "type": "desinscription",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:52:47+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/rappel?t=WyIxYTYyNTA2YS0xYzM3LTQxOGQtOTRjZC0yZWYxYzAyOGRiYWIiLDc3MjYsImh0dHBzOi8vd3d3LnZlcmJhZXJlYXV0by5jb20vcG9saXRpcXVlLWRlLWNvbmZpZGVudGlhbGl0ZS8iXQ.DHHd-keTS7BttSzho4agBQ",
+    "type": "contenu",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:52:47+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/p?t=7726.rwnu84E8FBiKIgtL0001Lw",
+    "type": "piege",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:52:47+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/rappel?t=WyIxYTYyNTA2YS0xYzM3LTQxOGQtOTRjZC0yZWYxYzAyOGRiYWIiLDc3MjYsImh0dHBzOi8vd3d3LnZlcmJhZXJlYXV0by5jb20vbWVudGlvbnMtbGVnYWxlcy8iXQ.lCwcJwSvbyLM181eZLwBog",
+    "type": "contenu",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:52:48+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/vue?c=1a62506a-1c37-418d-94cd-2ef1c028dbab.Ew7Bm-JZwSiVa8OA",
+    "type": "miroir",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:52:48+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/desinscription?t=7726.rwnu84E8FBiKIgtL0001Lw",
+    "type": "desinscription",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:52:49+00:00",
+    "url": "tel:+33327468236",
+    "type": "contenu",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:52:49+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/rappel?t=WyIxYTYyNTA2YS0xYzM3LTQxOGQtOTRjZC0yZWYxYzAyOGRiYWIiLDc3MjYsImh0dHBzOi8vd3d3LnZlcmJhZXJlYXV0by5jb20iXQ.pDD10jiH-739LchqbRYszA",
+    "type": "contenu",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:52:50+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/rappel?t=WyIxYTYyNTA2YS0xYzM3LTQxOGQtOTRjZC0yZWYxYzAyOGRiYWIiLDc3MjYsImh0dHBzOi8vd3d3LnZlcmJhZXJlYXV0by5jb20vY29udGFjdCJd.CY8hlTZ1JvJe-BVznrvGug",
+    "type": "contenu",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:53:24+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/desinscription?t=7726.rwnu84E8FBiKIgtL0001Lw",
+    "type": "desinscription",
+    "ip": "172.120.11.0",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:53:25+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/desinscription?t=7726.rwnu84E8FBiKIgtL0001Lw",
+    "type": "desinscription",
+    "ip": "192.227.255.180",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:53:26+00:00",
+    "url": "tel:+33327468236",
+    "type": "contenu",
+    "ip": "192.227.254.20",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:54:02+00:00",
+    "url": "tel:+33327468236",
+    "type": "contenu",
+    "ip": "185.152.39.42",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:54:04+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/desinscription?t=7726.rwnu84E8FBiKIgtL0001Lw",
+    "type": "desinscription",
+    "ip": "185.152.39.28",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:54:10+00:00",
+    "url": "https://mail.cheffer.email/api/public/mass-mailing/desinscription?t=7726.rwnu84E8FBiKIgtL0001Lw",
+    "type": "desinscription",
+    "ip": "185.152.39.39",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   },
+   {
+    "at": "2026-09-26T14:54:25+00:00",
+    "url": "tel:+33327468236",
+    "type": "contenu",
+    "ip": "147.185.226.13",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "proxy": false
+   }
+  ],
+  "R": [
+   {
+    "at": "2026-09-26T14:42:47.756171+00:00",
+    "url": "https://www.verbaereauto.com/politique-de-confidentialite/",
+    "type": "visite",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+   },
+   {
+    "at": "2026-09-26T14:42:48.144770+00:00",
+    "url": "https://www.verbaereauto.com/mentions-legales/",
+    "type": "visite",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+   },
+   {
+    "at": "2026-09-26T14:42:49.442974+00:00",
+    "url": "https://www.verbaereauto.com",
+    "type": "visite",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+   },
+   {
+    "at": "2026-09-26T14:42:50.745179+00:00",
+    "url": "https://www.verbaereauto.com/contact",
+    "type": "visite",
+    "ip": "52.34.76.65",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+   },
+   {
+    "at": "2026-09-26T14:42:52.171248+00:00",
+    "url": "https://www.verbaereauto.com/mentions-legales/",
+    "type": "visite",
+    "ip": "54.70.53.60",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+   },
+   {
+    "at": "2026-09-26T14:42:55.446037+00:00",
+    "url": "https://www.verbaereauto.com",
+    "type": "visite",
+    "ip": "54.70.53.60",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+   },
+   {
+    "at": "2026-09-26T14:42:55.467492+00:00",
+    "url": "https://www.verbaereauto.com/contact",
+    "type": "visite",
+    "ip": "54.70.53.60",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+   },
+   {
+    "at": "2026-09-26T14:42:56.050257+00:00",
+    "url": "https://www.verbaereauto.com/politique-de-confidentialite/",
+    "type": "visite",
+    "ip": "54.70.53.60",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+   }
+  ]
+ },
+ "humain_oui": {
+  "soumis_a": "2026-09-26T10:55:14.967351+00:00",
+  "S": [],
+  "R": [
+   {
+    "at": "2026-09-26T10:56:11.769861+00:00",
+    "url": "https://www.verbaereauto.com",
+    "type": "visite",
+    "ip": "2a01:cb00:124:c00:3178:d670:f9bc:2dac",
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+   },
+   {
+    "at": "2026-09-26T10:56:22.637191+00:00",
+    "url": "https://www.verbaereauto.com",
+    "type": "accepte",
+    "ip": "2a01:cb00:124:c00:3178:d670:f9bc:2dac",
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+   }
+  ]
+ }
+}

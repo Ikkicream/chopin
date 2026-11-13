@@ -1,0 +1,19 @@
+{
+  "name": "mkdgroupe-newsletter",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "email dev",
+    "build": "node render.mjs"
+  },
+  "dependencies": {
+    "@react-email/components": "0.0.31",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@react-email/render": "1.0.4",
+    "react-email": "3.0.7",
+    "typescript": "5.4.5"
+  }
+}
