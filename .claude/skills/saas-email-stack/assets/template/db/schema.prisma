@@ -1,0 +1,187 @@
+// Fragment Prisma de la brique email multi-tenant (PostgreSQL).
+// À fusionner dans le schema.prisma du projet. `tenantId` référence la table
+// d'organisation/workspace existante : ajouter la relation selon le projet.
+// Pour Drizzle / SQL brut : mêmes tables, mêmes contraintes uniques.
+
+enum EmailProvider {
+  RESEND
+  SES
+}
+
+enum EmailStream {
+  TRANSACTIONAL
+  MARKETING
+}
+
+enum EmailDnsMode {
+  RECORDS   // le client copie les enregistrements
+  DELEGATED // sous-domaine délégué (NS) vers notre zone Route 53
+  API       // écriture via le token DNS du client
+}
+
+enum EmailDomainStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  TEMPORARY_FAILURE
+  FAILED
+}
+
+enum EmailSuppressionReason {
+  HARD_BOUNCE
+  COMPLAINT
+  UNSUBSCRIBE
+  MANUAL
+}
+
+/// Un sous-domaine d'envoi d'un client (ex. news.client.com). Unique sur toute la plateforme :
+/// deux organisations ne peuvent pas revendiquer le même domaine.
+model EmailDomain {
+  id          String            @id @default(cuid())
+  tenantId    String
+  name        String            @unique
+  rootDomain  String
+  stream      EmailStream
+  region      String            // figée à la création (eu-west-1, eu-west-3…)
+  status      EmailDomainStatus @default(NOT_STARTED)
+  dnsMode     EmailDnsMode      @default(RECORDS)
+
+  // Délégation NS (dnsMode = DELEGATED)
+  hostedZoneId         String?
+  nameServers          String[]
+  delegationVerifiedAt DateTime?
+
+  // Mise en service : les six conditions avant le premier envoi marketing
+  webhookVerifiedAt     DateTime?
+  unsubscribeVerifiedAt DateTime?
+  postmasterConfirmedAt DateTime?
+  senderHubConfirmedAt  DateTime?
+  warmupStartedAt       DateTime?
+  warmupTargetPerDay    Int?
+  warmupFirstWeekPerDay Int       @default(400)
+  warmupHeldWeeks       Int       @default(0) // semaines « retenues » quand bounces ≥ 2 % ou plaintes ≥ 0,1 %
+
+  dmarcPolicyObserved String?   // none | quarantine | reject (dernier audit)
+  dmarcRuaObserved    Boolean   @default(false)
+  lastCheckedAt       DateTime?
+  nextCheckAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  identities EmailIdentity[]
+  records    EmailDnsRecord[]
+  senders    EmailSender[]
+
+  @@index([tenantId])
+  @@index([status, nextCheckAt])
+}
+
+/// Le même domaine peut être enregistré chez plusieurs fournisseurs (bascule ou routage par flux).
+model EmailIdentity {
+  id               String            @id @default(cuid())
+  domainId         String
+  domain           EmailDomain       @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  provider         EmailProvider
+  providerRef      String            // id Resend ou nom d'identité SES
+  status           EmailDomainStatus @default(PENDING)
+  region           String
+  isPrimary        Boolean           @default(true)
+  configurationSet String?           // SES : un configuration set par tenant et par flux
+  sesTenantName    String?           // SES Tenant Management
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([domainId, provider])
+}
+
+model EmailDnsRecord {
+  id            String         @id @default(cuid())
+  domainId      String
+  domain        EmailDomain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  provider      EmailProvider?
+  purpose       String         // dkim | spf | mail-from | dmarc | tracking | verification | ns
+  type          String         // TXT | CNAME | MX | NS
+  name          String
+  value         String
+  priority      Int?
+  status        String         @default("pending") // pending | verified | failed
+  observed      String?        // ce que le DNS renvoie réellement (UI « attendu / trouvé »)
+  lastCheckedAt DateTime?
+
+  @@unique([domainId, type, name, value])
+}
+
+model EmailSender {
+  id          String      @id @default(cuid())
+  tenantId    String
+  domainId    String
+  domain      EmailDomain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  localPart   String      // "hello" dans hello@news.client.com
+  displayName String
+  replyTo     String?
+
+  @@unique([domainId, localPart])
+}
+
+model EmailMessage {
+  id                String        @id @default(cuid())
+  tenantId          String
+  domainId          String?
+  stream            EmailStream
+  provider          EmailProvider
+  providerMessageId String?       @unique
+  idempotencyKey    String?       @unique
+  toHash            String        // sha256(adresse normalisée) : jointures sans stocker l'adresse en clair
+  subject           String
+  status            String        @default("queued") // queued | sent | delivered | bounced | complained | failed | skipped
+  campaignId        String?
+  createdAt         DateTime      @default(now())
+  sentAt            DateTime?
+  lastEventAt       DateTime?
+
+  events EmailEvent[]
+
+  @@index([tenantId, createdAt])
+  @@index([domainId, createdAt])
+}
+
+model EmailEvent {
+  id              String        @id @default(cuid())
+  messageId       String?
+  message         EmailMessage? @relation(fields: [messageId], references: [id])
+  tenantId        String?
+  provider        EmailProvider
+  providerEventId String        @unique // idempotence : les webhooks sont livrés au moins une fois
+  type            String
+  recipientHash   String
+  detail          String?
+  occurredAt      DateTime
+  receivedAt      DateTime      @default(now())
+
+  @@index([tenantId, type, occurredAt])
+}
+
+/// scope = "global" (adresse invalide pour tout le monde : hard bounce) ou l'id du tenant.
+/// streamScope = "all" | "marketing" | "transactional". Une désinscription ne bloque que le marketing.
+/// (Chaînes plutôt que NULL : en PostgreSQL, NULL ne participe pas aux contraintes d'unicité.)
+model EmailSuppression {
+  id          String                 @id @default(cuid())
+  scope       String
+  emailHash   String
+  streamScope String                 @default("all")
+  reason      EmailSuppressionReason
+  detail      String?
+  createdAt   DateTime               @default(now())
+
+  @@unique([scope, emailHash, streamScope])
+  @@index([emailHash])
+}
+
+/// Compteur journalier pour le plafond de warm-up (remplaçable par Redis).
+model EmailDailyCounter {
+  domainId String
+  day      DateTime @db.Date
+  sent     Int      @default(0)
+
+  @@id([domainId, day])
+}

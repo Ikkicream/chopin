@@ -1,0 +1,5 @@
+email,first_name,last_name,imap_username,imap_password,imap_host,imap_port,smtp_username,smtp_password,smtp_host,smtp_port
+j.durand@leclient-roi.com,Juliette,Durand,j.durand@leclient-roi.com,VfQ3EmMkB7IoLf,imap.horus.maildoso.com,993,j.durand@leclient-roi.com,VfQ3EmMkB7IoLf,smtp.maildoso.com,587
+j.bernard@leclient-roi.com,Juliette,Bernard,j.bernard@leclient-roi.com,VfQ3EmMkB7IoLf,imap.horus.maildoso.com,993,j.bernard@leclient-roi.com,VfQ3EmMkB7IoLf,smtp.maildoso.com,587
+j.juste@leclient-roi.com,Juliette,Juste,j.juste@leclient-roi.com,VfQ3EmMkB7IoLf,imap.horus.maildoso.com,993,j.juste@leclient-roi.com,VfQ3EmMkB7IoLf,smtp.maildoso.com,587
+j.nguyen@leclient-roi.com,Juliette,Nguyen,j.nguyen@leclient-roi.com,VfQ3EmMkB7IoLf,imap.horus.maildoso.com,993,j.nguyen@leclient-roi.com,VfQ3EmMkB7IoLf,smtp.maildoso.com,587
